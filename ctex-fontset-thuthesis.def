@@ -2,13 +2,13 @@
 
 \ProvidesFile{ctex-fontset-thuthesis.def}
 
-\setCJKmainfont[BoldFont={SimHei},ItalicFont={KaiTi}]{SimSun}
-\setCJKsansfont{SimHei}
-\setCJKmonofont{KaiTi}
-\setCJKfamilyfont{zhsong}{SimSun}
-\setCJKfamilyfont{zhhei}{SimHei}
-\setCJKfamilyfont{zhkai}{KaiTi}
-\setCJKfamilyfont{zhfs}{FangSong}
+\setCJKmainfont[BoldFont={STHeiti},ItalicFont={STKaiti}]{STSong}
+\setCJKsansfont{STHeiti}
+\setCJKmonofont{STFangsong}
+\setCJKfamilyfont{zhsong}{STSong}
+\setCJKfamilyfont{zhhei}{STHeiti}
+\setCJKfamilyfont{zhkai}{STKaiti}
+\setCJKfamilyfont{zhfs}{STFangsong}
 \setCJKfamilyfont{zhli}{STLiti}
 \setCJKfamilyfont{zhyou}{Yuanti SC}
 
