@@ -1,0 +1,153 @@
+\section{Algorithm analysis and comparison}\label{se:Algorithm}
+Besides P-CSI, the convergence of PCG and ChronGear methods also rely on the two extreme eigenvalues of the coefficient matrix.
+Here, we first uncover the characteristics of the eigenvalues which affect the convergence of solvers, and then present the theoretical analysis on computational complexity and convergence rate of the ChronGear and P-CSI solvers.
+
+\subsection{Spectrum and Condition Number }
+The coefficient matrix $A$ in POP is symmetric positive-definite \citep{smith2010parallel}, thus its eigenvalues are positive real numbers \citep{stewart1976positive}. Assume that the spectrum \citep{golub2012matrix} of A is $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_N\}$, where  $\lambda_{min} = \lambda_1 \le \lambda_i \le \lambda_\mathcal{N} = \lambda_{max}$( $1<i <\mathcal{N}$, where $\mathcal{N}$ is the size of $A$ ) are eigenvalues of $A$.
+%Definition of the coefficients in \ref{defineA} shows that
+% \begin{align}
+% A_{i,j}^{O} = \sum_{\chi \in \{NW,NE,SW,SE,W,E,N,S\}}A_{i,j}^\chi
+% \end{align}
+Applying the  Gershgorin circle theorem \citep{bell1965gershgorin}, we know that for any $\lambda \in \mathcal{S}$, there exits a pair $(i,j)$ satisfying
+\begin{align}
+&|\lambda -  (A_{i,j}^O + \phi ) | \le \sum_{\chi \in \{NW,NE,SW,SE,W,E,N,S\}}|A_{i,j}^\chi|
+\end{align}
+With the definition of the coefficients in \ref{defineA}, we get
+\begin{align} \label{eigsGersh}
+&\lambda_{max} \le  \max (  5\alpha - \frac{1}{\alpha}, \frac{5}{\alpha}- \alpha) +\phi   \\
+&\lambda_{min} \ge 2\min (  \alpha - \frac{1}{\alpha},\frac{1} {\alpha} -  \alpha) + \phi
+\end{align}
+
+\begin {figure}[!htbp]
+\centering
+\includegraphics[height=6.5cm]{conditionNumberAspectRatio}
+\caption[] {Relationship between aspect ratio and the condition number of the coefficient matrix.\label{fig:conditionNumberRatio}}
+\end{figure}
+\begin {figure}[!htbp]
+\centering
+\includegraphics[height=6.5cm]{conditionNumberTimestep}
+\caption[] {Relationship between time step size and the condition number of the coefficient matrix.\label{fig:conditionNumberDt}}
+\end{figure}
+
+\begin {figure}[!htbp]
+\centering
+\includegraphics[height=6.5cm]{conditionNumberGridSize}
+\caption[] {Relationship between the number of grid points and the condition number of the coefficient matrix.\label{fig:conditionNumbGrid}}
+\end{figure}
+It tells that when the aspect ratio becomes closer to 1, the upper bound of the largest eigenvalue decreases as , while the lower bound of the smallest increases.
+That is,  the spectrum radius ($[\lambda_{min}, \lambda_{max}]$) decreases as the aspect ratio becomes closer to 1.
+When the aspect ratio of horizontal grid size is equal to one, that is $ \alpha = \frac{ \Delta y}{ \Delta x} = 1$, we get
+$\lambda_{max} \le  4 +\phi$,$\lambda_{min} \ge   \phi$.
+Then, the condition number (e.g. $\kappa=  \lambda_{max}/\lambda_{min}$), which is determined by the spectrum radius, also decreases when the aspect ratio becomes closer to 1..
+This conclusion is supported in Figure \ref{fig:conditionNumberRatio}. Figure \ref{fig:conditionNumberRatio} shows that with constant grid points $\mathcal{N} = 20\times 20$ and a constant $\phi = 0$,  the condition number of the coefficient matrix increases when the aspect ratio increases in the interval $(1, +\infty)$ or decrease in the interval $(0,1)$, and it reaches the minimum when the aspect ratio is 1.
+
+The lower bound of eigenvalues are determined by  $\phi=\frac{S }{g \tau^2 H}$, which is a factor of time step and the ratio between horizontal grid size and the ocean depth. It shows that the lower bound of the eigenvalues decreases when the time step increases. Correspondingly, the condition number of the coefficient matrix increases. This deduction is demonstrated in Figure \ref{fig:conditionNumberDt}, in which experiments are configured with  a constant grid size  $\mathcal{N} = 20\times 20$  and a constant aspect ratio $\Delta x /{\Delta y} = 1$.
+
+
+Regardless of the time step (e.g. assume that $\phi=0$), the analysis above shows that the spectrum radius is confined in $(0,4)$ when the aspect ratio is 1, no matter what the grid size is.
+However, the condition number of the coefficient matrix varies in a large range because the smallest eigenvalue becomes closer to zero when the grid size $\mathcal{N}$ increases. Figure \ref{fig:conditionNumbGrid} explains the relationship between condition numbers and grid sizes.
+
+
+\subsection{Convergence rate} \label{convergence_rate}
+
+The convergence rate of both PCG and ChronGear relies heavily on the condition number of the coefficient matrix $A$.
+\cite{dAzevedo1999lapack} demonstrated that ChronGear has the same theoretical convergence rate as PCG.
+In both PCG and ChronGear, the error in each iteration has an upper bound \citep{Liesen2004}
+\begin{equation}
+\frac{||\textbf{x}_k-\textbf{x}^*||_A }{||\textbf{x}_0-\textbf{x}^*||_A}  \le \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\lambda \in \mathcal{S}} |p(\lambda)| \label{PcgConvergeRate}
+\end{equation}
+where $\textbf{x}_k$ is the solution vector after the k-th iteration, $\textbf{x}^*$ is the solution of the linear equations (that is $\textbf{x}^* = A^{-1}b$), $\lambda$ represents an eigenvalue of $A$.
+Applying the Chebyshev polynomials of the first kind to estimate this min-max approximation, we get
+\begin{align}
+\label{chrongear_convergence}
+||\textbf{x}_k-\textbf{x}^*||_A \le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k ||\textbf{x}_0-\textbf{x}^*||_A
+\end{align}
+where   $\kappa =  \kappa_2(A)$ is the condition number of the matrix $A$.
+
+Equation \ref{chrongear_convergence} indicates that the theoretical bound of convergence rate of PCG increases with the condition number.
+PCG converges faster for well-conditioned matrix (e.g. matrix with small condition number) than ill-conditioned matrix.
+%The definition indicates that the convergence rate is actually determined by two extreme eigenvalues of the coefficient matrix.
+The actual convergence of PCG and ChronGear in the 0.1\degree\space ocean model component  is presented in Figure \ref{fig:convergence_diag}. As it shows, the relative residual decreases as the iteration number increases. To get a solution with a $10^{-13}$ relative error, about one hundred iterations is needed.
+
+Besides the elimination of global reductions, another feature of P-CSI is the fast convergence rate which has the same order with the one of PCG.
+The convergence rate of P-CSI Algorithm in the residual form satisfies
+\begin{equation}
+\textbf{r}_k = P_k(A)\textbf{r}_0 \label{eq:rPjr0}
+\end{equation}
+where
+$P_k(\zeta) = \frac{\tau_k(\beta-\alpha \zeta)}{\tau_k(\beta)}$ for $ \zeta \in [\nu, \mu]$ ~\citep{stiefel1958kernel} .
+$\tau_k(\xi)$ is a Chebyshev polynomial expressed as
+\begin{equation}
+\tau_k(\xi) =   \frac{1}{2}[(\xi+\sqrt{\xi^2-1})^k+(\xi+\sqrt{\xi^2-1})^{-k}]
+\end{equation}
+When $ \xi \in [-1,1]$, the Chebyshev polynomial has an equivalent form $\tau_k(\xi) = cos(k\cos^{-1} \xi)$, which clearly shows that $|\tau_k(\xi)| \le 1$ when $| \xi | \le 1$. $P_k(\zeta)$ is the polynomial satisfying that
+\begin{equation}
+P_k = \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\zeta \in [\nu,\mu]} |p(\zeta)|
+\end{equation}
+%which is the theoretical bound of the convergence rate  in PCG \ref{PcgConvergeRate}.
+
+Assume that $A= Q^T\Lambda Q$, where $\Lambda$ is a diagonal matrix having the eigenvalues of $A$ on the diagonal, and $Q$ is a real orthogonal matrix with the columns which are eigenvectors of $A$.
+Then we have
+\begin{equation}
+P_k(A) = Q^T P_k(\Lambda)Q = Q^T \left [\begin{array}{cccc}
+P_k(\lambda_1) & & &\\
+& P_k(\lambda_2) & &\\
+& & \ddots &\\
+ & & & P_k(\lambda_N)
+\end{array} \right ] Q \label{eq:PjMA}
+\end{equation}
+Assume that the estimated largest and smallest extreme eigenvalues of coefficient matrix $\nu$ and $\mu$ satisfies $0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \mathcal{N}$), then $|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$.
+Equation \ref{eq:rPjr0} and \ref{eq:PjMA} indicate that
+\begin{equation}
+\label{pcsi_convergence}
+\frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le  \tau_k^{-1}(\beta) = \frac{2(\beta+\sqrt{\beta^2-1})^k}{1+(\beta+\sqrt{\beta^2-1})^{2k}} \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
+\end{equation}
+where $\kappa' = \frac{\mu}{\nu}$.
+It shows that P-CSI has the same theoretical upper bound of convergence rate as PCG, when the eigenvalues estimation is appropriate (e.g. $\kappa' =\kappa$) .
+
+The analysis above still works for cases when a nontrivial preconditioning is used.
+The only difference is that the coefficient matrix is $M^{-1}A$ instead of $A$.
+It is worth mentioning that the preconditioned matrix in the PCG, ChronGear and P-CSI algorithms is actually  $M^{-1/2}A(E^{-1/2})^T$, which is symmetric and has the same set of eigenvalues as $M^{-1}A$ \citep{Shewchuk1994}. Thus the condition number of the preconditioned matrix is $\kappa =  \kappa_2(M^{-1/2}A(E^{-1/2})^T)$, which is usually smaller than the condition number of $A$.
+The closer $M$ is to $A$, the smaller the condition number of $M^{-1}A$. When $M = A$, then $\kappa_2(M^{-1 }A ) = 1$.
+
+When computing the ocean model component with small core counts, global reductions are not an issue so that the computing performance of P-CSI and ChronGear are close. When computing the high-resolution ocean model component with large core counts, P-CSI should be significantly faster than ChronGear per iteration because global reduction will become an obvious bottleneck in conjugate gradient method.
+
+
+\subsection{Computational complexity}  \label{subse:complex}
+Assume that $p$ is the number of processes and $\mathcal{N} $ is the number of grid points; following similar definition in \citet{hu2015improving}.
+The computational complexity of p-CSI is analyzed here and compared with ChronGear.
+
+For each ChronGear solver iteration, computation includes matrix-vector multiplication and vector-vector multiplication. Its complexity $\mathcal{T}_c = \mathcal{O}(15\frac{\mathcal{N}}{p})$, which decreases and has a lower limit of zero when the number of processes increases. Boundary updating occurs in the halo regions for each process, after operations like matrix-vector multiplication and non-diagonal preconditioning, which requires one or more boundary layers. The actual time depends on the network delay and the volume of the halo regions.  With a halo size of $2$, the volume in each boundary is $2\sqrt{\frac{\mathcal{N}}{p}}$ and decreases as the number of processes increases. Boundary communication complexity is $\mathcal{T}_b =\mathcal{O}(4\alpha + 8\sqrt{\frac{\mathcal{N}}{p}})$, where $\alpha$ is point-to-point communication latency per message.
+It shows that boundary updating time also decreases as the number of processes increases but has a lower bound.
+Global communication contains only one global reduction per iteration which contains a MPI\_allreduce and a masking operation to exclude land points. The cost of the masking operation should decrease with the number of processes $p$ while the cost of the MPI\_allreduce should monotonically increase, thus the global
+reduction complexity satisfies $\mathcal{T}_g= \mathcal{O}(2\frac{\mathcal{N}}{p} + \log p )$.
+
+%The expression $\mathcal{T}_g$ should therefore initially decrease followed by a monotonic increase with process count.
+%Note that the global reduction has virtually no data exchange since there are only two numbers from each process.
+%Let $T_0$ be the time unit of one floating-point operation and $B$ be the number of floating-point numbers transmitted by the network per second from process to process.
+%Provided that the processor frequency and network bandwidth are $S_{cpu}$ and $B_{net}$, and that their efficiencies are $R_{cpu}$ and $R_{net}$, then $T_0 = R_{cpu} S_{cpu}^{-1}$, and $B = \frac{1}{8}R_{net}B_{net}$.
+Combining all three components, the execution time of one diagonal preconditioned ChronGear solver step can be expressed as:
+\begin{eqnarray}
+\label{t_pcg}
+\mathcal{T}_{cg}=\mathcal{K}_{cg} (\mathcal{T}_c + \mathcal{T}_b+\mathcal{T}_g ) = \mathcal{O}(\mathcal{K}_{cg} (17\frac{\mathcal{N}}{p} +8\sqrt{\frac{\mathcal{N} }{p}}+ 4\alpha +\log p))
+%\end{tabular}
+\end{eqnarray}
+where $\mathcal{K}_{cg}$ is the number of iterations,
+which does not change with the number of processes \citep{hu2013scalable}. Equation (\ref{t_pcg}) shows that the time required for computation and boundary updating decreases as the number of processes increases. But the time required for the global reduction increases with increasing numbers of processes. Therefore, we expect the execution time of the ChronGear solver to increase when the number of processors exceeds a certain threshold.
+
+Applying the same analytical method , we get the computational complexity of P-CSI as
+\begin{eqnarray}
+\label{t_pcsi}
+\mathcal{T}_{pcsi}=\mathcal{O}(\mathcal{K}_{pcsi} (15\frac{\mathcal{N}}{p} +8\sqrt{\frac{\mathcal{N} }{p}} + 4\alpha))
+\end{eqnarray}
+where $K_{pcsi}$ is the number of iterations. The comparison of the complexities of ChronGear and P-CSI shows that P-CSI has a lower time computational complexity than ChronGear, because it does not contain the $\log p$ term inherited with global communications.
+
+In the case with the EVP preconditioning, the computational complexity becomes $\mathcal{T}_c = 37 \frac{\mathcal{N}}{p}$. Thus the computational complexity of P-CSI with EVP preconditioning is
+\begin{eqnarray}
+\label{t_pcsiEvp}
+\mathcal{T}_{pcsi-evp}=\mathcal{O}(\mathcal{K}_{pcsi-evp} (37\frac{\mathcal{N}}{p} +8\sqrt{\frac{\mathcal{N} }{p}} + 4\alpha))
+\end{eqnarray}
+It shows that the computing time in each iteration doubles with the EVP preconditioning.
+However, the total time may still decreases. With EVP preconditioning, the iteration number $\mathcal{K}_{pcsi-evp}$ decreases to almost one half (see Figure \ref{fig:convergence_diag}). As a result, the total number of communications, which is the most time-consuming part on large number of cores, when the computation time becomes relatively small, decreases to about one half.
+
+

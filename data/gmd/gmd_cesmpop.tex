@@ -1,0 +1,79 @@
+% This is LLNCS.DEM the demonstration file of
+% the LaTeX macro package from Springer-Verlag
+% for Lecture Notes in Computer Science,
+% version 2.4 for LaTeX2e as of 16. April 2010s
+%
+%\documentclass[journal abbreviation, manuscript]{copernicus}
+\documentclass[gmd, manuscript]{copernicus}
+%
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\DeclareGraphicsExtensions{.eps,.mps,.pdf,.jpg,.PNG}
+\DeclareGraphicsRule{*}{pdf}{*}{}
+\graphicspath{{./fig/}}
+
+\begin{document}
+
+\linenumbers
+
+%%\title{Scalable Barotropic Solver for High-resolution Ocean Models}
+\title{Accelerating the High-resolution Ocean Model Component in the Community Earth System Model}
+
+\author[1,2]{Xiaomeng Huang}
+\author[1]{Yong Hu}
+\author[3]{Yuheng Tseng}
+\author[3]{Allison H. Baker}
+\author[3]{Frank O. Bryan}
+\author[3]{John Dennis}
+\author[1]{Haohuan Fu}
+\author[1]{Guangwen Yang}
+
+\affil[1]{Ministry of Education Key Laboratory for Earth System Modeling, and Center for Earth System Science, Tsinghua University, Beijing, 100084, China}
+\affil[2]{Laboratory for Regional Oceanography and Numerical Modeling, Qingdao National Laboratory for Marine Science and Technology, Qingdao, 266237, China}
+\affil[3]{The National Center for Atmospheric Research, Boulder, CO, USA}
+%% The [] brackets identify the author to the corresponding affiliation, 1, 2, 3, etc. should be inserted.
+
+\runningtitle{Accelerating the High-resolution ocean model component in the Community Earth System Model}
+
+\runningauthor{X.M. Huang et al. }
+
+\correspondence{Xiaomeng Huang (hxm@tsinghua.edu.cn), Yuheng Tseng(ytseng@ucar.edu)}
+\received{}
+\pubdiscuss{} %% only important for two-stage journals
+
+\revised{}
+\accepted{}
+\published{}
+%% These dates will be inserted by the Publication Production Office during the typesetting process.
+\firstpage{1}
+
+%title
+
+\maketitle
+
+\begin{abstract}
+In the Community Earth System Model (CESM), the ocean model component is computationally expensive for high-resolution grids and is frequently the least scalable component of CESM for certain production experiments. The key problem is that the modified Preconditioned Conjugate Gradient (PCG) used to solve the barotropic mode scales poorly at the high core counts. We design a fast numerical solver to accelerate the high-resolution ocean simulation. The novel solver adopts a Chebyshev type iterative method to reduce the global communication cost in conjunction with an effective block preconditioner to reduce the iterations further. Comparing with the two origin solvers, it significantly reduces the global communication time and realizes a competitive convergence rate. The experimental results show that the simulation speed of the improved ocean model component with 0.1{\degree}  resolution achieves 10.5 simulated years per wall-clock day on 16,875 cores.
+\end{abstract}
+
+\input{introduction}
+\input{barotropic_solver}
+\input{method}
+\input{analysis}
+\input{results}
+\input{conclusion}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{acknowledgements}
+This work is supported in part by a grant from the National Natural Science Foundation of China (41375102), and the National Grand Fundamental Research 973 Program of China (No. 2014CB347800). Computing resources were provided by the Climate Simulation Laboratory at NCAR's Computational and Information Systems Laboratory (sponsored by the NSF and other agencies) and the National Energy Research Scientific Computing Center, a DOE Office of Science User Facility supported by the Office of Science of the U.S. Department of Energy under Contract No. DE-AC02-05CH11231.
+\end{acknowledgements}
+\bibliographystyle{copernicus}
+\bibliography{gmd_cesmpop_bib}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%% figures %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+\end{document}
+

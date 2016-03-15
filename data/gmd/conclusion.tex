@@ -1,0 +1,158 @@
+\conclusions \label{se:conc}
+We accelerated the high-resolution ocean model component in the CESM by implementing a new P-CSI ocean barotropic solver. This new solver adopts a Chebyshev type iterative method to avoid the global communication operations in conjunction with an effective EVP preconditioner to improve the computing performance further. Comparing with the origin solvers, it significantly reduces the global reductions and realizes a competitive convergence rate. These approaches and experiences in improving the performance of high-resolution ocean model component in CESM may be helpful to other climate models.
+
+\section{Code availability}
+The present P-CSI solver v1.0 is available at https://github.com/hxmhuang/PCSI.  These code are also included in the upcoming CESM public releases v2.0.
+
+\appendix
+\section{Algorithms} \label{algorithm}   %% Appendix A
+
+The procedure of PCG is shown as following \citep{smith2010parallel}: \\
+ \space \\
+Initial guess: $\textbf{x}_0$  \\
+Compute residual $\textbf{r}_0 = \textbf{b}- {\textbf{A}}\textbf{x}_0$ \\
+Set $\textbf{s}_0 =0$, $\beta_0=1$\\
+For $k = 1, 2, \cdots,  k_{max}$  do
+\begin{enumerate}
+\item $\textbf{r}'_{k-1} = \textbf{M}^{-1}\textbf{r}_{k-1} $  \label{pcg_scale1}
+\item $\beta_k = \textbf{r}_{k-1}^T\textbf{r}'_{k-1} $\label{pcg_dot1}
+\item $\textbf{s}_k = \textbf{r}'_{k-1} +(\beta_k/\beta_{k-1})\textbf{s}_{k-1} $ \label{pcg_scale2}
+\item $\textbf{s}'_k = \textbf{A}\textbf{s}_k   $ \label{pcg_mat}
+\item $\alpha_k =\beta_k/(\textbf{s}_k^T\textbf{s}'_k )$\label{pcg_dot2}
+\item $\textbf{x}_k= {\textbf{x}}_{k-1} +\alpha_k \textbf{s}_k   $ \label{pcg_scale3}
+\item $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{s}'_k  $\label{pcg_scale4}
+\item convergence\_check($\textbf{r}_{k}$)
+\end{enumerate}
+End Do \\
+
+Operations like  $\beta_k/\beta_{k-1}$ in line (\ref{pcg_scale2})) are scaler computations,  while $\alpha_k \textbf{s}_k$ in line (\ref{pcg_scale3}) are vector scalings.
+$\textbf{A}\textbf{s}_k$ in line (\ref{pcg_mat})) is a matrix-vector multiplication.
+Inner-products of vectors are  $\textbf{r}_{k-1}^T\textbf{r}'_{k-1}$ in line (\ref{pcg_dot1}) and $\textbf{s}_k^T\textbf{s}'_k$  in line (\ref{pcg_dot2})).
+
+
+The procedure of ChronGear is shown as following : \\
+ \space \\
+Initial guess: $\textbf{x}_0$  \\
+Compute residual $\textbf{r}_0 = \textbf{b}- {\textbf{A}}\textbf{x}_0$ \\
+Set $\textbf{s}_0 =0$, $\textbf{p}_0 =0$, $\rho_0=1$, $\sigma_0=0$ \\
+For $k = 1, 2, \cdots,  k_{max}$  do
+\begin{enumerate}
+\item $\textbf{r}'_{k} =\textbf{M}^{-1}\textbf{r}_{k-1} $  \label{cg_scale0}
+\item $\textbf{z}_k = \textbf{A}\textbf{r}'_{k}$  \label{cg_mat}
+\item $\rho_k = \textbf{r}_{k-1}^T\textbf{r}'_{k}$\label{cg_dot1}
+\item $\sigma_k = \textbf{z}_k^T\textbf{r}'_k - \beta_k^2\sigma_{k-1}$\label{cg_sigma}
+\item $\beta_k = \rho_k / \rho_{k-1}$\label{cg_beta}
+\item $\alpha_k = \rho_k /\sigma_{k}$\label{cg_alpha}
+\item $\textbf{s}_k = \textbf{r}'_{k} +\beta_k\textbf{s}_{k-1}$\label{cg_scale1}
+\item $\textbf{p}_k = \textbf{z}_{k} +\beta_k\textbf{p}_{k-1}$\label{cg_scale2}
+\item $\textbf{x}_k =\textbf{x}_{k-1} +\alpha_k \textbf{s}_k$\label{cg_scale3}
+\item $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{p}_k$
+\item convergence\_check($\textbf{r}_{k}$)
+\end{enumerate}
+End Do \\
+
+
+The pseudo code of the P-CSI algorithm  is shown as \\
+ \space \\
+Initial guess: $\textbf{x}_0$, estimated eigenvalue boundary $[\nu,\mu]$\\
+Set $\alpha =\frac{2}{\mu -\nu}$, $ \beta = \frac{\mu +\nu}{\mu -\nu}$, $\gamma = \frac{\beta}{\alpha}$, $\omega_0 =\frac{ 2}{\gamma}$ \\
+Compute residual $\textbf{r}_0 = \textbf{b}- {\textbf{A}}\textbf{x}_0$, $\Delta \textbf{x}_{0} = \gamma^{-1}\textbf{M}^{-1}\textbf{r}_0$, $\textbf{x}_1 =\textbf{x}_0 +\Delta \textbf{x}_{0}$, $\textbf{r}_1 =\textbf{b} -\textbf{A}\textbf{x}_1$ \\
+For $k = 1, 2, \cdots,  k_{max}$  do
+\begin{enumerate}
+\item $\omega_k  = 1/(\gamma - \frac{1}{4\alpha^2}\omega_{k-1})$
+\item $\textbf{r}'_{k}=\textbf{M}^{-1}\textbf{r}_{k}$
+\item $\Delta \textbf{x}_{k} =\omega_k\textbf{r}'_{k}+(\gamma \omega_k-1)\Delta \textbf{x}_{k-1}$
+\item $\textbf{x}_{k+1} =\textbf{x}_{k}+\Delta \textbf{x}_{k}$
+\item $\textbf{r}_{k+1} =\textbf{b}- \textbf{A}\textbf{x}_{k+1}$
+\item convergence\_check($\textbf{r}_{k}$)
+\end{enumerate}
+End Do \\
+
+
+\section{Eigenvalue Estimation}                               %% Appendix A1, A2, etc.
+The procedure of Lanczos method to estimate the extreme eigenvalues of $M^{-1}A$ matrix\\
+\space \\
+Initial guess: $\textbf{r}_0$\\
+Set $\textbf{s}_0=\textbf{M}^{-1}\textbf{r}_0$;  $\textbf{q}_1 = \textbf{r}_0/({\textbf{r}_0^T\textbf{s}_0})$; $\textbf{q}_0=\textbf{0}$;  $\beta_0 =0$;\quad  $\mu_0 =0$; $T_0=\emptyset$   \\
+For $j = 1, 2, \cdots,  m$  do
+\begin{enumerate}
+\item $\textbf{p}_j = \textbf{M}^{-1}\textbf{q}_j  $
+\item $ \textbf{r}_j =\textbf{A}\textbf{p}_j-\beta_{j-1}\textbf{q}_{j-1} $
+\item $\alpha_j =\textbf{p}_j^T\textbf{r}_j $
+\item $\textbf{r}_j =\textbf{r}_j-\alpha_{j}\textbf{q}_{j} $
+\item $\textbf{s}_j = \textbf{M}^{-1}\textbf{r}_j $
+\item $\beta_j = \textbf{r}_j^T\textbf{s}_j $
+\item $\textbf{if} \quad\beta_j == 0\quad \textbf{then}\quad \textbf{return}  $
+\item $\mu_j = max(\mu_{j-1},\alpha_j+\beta_j+\beta_{j-1})  $\label{lan_gersh}
+\item $T_j=tri\_diag(T_{j-1},\alpha_j,\beta_j) $\label{lan_tm}
+\item $\nu_j = eigs(T_j, 'smallest')  $ \label{lan_nu}
+\item $\textbf{if} |\frac{\mu_j}{\mu_{j-1}} -1 | < \epsilon\quad\textbf{and}\quad|1- \frac{\nu_j}{\nu_{j-1}}|< \epsilon \quad\textbf{then} \quad\textbf{return}    $\label{lanczos_converge}
+\item $\textbf{q}_{j+1}= \textbf{r}_j/\beta_j $
+\end{enumerate}
+End Do \\
+
+
+In step (\ref{lan_tm}), $T$ is a tridiagonal matrix that contains $\alpha_j(j=1,2,...,m)$ as the diagonal entries and $\beta_j (j=1,2,...,m-1)$ as the off-diagonal entries.
+\[ T_{m} =  \left[\begin{array}{ccccc}
+\alpha_1 & \beta_1 &   &  &   \\
+\beta_1 &\alpha_2 &\beta_2    &   &     \\
+& \beta_2 &\ddots &\ddots &\\
+& & \ddots& \ddots& \beta_{m-1}\\
+& &&  \beta_{m-1}& \alpha_m
+\end{array} \right]\]
+
+Let $\xi_{min}$ and $\xi_{max}$ be the smallest and largest eigenvalues of $T_m$, respectively. \citet{Paige1980235} demonstrated that
+%\begin{equation}
+$\nu \le \xi_{min} \le \nu+\delta_1(m)$ and $\mu -\delta_2(m)  \le \xi_{max} \le \mu$.
+%\end{equation}
+As $m$ increases, $\delta_1(m)$ and $\delta_2(m)$ will gradually close to zero. Thus, the eigenvalue estimation of $M^{-1}A$ is transformed to solve the eigenvalues of $T_m$.
+Step \ref{lan_gersh} in eigenvalues estimation employs the Gershgorin circle theorem to estimate the largest eigenvalue of $T_m$, that is,
+%\begin{equation}
+$\mu = \max_{1 \le i \le m}\sum^m_{j=1}|T_{ij}|=\max_{1 \le i \le m}(\alpha_i +\beta_{i}+\beta_{i-1})$.
+%\end{equation}
+The efficient QR algorithm ~\citep{ortega1963llt} with a complexity of $\Theta(m)$ is used to estimate the smallest eigenvalue $\nu$ in step (\ref{lan_tm}).
+
+\section{Block preconditioning}
+\begin {figure}[!htbp]
+\centering
+\includegraphics[width=7cm, height=7.0cm]{blockpreconditioning.eps}
+\caption[] {Sparsity pattern of the coefficient matrix developed from nine-point stencils.
+The whole domain is divided into $3\times3$ non-overlapping blocks.
+Elements in red rectangles are coefficients between points in blocks.
+Elements in blue rectangles are coefficients between points from the $i$-th block and its neighbor blocks. \label{fig:blockprecond}}
+\end{figure}
+
+To the new block EVP preconditioner, we first briefly review a general block preconditioner, as illustrated by Figure \ref{fig:blockprecond}.  If the linear system of $\mathcal{N} \times \mathcal{N}$ grid points is reordered block-by-block with size of $n\times n$ (e.g., $\mathcal{N}/3\times \mathcal{N}/3$ in Figure \ref{fig:blockprecond}), then coefficient matrix $A$ can be represented by a nine-diagonal block matrix. Each row of this matrix contains nine sub-matrices.  Each $B_i$ (red blocks) is a block matrix containing coefficients of the grid points in the i-th block, which share the same structure as $A$ but have a smaller size ($n^2\times n^2$).  $B_i^e$, $B_i^w$, $B_i^n$ and $B_i^s$ are block matrices containing coefficients of points on east, west, north and south boundaries and the points on their respective neighboring blocks, thus having at most $3n$ nonzero elements distributed on $n$ rows. $B_i^{nw}$, $B_i^{ne}$, $B_i^{sw}$ and $B_i^{se}$ have only one nonzero element, representing the coefficient of corner points and their neighboring points on the northwest, northeast, southwest and southeast blocks.  The traditional block preconditioning method constructs the approximate inverse of $A$ by sequentially factorizing it with approximations of $B_i^{-1}$, which is ill-suited for parallel applications.  In contrast, the inverse of the block diagonal of $A$, which provides a good approximation for $A$, can be calculated naturally in parallel.  The inverse of the diagonal block matrices $M$  is
+\begin{eqnarray*}
+M^{-1}=    \left [
+        \begin{array}{ccccccc}
+        B_1^{-1} &   &  \\
+         & \ddots&  \\
+        &   &  B_{m^2}^{-1} \\
+    \end{array}
+    \right ]
+\end{eqnarray*}
+
+Therefore, the preconditioning process $\textbf{x}= M^{-1}\textbf{y}$ is typically transformed into solving the sparse linear equations $B_i \textbf{x}_i = \textbf{y}_i (i=1,2,...,n)$ for each block and solving the equations by LU decomposition, instead of explicitly constructing the inverse of $B$ matrix. The computational complexity of solving these equations with LU decomposition is $\mathcal{O}(n^4)$. With our block Error Vector
+Propagation (EVP) preconditioner, the computational complexity of solving the equations $B_i \textbf{x}_i =\textbf{y}_i$ can be reduces to $\mathcal{O}(n^2)$, where the size of $B_i$ is $n^2\times n^2$.
+
+We rewrite the equation (\ref{eq:sten}) into the following form so that we can march the northeastward solution assuming all other neighboring points are exactly known
+\begin{align}
+\label{eq:evp9p}
+\eta_{i+1,j+1} &= (\psi_{i,j} - A_{i,j}^0\eta_{i,j}-A_{i,j}^e\eta_{i+1,j} -A_{i,j}^n\eta_{i,j+1}-A_{i-1,j}^{ne}\eta_{i-1,j+1}  \nonumber\\
+&+A_{i-1,j}^e\eta_{i-1,j} -A_{i-1,j-1}^{ne}\eta_{i-1,j-1}-A_{i,j-1}^n\eta_{i,j-1}- A_{i+1,j-1}^{ne}\eta_{i,j-1} )/A_{i,j}^{ne}
+\end{align}
+
+The EVP method works as follows. Figure \ref{fig:evp9p} illustrates a Dirichlet boundary elliptic equation $\mathcal{B}\textbf{x} = \psi$ on a small domain.  We define the interior points next to the south and west boundaries as the initial guess points $\textbf{e}$ and those next to the north and east boundaries are the final boundary points $\textbf{f}$ (e.g., $\textbf{e}= \{E_1, \dots, E_7\}$, $\textbf{f}= \{F_1, \dots, F_7\}$).  If the true solution on $\textbf{e}$ is
+known, the exact values over the whole domain can be computed sequentially from southwest to northeast corners, using equation
+(\ref{eq:evp9p}). This procedure is named as marching. Unfortunately, the value on $\textbf{e}$ is often not known until the elliptic equation is solved.  However, we can get a solution $\textbf{x}$ satisfying the elliptic equation on the whole domain except on the boundary, by first guessing the value
+$\textbf{x}|_\textbf{e}$ on $\textbf{e}$ and then calculating the rest using the marching method.  Then $E=(\textbf{x} -\eta)|_\textbf{e}$
+and $F=(\textbf{x} -\eta)|_\textbf{f}$ are error vectors on $\textbf{e}$ and $\textbf{f}$, respectively.  The error vector $F$ is already known since $\textbf{f}$  satisfies Dirichlet boundary condition.  The relationship between the error on initial guess points and the final boundary points can be represented as $F=W*E$.  This influence coefficient matrix $W$ can be formed by marching on the whole domain with unit vectors on the initial guess points and zero residual value in the whole domain.
+
+
+\begin {figure}[!htbp]
+\centering
+%\includegraphics[width=0.8\linewidth]{evp9pmarch1.png}
+\includegraphics[height=6cm]{evp9pmarch1.png}
+\caption []{EVP marching method for nine-point stencil. The solution on point $(i+1,j+1)$ can be calculated using the equation on point $(i,j)$, providing solutions on other neighbor points of point $(i,j)$.  \label {fig:evp9p}}
+\end {figure}

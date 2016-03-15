@@ -1,0 +1,97 @@
+\section{Experimental results} \label{se:exp}
+To evaluate our new P-CSI solver, we first conduct an idealized test case to demonstrate that P-CSI has the ability to solve problems in a range of situations as wide as PCG (thus ChronGear). Then, the performance of P-CSI in CESM POP is evaluated and compared with the original solver in POP.
+
+\subsection{Idealized Test Case}
+To confirm the theoretical results of convergence in section \ref{convergence_rate}, we created a bundle of matrices with different condition numbers in a idealized test case.
+Instead of a constant grid size, we choose the grid in a uniform latitude-longitude grid where the grid size along longitude varies with latitude coordinate $\theta$, that is $\Delta x_j  = \pi R \cos (\theta_j)$.
+The time step size is set to be $\tau = 10\frac{\Delta y}{c}$, where $c = 200m/s$ is the speed of the fast gravity wave \citep{smith2010parallel}.
+The problem is solved with both PCG and P-CSI with a unity preconditioning, diagonal preconditioning and EVP preconditioning respectively. Here, the block size in EVP preconditioning is $5\times5$,
+the convergence tolerance is $tol = 10^{-6}$.
+It is worth mentioning that ChronGear and PCG converge at the same iteration number, thus the results of iterations number in PCG are also the results in ChronGear.
+
+\begin {figure}[!htbp]
+\centering
+\includegraphics[height=6.5cm]{iterationGridSize}
+\caption[] {Relationship between grid sizes and iteration numbers of different solvers.\label{fig:iterationGridSize}}
+\end{figure}
+As shown in Figure \ref{fig:iterationGridSize}, as the problem size increases, the coefficient matrix becomes worse conditioned. All solvers have to iterate more to get the same relative residual.
+For both PCG and P-CSI, the convergence rate varies from preconditioning to preconditioning.
+Given the same problem size, solvers with a unity preconditioning has the largest number of iterations, while the least number of iterations with the EVP preconditioning.
+It confirms that with EVP preconditioning, the matrix becomes better conditioned than the one with unity preconditioning or diagonal preconditioning.
+It also shows that with the same preconditioning method, P-CSI has a slower convergence rate than PCG.
+
+
+
+\subsection{Experiment Platform and Configuration}
+We evaluate the performance of P-CSI in CESM1.2.0 on the Yellowstone supercomputer, located at NCAR-Wyoming Supercomputing Center (NWSC) \citep{loft:2015}. Yellowstone uses  Intel Xeon E5-2670 (Sandy Bridge: 8 cores @ 2.6 GHz, hyperthreading enabled, 20 MB shared L3 cache) and provides a total of 72,576 cores connected by a 13.6 GBps InfiniBand network. More than 50\% of its usage is to run CESM \citep{wf2014}. Therefore, obtaining good performance is a critical role for Yellowstone to support climate model.
+
+To focus on the performance of the high-resolution POP within the CESM, we use the finest 0.1\degree\space grid POP with ``G\_NORMAL\_YEAR'' configuration which uses active ocean and sea ice components (i.e., the atmosphere and land components are data-driven).
+The I/O optimization is also another important issue for the high-resolution POP \citep{huang2014fast} but will not addressed here.
+%, and the consistency evaluating of our simulation results is discussed in our another work \citep{baker2016evaluating}. We will not pursue these issues any further. The interested reader can find many more details in these papers.
+
+With high-resolution ocean model component, the choice of ocean block size and layout has a large impact on performance because it affects the distribution of workload among processors.
+To remove the influence of different block distribution on our results, we carefully specify block decompositions for each core with the same ratio.  The time step is set to the default 500 time steps per day (dt\_count = 500). For the sake of fairness, we checked for convergence every 10 iterations for all solvers.
+
+\subsection{Performance of CSI method}
+In the first experiment, we  test the performance difference among three solvers with a diagonal preconditioner: PCG, ChronGear and  P-CSI. Figure \ref{fig:convergence_diag} shows the convergence rate of different barotropic solvers. The horizontal axis is the number of iterations. The vertical axis is the relative residual. Although ChronGear adjusts the computation orders of PCG, the convergence rates of PCG and ChronGear keep almost the same for every iteration.
+P-CSI has slower converge rate at the beginning and the end parts of iterations, which is related to the distribution of the coefficient matrix's eigenvalues.
+
+\begin {figure}[!htbp]
+\includegraphics[width=10cm,height=6cm]{Convergence_diag.eps}
+\caption[] {The convergence rate of different barotropic solvers. \label{fig:convergence_diag}}
+\end{figure}
+
+Through a number of experiments, we set the Lanczos convergence tolerance $\epsilon$ to $0.15$ to obtain fast convergence rate and reasonable relative residual. Generally, we can estimate the largest and smallest eigenvalues in no more than 50  Lanczos steps. It makes P-CSI resulting in near-optimal convergence.
+
+\begin {figure}[t!]
+\includegraphics[width=11cm,height =6cm]{solverscomp}
+\caption[] {The execution time for different phases in the barotropic solvers. \label{fig:component1}}
+\end {figure}
+
+Figure \ref{fig:component1} shows more detailed timing for the different phases in barotropic solvers. It is clear that the P-CSI outperforms ChronGear primarily due to fewer global reductions.
+No obvious difference can be found for the boundary updating and the computation phases when using large core counts.
+The reduction in global communications will also significantly reduce the sensitivity of the ocean model component to operating system noise \citep{ferreira} by increasing the time interval between global synchronization.
+
+\subsection{Performance of EVP preconditioner}\label{sec:exp-preconditioner}
+In the second experiment, we test the effectiveness of the EVP preconditioner used in the P-CSI solver. Figure \ref{fig:convergence_pcsi} shows the convergence rates of P-CSI with three kinds of preconditioners: unit matrix preconditioner, diagonal preconditioner, EVP preconditioner.
+Different preconditioners can decrease the number of iterations efficiently (Comparing Figure \ref{fig:convergence_pcsi} with Figure \ref{fig:convergence_diag}).
+With a unit matrix preconditioner (e.g. P-CSI with a unit matrix is equal to CSI), the P-CSI needs 350 iterations to achieve $10^{-15}$ relative residual.
+The iterations is  significantly reduced to about 100 and 200 steps for EVP and diagonal preconditioners, respectively.
+It means that the preconditioned matrix $M^{-1}A$ has a smaller condition number than the original matrix $A$.
+
+As a result, Figure \ref{fig:component2} shows that the EVP preconditioner decreases not only  the execution time of global reduction, but also the execution time of boundary updating because of the number of iterations is reduced.
+These results are consistent with the theoretical results in section \ref{subse:complex}.
+In the mean time, the extra computations operations required by the EVP preconditioner have little effect on the performance of barotropic solver.
+
+\begin {figure}[!t]
+\includegraphics[width=11cm,height=6cm]{Convergence_pcsi.eps}
+\caption[] {The convergence rate of P-CSI solver with different preconditioners. \label{fig:convergence_pcsi}}
+\end{figure}
+
+\begin {figure}[t!]
+\includegraphics[width=11cm,height =6cm]{pcsicomp}
+\caption[] {The execution time for different phases with different preconditioners in the P-CSI solvers. \label{fig:component2}}
+\end {figure}
+
+
+\subsection{Simulated speed}
+In the last experiment, we compare the simulated speed of P-CSI and ChronGear on different scale cores, which the numbers of cores is increased from 470$\sim$16,875 cores.
+For individual analysis according to barotropic mode, as shown in Figure \ref{fig:runtime01}, the ChronGear solver begins to degrade after about 2700 cores, while the execution time for P-CSI becomes relatively flat at that point.  Using EVP preconditioner, P-CSI can accelerate the barotropic mode from 19.0 seconds to 4.4 seconds per simulation day on 16,875 cores. \cite{dennis2012computational} indicated that 5 simulated years per wall-clock day is the minimum rate required to run long term climate simulations. For complete ocean model component, Figure \ref{fig:runtime01} shows that the simulated speed of P-CSI achieves10.5 simulated years per wall-clock day on 16,875 cores,  while the old version using ChronGear and diagonal preconditioner only achieves 6.2 simulated years per wall-clock day at the same scale. In Section \ref{se:baro}, we demonstrated that the original barotropic solver takes an increasing percentage of the ocean model component execution time as the number of cores increases. In particular, ChronGear with diagonal preconditioning accounts for about 50\% of the total execution time on 16,875 cores. In contrast, Figure \ref{fig:StepComp_pcsi} illustrates the improvement of the barotropic mode with the scalable P-CSI solver, which constitutes only about 16\% of the total execution time on 16,875 cores.
+
+\begin {figure}[t!]
+\includegraphics[height =6.5cm]{NEW01deg_solverruntime}
+\caption []{The execution time for P-CSI solver with different preconditioners in the 0.1\degree\space ocean model component for one simulation day on Yellowstone.\label {fig:runtime01}}
+\end {figure}
+
+\begin {figure}[t!]
+\includegraphics[height =6.5cm]{NEW01deg_speedup_ys}
+\caption []{The  simulated speed of the 0.1\degree\space ocean model component on Yellowstone.\label {fig:simrate01}}
+\end {figure}
+
+\begin {figure}[t!]
+\centering
+%\vspace{-10pt}
+%\includegraphics[width=1.0\linewidth]{POPStepComp_pcsi.eps}
+\includegraphics[height=6cm]{NEWPOPStepComp_pcsi.eps}
+\caption[] {Percentage of execution time in the 0.1\degree\space ocean model component using P-CSI.\label{fig:StepComp_pcsi}}
+\end{figure}

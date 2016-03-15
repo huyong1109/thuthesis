@@ -1,0 +1,47 @@
+%----------------------------------------------------------------------------
+\section{Design of the P-CSI Solver} \label{se:pcsi}
+%----------------------------------------------------------------------------
+The PCG  solver usually are faster than the stationary iterative methods such as Jacobi method, Gauss-Seidel method and the Successive over-relaxation method, because of its fast convergence speed \citep{golub2012matrix}.
+However, PCG requires  inner products to determine the step size, which could take much time on large-scale parallelism.
+Although ChronGear mitigates the bottleneck of global communications, its performance is still limited by the inherent poor data locality and the remaining global communication operations. To accelerate the solving the linear system in ocean model component, we need to reduce the global communications as much as possible, as well as keep a close convergence rate as PCG.
+
+\subsection{Classical Stiefel iterative method}
+The CSI is a special kind of Chebyshev Iterative methods \citep{stiefel1958kernel}, which was revisited by \citeauthor{gutknecht2002chebyshev} (\citeyear{gutknecht2002chebyshev})
+and identified to be ideal for massively parallel computers. As early as 1985, Saad et al.~\citeyear{saad1985solving} proposed a generalization of CSI on linearly connected processors and claimed that this approach performs better than the conjugate gradient method when the eigenvalues are known.
+
+In the procedure of P-CSI (details of P-CSI is presented in \ref{algorithm}), the iteration parameters which control the searching directions in iteration steps,
+are derived from a stretched Chebyshev function of two extreme eigenvalues.
+As a result, this approach requires no inner product operation, potentially avoiding the bottleneck of global reduction (see the workflow of ChronGear and P-CSI in Figure \ref{fig:pcsi_pcg}).
+It is clear to see that the P-CSI is more scalable than ChronGear on massively parallel architectures. However, it requires a priori knowledge about the spectrum of coefficient matrix $A$ \citep{gutknecht2002chebyshev}. It is well-known that obtaining the eigenvalues is equivalent to solving a linear system of equation.
+Fortunately, the coefficient matrix $A$ and its preconditioned form in the POP are both real symmetric, positive definite matrices. Approximate estimation of the largest and smallest eigenvalues, $\mu$ and $\nu$, respectively, of the preconditioned coefficient matrix is sufficient to ensure the convergence of P-CSI.
+
+To get the eigenvalues estimations, we adopt the efficient Lanczos method ~\citep{Paige1980235} to estimate the extreme eigenvalues.
+Since preconditioning is used in our case, we need to estimate the extreme eigenvalues of $M^{-1}A$ matrix.
+The procedure of eigenvalues estimations presented in Appendix \ref{algorithm}.
+Tests indicate that only a small number of Lanczos steps are necessary to generate eigenvalue estimates of $M^{-1}A$ that result in near-optimal P-CSI convergence. That means that the computational overhead of eigenvalue estimates  is very small in our case.
+
+\begin {figure}[!htbp]
+\begin{center}
+\includegraphics[width=12cm,height=6cm]{pcsi_pcg.png}
+\caption []{Workflow of ChronGear and P-CSI iterations when four processes are used. \label{fig:pcsi_pcg}}
+\end{center}
+\end {figure}
+
+
+\subsection{A block EVP preconditioner} \label{se:evp}
+Block preconditioning is an promising parallel preconditioner in POP because it makes use of the block structure of the coefficient matrix that arises from discretization of the elliptic equations.
+A block preconditioning based on the EVP method is proposed and detailed in \citet{hu2015improving} to improve the parallel performance of the barotropic solver in the POP.
+To the best of our knowledge, the EVP approach and its variants are one of the least costly algorithms for solving elliptic equation in serial \citep{roache1995elliptic},
+which have been used in several different Ocean models \citep{dietrich1987ocean,sheng1998candie,tseng2011parallel}. The parallel EVP solver is also implemented in \citet{tseng2011parallel}.
+Theoretically, the EVP approach is a direct solver, which requires two steps: preprocessing and solving.
+In the preprocessing step, the influence coefficient matrix and its inverse are computed, involving a computational complexity of $\mathcal{C}_{pre} = (2n-5)* 9n^2 + (2n-5)^3 = \mathcal {O} (26n^3)$, which is intensive but only needs to computed once at the beginning.
+Obtaining the solution in each solving step is inexpensive and requires only $\mathcal{C}_{evp}= 2* 9n^2 + (2n-5)^2 = \mathcal{O} (22n^2)$ \citep{hu2015improving}.
+This indicates that the EVP has lower computational cost for the solver step than other direct solvers such as LU.
+
+The EVP method is an efficient option for solving elliptic equations. However, a major drawback of the standard EVP is that, without applying additional modifications, it cannot be used on a large domain due to its error propagation and numerical instabilities in the marching process \citep{roache1995elliptic}.
+The fact that the EVP is not well-suited for large domains indeed poses no issue for large-scale parallel computing, where a larger number of processors results in smaller domains.
+The serial disadvantage becomes an advantage in parallel computing. On a small block up to the size of $12\times 12$, EVP solves with an acceptable round-off error of $\mathcal{O}(10^{-8})$ when double-precision floating-point is used.
+This can even make the EVP ideal for parallel block preconditioning on a large number of cores.
+
+Although the EVP preconditioning doubles the computation in each iteration, it halves both global and boundary communications which dominate in the barotropic execution time at the high core counts. This advantage will be tested and verified in Section \ref{sec:exp-preconditioner}.
+The implementation of EVP preconditioning significantly reduces the number of iterations for both the ChronGear and P-CSI solvers \citep{hu2015improving}.

@@ -1,0 +1,342 @@
+%
+% ================= IF YOU HAVE QUESTIONS =======================
+% Questions regarding the SIGS styles, SIGS policies and
+% procedures, Conferences etc. should be sent to
+% Adrienne Griscti (griscti@acm.org)
+%
+% Technical questions _only_ to
+% Gerald Murray (murray@hq.acm.org)
+% ===============================================================
+%
+% For tracking purposes - this is V2.0 - May 2012
+
+\documentclass{sig-alternate-05-2015}
+\usepackage{gensymb}  %format of algorithm
+\usepackage{algorithm}  %format of algorithm
+\usepackage{algorithmic}  %format of algorithm
+\renewcommand{\algorithmiccomment}[1]{ \hfill {/* #1 */} }
+\usepackage{graphicx}
+\usepackage{epstopdf}
+
+
+
+\DeclareGraphicsExtensions{.eps,.mps,.pdf,.jpg,.PNG}
+\DeclareGraphicsRule{*}{pdf}{*}{}
+\graphicspath{{./fig/}}
+
+\usepackage{color}
+\newcommand{\hl}[1]{\textcolor{red}{#1}}
+
+\newcommand{\superscript}[1]{\ensuremath{^{\textrm{#1}}}}
+\def\sharedaffiliation{\end{tabular}\newline\begin{tabular}{c}}
+\def\thua{\superscript{\dag}}
+\def\thub{\superscript{\ddag}}
+\def\ncara{\superscript{*}}
+\def\ncarb{\superscript{\P}}
+
+\begin{document}
+%
+% --- Author Metadata here ---
+\setcopyright{usgovmixed}
+\conferenceinfo{SC '15,}{November 15-20, 2015, Austin, TX, USA}
+\isbn{978-1-4503-3723-6/15/11}\acmPrice{\$15.00}
+\doi{http://dx.doi.org/10.1145/2807591.2807596}
+
+
+%\conferenceinfo{SC'15}{November 15-20, 2015, Austin, Texas, USA.}
+%\CopyrightYear{2007} % Allows default copyright year (20XX) to be over-ridden - IF NEED BE.
+%\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
+% --- End of Author Metadata ---
+
+%\title{Alternate {\ttlit ACM} SIG Proceedings Paper in LaTeX
+%Format\titlenote{(Produces the permission block, and
+%copyright information). For use with
+%SIG-ALTERNATE.CLS. Supported by ACM.}}
+%\subtitle{[Extended Abstract]
+%\titlenote{A full version of this paper is available as
+%\textit{Author's Guide to Preparing ACM SIG Proceedings Using
+%\LaTeX$2_\epsilon$\ and BibTeX} at
+%\texttt{www.acm.org/eaddress.htm}}}
+
+\title{Improving the Scalability of the Ocean Barotropic Solver \\in the Community Earth System Model}
+%
+% You need the command \numberofauthors to handle the 'placement
+% and alignment' of the authors beneath the title.
+%
+% For aesthetic reasons, we recommend 'three authors at a time'
+% i.e. three 'name/affiliation blocks' be placed beneath the title.
+%
+% NOTE: You are NOT restricted in how many 'rows' of
+% "name/affiliations" may appear. We just ask that you restrict
+% the number of 'columns' to three.
+%
+% Because of the available 'opening page real-estate'
+% we ask you to refrain from putting more than six authors
+% (two rows with three columns) beneath the article title.
+% More than six makes the first-page appear very cluttered indeed.
+%
+% Use the \alignauthor commands to handle the names
+% and affiliations for an 'aesthetic maximum' of six authors.
+% Add names, affiliations, addresses for
+% the seventh etc. author(s) as the argument for the
+% \additionalauthors command.
+% These 'additional authors' will be output/set for you
+% without further effort on your part as the last section in
+% the body of your article BEFORE References or any Appendices.
+
+% \numberofauthors{6}
+% \author{
+% % 1st. author
+% \alignauthor
+% Yong Hu\titlenote{
+% Ministry of Education Key Laboratory for Earth System Modeling, Center for Earth System Science,
+% and Joint Center for Global Change Studies, Beijing, 100875, China. }
+% \\
+% %  \affaddr{Department of Computer Science \& Technology }\\
+%  % \affaddr{Center for Earth System Science } \\
+%   \affaddr{Tsinghua University} \\
+%   \affaddr{Beijing, China} \\
+%   \email{huyong11@tsinghua.edu.cn}
+% % 2nd
+% \alignauthor
+% Xiaomeng Huang\raisebox{9pt}{$\ast$} \\
+% %\affaddr{Center for Earth System Science } \\
+%  \affaddr{Tsinghua University} \\
+%   \affaddr{Beijing, China} \\
+%   \email{hxm@tsinghua.edu.cn}
+% %3rd
+% \alignauthor
+% Allison H. Baker\\
+% %\affaddr{Computational and Information Systems Laboratory}\\
+%    \affaddr{National Center for Atmospheric Research}\\
+%    \affaddr{Boulder, CO}\\
+%    \email{abaker@ucar.edu}
+% %more
+% \and
+% \alignauthor
+% Yu-heng Tseng\\
+%  % \affaddr{Climate and Global Dynamics Division} \\
+%   \affaddr{National Center for Atmospheric Research}\\
+%   \affaddr{Boulder, CO}\\
+%   \email{ytseng@ucar.edu}
+% \alignauthor
+% Frank O. Bryan\\
+% % \affaddr{Climate and Global Dynamics Division} \\
+%   \affaddr{National Center for Atmospheric Research}\\
+%   \affaddr{Boulder, CO}\\
+%   \email{bryan@ucar.edu}
+% \alignauthor
+% John M. Dennis\\
+% % \affaddr{Climate and Global Dynamics Division} \\
+%   \affaddr{National Center for Atmospheric Research}\\
+%   \affaddr{Boulder, CO}\\
+%   \email{dennis@ucar.edu}
+% \alignauthor
+% Guangwen Yang\raisebox{9pt}{$\ast$}\\
+% % \affaddr{Center for Earth System Science } \\
+% \affaddr{Tsinghua University} \\
+% \affaddr{Beijing, China} \\
+% \email{ygw@tsinghua.edu.cn}
+% }
+
+
+\numberofauthors{1}
+\author{
+\alignauthor
+Yong Hu\thua, Xiaomeng Huang\thua, Allison H. Baker\ncarb,\\Yu-heng Tseng\ncara, Frank O. Bryan\ncara,  John M. Dennis\ncarb, Guangwen Yang\thua
+\sharedaffiliation
+  \begin{tabular}{ccc}
+    \affaddr{{\thua}  {Center for Earth System Science\ }} & & \affaddr{{\ncara}Climate and Global Dynamics Division {\ }} \\
+    \affaddr{Tsinghua University, 100084, and  {\ } } & & \affaddr{{\ncarb}Computational and Information Systems Laboratory{\ }} \\
+      \affaddr{ Joint Center for Global Change Studies {\ } } & & \affaddr{National Center for Atmospheric Research} \\
+    \affaddr{Beijing, 100875, China} & & \affaddr{Boulder,CO. USA} \\
+   \email{\{huyong11,hxm,ygw\}@tsinghua.edu.cn}  & & \email{\{abaker,ytseng,bryan,dennis\}@ucar.edu} \\
+  \end{tabular}
+}
+
+
+% \numberofauthors{1}
+% \author{
+% \alignauthor
+% Yong Hu\thua\thub,Yu-heng Tseng\ncara,Allison H. Baker\ncarb, \\Xiaomeng Huang\thub, Frank O. Bryan\ncara, Guangwen Yang\thua\thub
+% \sharedaffiliation
+%   \begin{tabular}{ccc}
+%     \affaddr{{\thua}Department of Computer Science \& Technology {\ }} & & \affaddr{{\ncara}Climate and Global Dynamics Division {\ }} \\
+%     \affaddr{{\thub} Center for Earth System Science{\ } } & & \affaddr{{\ncarb}Computational and Information Systems Laboratory{\ }} \\
+%     \affaddr{Tsinghua University,Beijing,China} & & \affaddr{National Center for Atmospheric Research} \\
+%     \email{huyong11@mails.tsinghua.edu.cn} & & \affaddr{Boulder,CO. USA} \\
+%     \email{\{hxm,ygw\}@tsinghua.edu.cn}  & & \email{\{ytseng,abaker,bryan\}@ucar.edu} \\
+%   \end{tabular}
+% }
+
+
+
+%\sharedaffiliation
+%  \begin{tabular}{ccc}
+%    \affaddr{{\thu}Ministry of Education Key Laboratory for Earth System Modeling{\ }} & & \affaddr{{\ncar}Climate and Global Dynamics Division, Computational and Information Systems Laboratory{\ }} \\
+%    \affaddr{Center for Earth System Science, Tsinghua University, Beijing, 100084, China}            & & \affaddr{National Center for Atmospheric Research} \\
+%    \affaddr{Tsinghua National Laboratory for Information Science and Technology (TNList)}            & & \affaddr{1850 Table Mesa Dr., Boulder, CO80305, USA} \\
+%    \affaddr{United States}                  & & \affaddr{United States} \\
+%  \end{tabular}
+%
+
+
+% There's nothing stopping you putting the seventh, eighth, etc.
+% author on the opening page (as the 'third row') but we ask,
+% for aesthetic reasons that you place these 'additional authors'
+% in the \additional authors block, viz.
+%\additionalauthors{Additional authors: John Smith (The Th{\o}rv{\"a}ld Group,
+%email: {\texttt{jsmith@affiliation.org}}) and Julius P.~Kumquat
+%(The Kumquat Consortium, email: {\texttt{jpkumquat@consortium.net}}).}
+\date{30 March 2015}
+% Just remember to make sure that the TOTAL number of authors
+% is the number that will appear on the first page PLUS the
+
+% number that will appear in the \additionalauthors section.
+
+
+
+\maketitle
+%ABSTRACT needs to be 150 words that we submit on web site - not in
+%actual paper
+\begin{abstract}
+  High-resolution climate simulations are increasingly in demand and
+  require tremendous computing resources. In the Community
+  Earth System Model (CESM), the Parallel Ocean Model (POP) is
+  computationally expensive for high-resolution grids (e.g.,
+  0.1\degree) and is frequently the least scalable component of CESM for certain
+  production simulations. In particular, the modified Preconditioned
+  Conjugate Gradient (PCG), used to solve the elliptic system of
+  equations in the barotropic mode, scales poorly at the high core
+  counts, which is problematic for high-resolution simulations. In
+  this work, we demonstrate that the communication costs in the
+  barotropic solver occupy an increasing portion of the total POP
+  execution time as core counts are increased. To mitigate this
+  problem, we implement a preconditioned Chebyshev-type iterative
+  method in POP (called P-CSI), which requires far fewer global
+  reductions than PCG.  We also develop an effective block
+  preconditioner based on the Error Vector Propagation Method to
+  attain a competitive convergence rate for P-CSI.  We demonstrate
+  that the improved scalability of P-CSI results in a 5.2x speedup of
+  the barotropic mode in high-resolution POP on 16,875 cores, which
+  yields a 1.7x speedup of the overall POP simulation.  Further,
+  we ensure that the new solver produces an ocean climate consistent with the original
+  one via an ensemble-based statistical method.
+\end{abstract}
+
+
+% \begin{abstract}
+%   The increasing need for high-resolution climate simulations warrants
+%   the investigation of a new preconditioned linear solver for the
+%   barotropic mode in the Parallel Ocean Model (POP).  POP is the ocean
+%   component of the Community Earth System Model (CESM) framework and
+%   is computationally expensive for high-resolution grids (e.g.,
+%   0.1\degree) on many cores.  Similar to other free-surface models,
+%   POP solves the fast barotropic dynamics with the implicit
+%   free-surface method.  This method requires the solution of an
+%   elliptic system of equations, and POP solves this elliptic system
+%   with a modified Preconditioned Conjugate Gradient (PCG) method.
+%   While effective at moderate core counts and resolutions, PCG methods
+%   scale poorly on large parallel systems due to the global reductions
+%   required by the inner product calculations.  This poor scaling is
+%   problematic for high-resolution CESM simulations.  In this work, we
+%   implement a more scalable Preconditioned Stiefel Iteration method
+%   (P-CSI) into the barotropic mode of POP within CESM, and develop an
+%   effective Error Vector Propagation preconditioner to improve the
+%   convergence rate.  Our experiments show that P-CSI accelerates the
+%   high-resolution (0.1\degree) barotropic solver by 7.1 times on
+%   16,875 cores, from 21.84s to 3.06s per simulation day.  This
+%   improves the core POP simulation (without I/O and initialization) by
+%   1.74 times, from 5.3 to 9.3 simulated years per wall-clock day.
+%   Further, to ensure that the use of an alternative solver in POP does
+%   not negatively impact the ocean climate, we use an ensemble-based
+%   statistical method to evaluate the impact of the new solver.
+% \end{abstract}
+
+
+
+
+
+
+
+% A category with the (minimum) three required fields
+\category{J.2}{Physical Sciences and Engineering}{Earth and atmospheric sciences}
+%A category including the fourth, optional field follows...
+\category{D.1.3}{Programming Techniques}{Parallel Programming}
+
+%it's OK not to have general terms
+%\terms{Algorithms, Performance}
+%\keywords{Massive Parallelism, Preconditioned Conjugate Gradient, Classical Stiefel Iteration, Parallel Ocean Program}
+\keywords{parallel computing, linear solver, ocean modeling}
+\input{introduction}
+\input{barotropic}
+\input{pcsisolver}
+\input{evpprecond}
+\input{experiment}
+\input{verification}
+\input{relatedwork}
+
+%----------------------------------------------------------------------------
+\section{Conclusion} \label{se:conc}
+
+The scalability of high-resolution CESM climate simulations has been
+impeded by poor performance of the ChronGear barotropic solver in POP at
+large core counts.  This paper improves solver performance by
+reducing communication costs via an alternative solver with fewer
+global reductions and by improving convergence via the development of
+block EVP preconditioner particularly well-suited to the barotropic
+mode.  The performance of the resulting solver, P-CSI with block-EVP,
+is evaluated on two machines commonly-used for CESM simulations, and
+solver speedup is as high as 5x.  Confidence that the solver did
+not adversely impact the ocean simulation was ensured by adapting an
+ensemble-based consistency strategy to the POP, allowing for the solver's
+inclusion in a future CESM release.  The new barotropic solver
+will clearly benefit both future low- and high-resolution CESM simulations,
+particularly for the fully-coupled model whose scalability has historically been inhibited
+by POP.
+
+% Low resolutions will also benefit as they are typically run for very long time periods.
+
+
+% Even though the new barotropic solvers have more benefit in high
+% resolution simulations, it also contributes to the low resolution
+% simulations.  The P-CSI solver is verified to maintain a stable ocean
+% climate within a small tolerance using an ensemble based statistical
+% method.  In closing, this paper highlights a scalable and robust
+% barotropic solver for free-surface ocean models.
+
+
+
+
+%ACKNOWLEDGMENTS are optional
+\section{Acknowledgments}
+Computing resources were provided by the Climate
+Simulation Laboratory at NCAR's Computational and Information Systems
+Laboratory (sponsored by the NSF and other
+agencies) and the National Energy Research Scientific Computing
+Center, a DOE Office of Science User Facility supported by the Office
+of Science of the U.S. Department of Energy under Contract
+No. DE-AC02-05CH11231.
+
+This work is supported in part by a grant from the National Natural Science Foundation
+of China (41375102), the National Grand Fundamental Research 973 Program of China (No. 2014CB347800), and the National High Technology Development Program of China
+(2011AA01A203).
+
+
+%Generated by bibtex from your ~.bib file.  Run latex,
+%then bibtex, then latex twice (to resolve references)
+%to create the ~.bbl file.  Insert that ~.bbl file into
+%the .tex source file and comment out
+%the command \texttt{{\char'134}thebibliography}.
+\bibliographystyle{abbrv}
+\bibliography{hycs}  % sigproc.bib is the name of the Bibliography in this case
+% This next section command marks the start of
+% Appendix B, and does not continue the present hierarchy
+%\section{More Help for the Hardy}
+%The sig-alternate.cls file itself is chock-full of succinct
+%and helpful comments.  If you consider yourself a moderately
+%experienced to expert user of \LaTeX, you may find reading
+%it useful but please remember not to change it.
+%\balancecolumns % GM June 2007
+% That's all folks!
+\end{document}
