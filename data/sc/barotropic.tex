@@ -1,71 +1,46 @@
-\section{Barotropic solver} \label{se:baro}
+\section{正压求解器} \label{se:baro}
  
-
  
-
-
-For reference, the ChronGear method is provided in Algorithm
-\ref{alg:pcg}.  ChronGear contains three major parts: computation,
-boundary updating, 和 global reduction.  Computation involves
-matrix-vector 和 vector-vector multiplications 和 vector scaling,
-all of which exhibit good scalability.  The cost of the boundary communication, which
-is required to update the halo area after the matrix-vector
-multiplication, is bounded 和 not problematic at the target core counts.  We will however illustrate in the subsequent section, that cost of the global reduction, which is required by the inner product in step \ref{pcg_global1} does however become problematic at large core counts.
-
-%The boundary communication that is required to update the halo area after the matrix-vector multiplication is also non-problematic as the amount of communication required is bounded. The most time-consuming part is the global reduction process required by the inner product in step \ref{pcg_global1}.
+我们给出ChronGear方法的具体算法
+\ref{alg:pcg}， 以供参考.  ChronGear主要包括三个部分：计算部分，边界通信部分和全局通信部分。
+计算部分主要包括矩阵向量乘操作，向量向量乘操作以及向量的伸缩操作（向量与常数相乘）等具有很好的可扩展性的操作。 
+边界通信会在每次矩阵向量乘操作之后被调用，其开销随着计算使用的处理器核心数的增加和减少，但是有一个下界。 
+但是，我们后面的章节将会证明，每一步迭代过程中的內积操作\ref{pcg_global1}之后需要调用的全局通信，当使用很大的核心数时，将会成为可扩展性的瓶颈。
+ 
 
 %----------------------------------------------------------------------------
-\subsection{Communication bottleneck}\label{se:bottleneck}
-Assume $p=m^2$ processes are used, 和 each process has exactly one
-grid block (a typical choice for high-resolution POP). Then the total time of the barotropic mode is equal to the
-execution time of the ChronGear solver on any block.  For each solver
-iteration, we choose $\mathcal{T}_c$, $\mathcal{T}_b$ 和
-$\mathcal{T}_g$ to be the cost of the computation, boundary
-updating, 和 global reduction, respectively.
+\subsection{通信瓶颈}\label{se:bottleneck}
+  
+假设使用$p=m^2$个进程，每一个进程恰好分得一个网格块（这在高分辨率POP中是比较常见的配置）。 
+这是正压模态的总运行时间就等于ChronGear求解器在每一个块上的运行时间。 
+我们记求解器的每一次迭代过程中，计算、边界通信和全局通信操作的耗时分别为$\mathcal{T}_c$，$\mathcal{T}_b$ 和$\mathcal{T}_g$。 
 %----------------------------------------------------------------------------
 
 
-From Algorithm \ref{alg:pcg}, the computational cost,
-$\mathcal{T}_c$, contains four vector-scaling operations (steps
-\ref{pcg_scale1}, \ref{pcg_scale2} ,\ref{pcg_scale3}, 和
-\ref{pcg_scale4}), two vector-vector multiplication operations for
-inner products (steps \ref{pcg_dot1} 和 \ref{pcg_dot2}), 和 one
-matrix-vector multiplication (step \ref{pcg_mat}).  Therefore,
-$\mathcal{T}_c= (4 n^2 +2n^2+ 9n^2)\theta + \mathcal{T}_{p}
-=15\frac{\mathcal{N}^2}{p}\theta+\mathcal{T}_{p}$, where $\theta$ is
-the time unit per floating-point operation 和 $\mathcal{T}_{p}$ is
-the cost of preconditioning.  For example, $\mathcal{T}_{p} =
-\frac{\mathcal{N}^2}{p}\theta$ for a diagonal preconditioner. When the
-number of processes increases, $\mathcal{T}_c$ decreases 和 has a
-lower limit of zero.
+从算法\ref{alg:pcg}中可以得出, 计算开销
+$\mathcal{T}_c$主要涉及到四个向量伸缩操作 (算法中步骤\ref{pcg_scale1}, \ref{pcg_scale2} ,\ref{pcg_scale3}, 和
+\ref{pcg_scale4}), 两个向量向量乘积操作或內积操作 (算法中步骤\ref{pcg_dot1} 和 \ref{pcg_dot2}), 以及一个矩阵向量乘积操作 (算法步骤\ref{pcg_mat}).  
+因此,$\mathcal{T}_c= (4 n^2 +2n^2+ 9n^2)\theta + \mathcal{T}_{p}=15\frac{\mathcal{N}^2}{p}\theta+\mathcal{T}_{p}$，
+这里$\theta$ 表示单位时间内浮点操作的次数，$\mathcal{T}_{p}$ 表示预处理的开销。
+比如，当采用对角预处理时，$\mathcal{T}_{p} =\frac{\mathcal{N}^2}{p}\theta$。
+上面的定义可以看出，当计算核心数增加时，$\mathcal{T}_c$减少，并且以零为下界。
 
-Boundary updating occurs in the halo regions for each process, after
-operations like matrix-vector multiplication 和 non-diagonal
-preconditioning, which require one or more boundary layers.
-Because every process keeps its own block 和 two extra
-halo layers in POP,  only one boundary update is needed per
-iteration even when a non-diagonal preconditioner is used.
-The actual time depends on the network delay 和 the volume of the
-halo regions.  With a halo size of $2$, the volume in each boundary
-is $2n$ 和 decreases as the number of processes increases.
-%It is worth mentioning that the preconditioning process usually requires at least one boundary layer,
-%except for the diagonal preconditioner, which means that values on the outmost points are not updated after preconditioning.
-The total boundary updating time for each iteration is then $\mathcal{T}_b =4\alpha +(4\times 2n)\beta=4\alpha +(\frac{8\mathcal{N}}{\sqrt{p}})\beta $,
-where $\alpha$ is point-to-point communication latency per message 和
-$\beta$ is the transfer time per byte (inverse of b和width).
-The boundary updating time also decreases as the number of processes increases but has a lower bound of $4\alpha$.
+ 
+当调用了像矩阵向量乘和除了对角预处理以外的预处理等需要一层或一层以上的边界区域的操作时，在每个进程的边界区域上需要进行边界更新操作。 
+由于在海洋模式POP中，每个进程都维护着它自己的块以外的两个边界层，因此，即使使用了非对角的预处理，每次迭代过程中仍只需要进行一次边界通信。
+边界通信的实际开销取决于网络延迟和边界区域的大小。 当边界区域的层数为2时（这也是POP中的默认配置）， 边界区域的每个边的大小为$2n$ ，而且这个大小会随着进程数的增大而变小。 
+ 
+因此，每一步迭代中，边界通信的时间复杂度为$\mathcal{T}_b =4\alpha +(4\times 2n)\beta=4\alpha +(\frac{8\mathcal{N}}{\sqrt{p}})\beta $这里$\alpha$ 表示单条点对点通信消息的延迟，而
+$\beta$ 表示从网络中传输一比特需要的时间 (也就是网络带宽的倒数).
+边界更新所需要的时间也是随着就算进程的增多而减少，但是有一个下界$4\alpha$。 
 
 
-ChronGear contains only one global reduction per iteration which contains a MPI\_allreduce 和 a masking operation to exclude l和 points,  thus the global
-reduction time satisfies $\mathcal{T}_g= 2\frac{\mathcal{N}^2}{p}\theta + \log p \alpha$ (assuming that
-a binomial tree approach is used).  The cost of the masking operation should decrease with the number of processes $p$ while the cost of the MPI\_allreduce should monotonically increase.
-%The expression $\mathcal{T}_g$ should therefore initially decrease followed by a monotonic increase with process count.
-Note that the global
-reduction has virtually no data exchange since there are only two
-numbers from each process.
-%Let $T_0$ be the time unit of one floating-point operation 和 $B$ be the number of floating-point numbers transmitted by the network per second from process to process.
-%Provided that the processor frequency 和 network b和width are $S_{cpu}$ 和 $B_{net}$, 和 that their efficiencies are $R_{cpu}$ 和 $R_{net}$, then $T_0 = R_{cpu} S_{cpu}^{-1}$, 和 $B = \frac{1}{8}R_{net}B_{net}$.
 Combining all three components, the execution time of one diagonal preconditioned ChronGear solver step can be expressed as:
+ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作。全局规约操作主要由一次MPI\_allreduce和一个去除路地网格点的掩盖操作，因此全局归约操作的开销满足$\mathcal{T}_g= 2\frac{\mathcal{N}^2}{p}\theta + \log p \alpha$ （假设网络采用二叉树结构）。 
+路地点的掩盖操作的开销会随着进程数$p$的增大而减小，而MPI\_allreduce的开销将会一直随着进程数的增加而增大。 
+注意到每次全局归约操作实际上近似于没有数据的交换，因为每个进程只传递了两个数值。
+因此，全局通信的开销主要取决于网络的延迟而不是网络的传输速率。
+
 \begin{eqnarray}
 %\begin{tabular}{l}
 \label{t_pcg}
@@ -73,25 +48,14 @@ Combining all three components, the execution time of one diagonal preconditione
 &=\mathcal{K}_{cg} [18 \frac{\mathcal{N}^2}{p}\theta + \frac{8\mathcal{N}}{\sqrt{p}}\beta +(4+\log p)\alpha]
 %\end{tabular}
 \end{eqnarray}
-where $K_{cg}$ is the number of iterations,
-%in one ChronGear step
-which
-does not change with the number of processes \cite{hu2013scalable}.
-Equation (\ref{t_pcg}) shows that the time required for computation
-和 boundary updating decreases as the number of processes increases.
-But the time required for the global reduction increases with increasing
-numbers of processes. Therefore, we expect the execution time of the
-ChronGear solver to increase when the number of processors exceeds a
-certain threshold.
-Figure \ref{fig:ChronGearCOMP} gives timings for the global reduction 和
-boundary (halo) updating components of
-the ChronGear solver for one simulation day on the Yellowstone machine at
-NCAR (machine details given in Section \ref{se:exp}).
-%Indeed, the scaling behavior of ChronGear in the
-%0.1\degree POP is consistent with the above analysis
-%(Figure \ref{fig:ChronGearCOMP}).
-Note that the execution time of global reduction
-becomes dominant 和 increases when more than a couple thous和 cores are used.
+这里 $K_{cg}$ 表示算法达到指定收敛条件所需要的迭代次数。
+这个迭代次数不会随着进程数的增加而改变 \cite{hu2013scalable}。 
+方程\ref{t_pcg}）表明，计算和边界更新所需要的时间开销都会随着进程数的增加而减少。 
+但是，全局归约操作的时间开销则会随着进程数的增多而增加。 
+因此，我们可以预测到，当进程数操作某一个值时， ChronGear求解器的运行时将会增加。 
+图 \ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算（详情见节\ref{se:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
+这里我们可以看到，当使用数千个处理器核心时，全局归约操作的时间变成了整个求解器耗时的主要部分，并且这个时间还在继续增大。 
+ 
 
 
 \begin{figure}[!t]
@@ -100,11 +64,8 @@ becomes dominant 和 increases when more than a couple thous和 cores are used.
 	\includegraphics[height=6.5cm]{newChronGear_comp.eps}
 \end{center}
 \vspace{-.2in}
-\caption[] {Timing for the global reduction 和 halo updating components of the ChronGear
-  solver in 0.1\degree\space POP for one simulation day on Yellowstone.}
+\caption[] {在美国黄石超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
 \label{fig:ChronGearCOMP}
 \vspace{-.1in}
 \end{figure}
-%However,it still inherits the poor scalability from PCG.
-%We tested the diagonal preconditioned ChronGear solver in  0.1\degree POP, 和 found that the scaling behavior is consistent with the above analysis. As shown in Fig.\ref{fig:ChronGearCOMP}, the execution time of global reduction becomes dominates in the ChronGear solver 和 increases when more than 2634 cores are used.
-
+ 
