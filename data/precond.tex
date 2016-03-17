@@ -128,6 +128,60 @@ EVP方法的计算流程如下. 我们将隐式求解海表高度的椭圆系统
 利用这个形式我们就可以在其他周围点的解已知的情况下得到西北角点上的值。 
 
 
+图 \ref{fig:evp9p} 所示的是在一个小区域上采用Dirichlet边界条件的椭圆方程
+ $\mathcal{B}\textbf{x} = \psi$。  We
+我们定义紧挨南面和西面的边界的那一层内部的点集为初始猜测层$\textbf{e}$ 
+而紧挨着北面和东面的边界的那一层内部的点集定义为目标边界层$\textbf{f}$ (对应到图\ref{fig:evp9p}中有
+$\textbf{e}= \{E_1, \dots, E_7\}$, $\textbf{f}= \{F_1, \dots, F_7\}$
+）。 
+假设我们知道了初始猜测层 $\textbf{e}$上的真解，  
+那么总个区域上的真解也就可以通过等式\ref{eq:evp9p}来从西南角向东北角逐次的计算出来。 
+这个过程我们称之为行进方法。
+比较麻烦的是， 初始猜测层 $\textbf{e}$ 上的真解往往是直到整个椭圆方程都被解出来了以后才能知道。
+但是，我们可以得到一组解
+$\textbf{x}$在除了边界以外的整个区域上都满足椭圆方程的定义。 
+具体做法是通过先在初始猜测层$\textbf{e}$上随机赋予初始值
+$\textbf{x}|_\textbf{e}$ 然后通过行进方法得到整个区域上的值。 
+这时$E=(\textbf{x} -\eta)|_\textbf{e}$
+和$F=(\textbf{x} -\eta)|_\textbf{f}$ 分别表示在
+初始猜测层$\textbf{e}$ 和目标边界层$\textbf{f}$上的误差向量。
+误差向量$F$ 是可以直接由 目标边界层$\textbf{f}$ 上的边界条件计算得到（这里我们采用的是Dirichlet边界条件）。 
+初始猜测层上的误差向量与目标边界层上的误差向量之间的关系可以表示为$F=W*E$.  
+这里的关系矩阵$W$可以通过在初始猜测层上依次赋予不同的单位向量（初始猜测层上某一个点赋值为1，其它点赋值均为0）而区域内其它的点都赋予零值后使用行进方法得到。 
+这里我们提供一个在零边界条件的椭圆方程中的EVP算法\ref{alg:evp}。 
+
+
+ 
+EVP方法主要包括两个步骤： 前处理和求解过程。 
+在前处理步中， 主要计算关系矩阵和它的逆。 其计算复杂度为$\mathcal{C}_{pre}=
+(2n-5)* 9n^2 + (2n-5)^3 = \mathcal {O} (26n^3)$。 
+求解过程的复杂度为$\mathcal{C}_{evp}= 2* 9n^2 + (2n-5)^2 = \mathcal{O} (22n^2)$。 
+从这个复杂度的表示可以看出来，EVP方法的计算开销要比LU分解等其它的直接法低很多。 
+从计算开销的角度来看， EVP方法能够被应用于实际应用中，因为虽然前处理过程的开销比较大，但是通常只需要在一开始的时候计算一次关系矩阵和它的逆， 往后就可以反复的使用了。
+
+\begin{algorithm}[t!]
+\caption{九点的误差向量传播法}
+\label{alg:evp}
+%\begin{scriptsize}
+\begin{algorithmic}[1]
+\REQUIRE 包含有$n\times n$个网格点的区域上的残差的$\psi$ , $k = size(\textbf{e})=2n-5$; \\
+//\qquad \textit{前处理}
+\STATE  $\textbf{x} = \textbf{0}$
+\FOR {i = 1, k}
+\STATE $\textbf{x}|_\textbf{e}(i) = 1$
+\STATE $\textbf{x} = marching(\textbf{x},\textbf{0})$
+\STATE $W(i,:) = \textbf{x}|_\textbf{f}$
+\STATE $\textbf{x}|_\textbf{e}(i) = 0$
+\ENDFOR
+\STATE $R = inverse(W)$ \\
+//\qquad \textit{求解 }
+\STATE $\textbf{x}= marching(\textbf{x},\psi)$
+\STATE $F = (\textbf{x} - \eta)|_\textbf{f}$
+\STATE $\textbf{x}|_\textbf{e} =\textbf{x}|_\textbf{e} - R*F$
+\STATE $\textbf{x} = marching(\textbf{x},\psi)$
+\end{algorithmic}
+%\end{scriptsize}
+\end{algorithm}
 
 \section{试验方法和结果分析}
 \label{sec:precondExp}
