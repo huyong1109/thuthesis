@@ -162,7 +162,6 @@ EVP方法主要包括两个步骤： 前处理和求解过程。
 \begin{algorithm}[t!]
 \caption{九点的误差向量传播法}
 \label{alg:evp}
-%\begin{scriptsize}
 \begin{algorithmic}[1]
 \REQUIRE 包含有$n\times n$个网格点的区域上的残差的$\psi$ , $k = size(\textbf{e})=2n-5$; \\
 //\qquad \textit{前处理}
@@ -180,7 +179,6 @@ EVP方法主要包括两个步骤： 前处理和求解过程。
 \STATE $\textbf{x}|_\textbf{e} =\textbf{x}|_\textbf{e} - R*F$
 \STATE $\textbf{x} = marching(\textbf{x},\psi)$
 \end{algorithmic}
-%\end{scriptsize}
 \end{algorithm}
 
 \section{试验方法和结果分析}
@@ -307,10 +305,8 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 \hspace{10pt}
 \includegraphics[height =7cm]{01deg_comp_all_halo}
 \end{center}
-\vspace{-.2in}
 \caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中主要的耗时成分的分析：全局归约（左）和边界通信（右）。  }
 \label{fig:component}
-%\vspace{-.2in}
 \end {figure*}
 \begin {figure*}[t!]
 \begin{center}
@@ -318,10 +314,10 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 \hspace{10pt}
 \includegraphics[height=6.5cm]{01deg_speedup_edison}
 \end{center}
-\vspace{-.2in}
+ 
 \caption []{在美国Edison超级计算机上0.1度 POP中正压模态模拟一天的的执行时间（左）， 
 在美国黄石超级计算机上0.1度 POP核心部分的模拟速率（右）。\label {fig:runtime01_edison}}
-\vspace{-.2in}
+ 
 \end {figure*}
 
 图\ref{fig:runtime01_edison}可以看出，四种配置的正压求解器在Edison超级计算机上的模拟性能与在黄石超级计算机上的模拟性能有相近的特点。 

@@ -154,7 +154,6 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
 %----------------------------------------------------------------------------
 \subsection{ChronGear求解器}
 \begin {figure}[!t]
-%\vspace{-5pt}
 \centering
 \includegraphics[height=6.5cm]{newPOPStepComp}
 \caption[] {0.1度POP采用默认的对角预处理的ChronGear求解器时个分量耗时的百分比。\label{fig:StepComp}}
@@ -170,7 +169,6 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \begin{algorithm}[!t]
 \caption{Chronopoulos-Gear求解器}
 \label{alg:pcg}
-%\begin{scriptsize}
 \begin{algorithmic}[1]
 \REQUIRE   与网格快$B_{i,j}$相应的系数矩阵$\textbf{B}$, 预处理子 $\textbf{M}$, 初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
 //\qquad    \textit{do in parallel with all processes}
@@ -196,7 +194,6 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \ENDIF
 \ENDWHILE
 \end{algorithmic}
-%\end{scriptsize}
 \end{algorithm}
 
 我们给出ChronGear方法的具体算法
@@ -257,7 +254,6 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 
 
 \begin{figure}[!t]
-%\vspace{-10pt}
 \begin{center}
 	\includegraphics[height=6.5cm]{newChronGear_comp.eps}
 \caption[] {在美国黄石超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
@@ -297,7 +293,6 @@ P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接
 \begin{algorithm}[!t]
 \caption{ 预处理的传统Stiefel迭代算法}
 \label{alg:ppsi}
-%\begin{scriptsize}
 \begin{algorithmic}[1]
 \REQUIRE 与网格块$B_{i,j}$相对应的系数矩阵 $\textbf{B}$, 预处理子$\textbf{M}$, 初始值$\textbf{x}_0$和方程右端向量$\textbf{b}$ ；预估的特征值区间$[\nu,\mu]$;  \\
  // \qquad    \textit{所有进程并行执行}
@@ -316,7 +311,6 @@ P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接
 \ENDIF
 \ENDWHILE
 \end{algorithmic}
-%\end{scriptsize}
 \end{algorithm}
 
 \subsection{特征值估计}
