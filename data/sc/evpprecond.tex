@@ -1,54 +1,34 @@
 
-
-\subsection{EVP as a parallel preconditioner}
-The EVP method described above is an efficient option for
-solving elliptic equations.  However, a major drawback of
-EVP is that it cannot solve on a large domain without further
-modifications due to numerical instabilities when marching
-\cite{roache1995elliptic}.  But on a small domain up to the size of
-$12\times 12$, EVP solves with an acceptable round-off error of
-$\mathcal{O}(10^{-8})$ when double-precision floating-point is used.  Its
-effectiveness on small domains and low-computational cost make EVP an
-ideal method for parallel block preconditioning.
-%thus making it possible to use the block diagonal of $A$ as a preconditioner.
-%\textbf{not sure what the above sentence means mean EVP combined with block diagonal?}
-Here, we develop a block preconditioning technique based on the EVP
-method in each block to further improve the performance of the
-barotropic solver in POP.  Each preconditioner step solves the
-elliptic equations $B_i \textbf{x} = \textbf{y} (i=1,...,m^2)$ in
-parallel.
+\subsection{EVP并行预处理子}
+ 
+前面描述的EVP方法是求解椭圆方程的一个比较好的解决方案。 
+但是，EVP方法的一个缺陷是如果它的原始版本不能求解很大的区域上问题，否则在行进过程中会出现数值不稳定的现象\cite{roache1995elliptic}。
+但是在比较小的区域上，比如大小为$12\times 12$的小区域，采用双精度浮点数计算的话，EVP求解得到的结果的误差大概是$\mathcal{O}(10^{-8})$ 。实际应用中，这个误差仍在可接受的范围之内。 
+EVP在小区域上的高效性和比较小的计算复杂度，使得它成为并行块预处理的一个比较理想的选择。 
+这里，我们提出了一个基于块上EVP方法的块预处理技术来进一步提高海洋模式POP中正压模态求解器的性能。
+每一个预处理步就是并行的求解各个快上的椭圆方程 $B_i \textbf{x} = \textbf{y} (i=1,...,m^2)$组。 
 
 
-The fact that EVP is not well-suited for large domains is not an issue for
-large-scale parallel computing, where larger number of processors
-result in smaller domains.  Furthermore, for our system of equations,
-the coefficients related to north, south, east and west neighbors on
-every point are one magnitude order smaller than the others. We found
-that removing these coefficients reduces the cost of
-EVP preconditioning by about a half without any significant
-impact on the convergence rate when used with both ChronGear and
-P-CSI.  As a result, the execution time of EVP preconditioning can be
-expressed as $\mathcal{T'}_{p} = 14n^2\theta=
-14\frac{\mathcal{N}^2}{p}\theta$.  The actual cost of
-$\mathcal{T'}_{p}$ depends on the size of the local block, which
-decreases as more processor cores are used.
-%In the current version of POP, using non-diagonal preconditioning methods requires an additional boundary communication after the preconditioning in each iteration.
-%However, we find that the later boundary communication can be skipped by utilizing the fact that the halo size is 2.
-Thus, the total execution time for one ChronGear and P-CSI solver step
-with block-EVP preconditioning are
+ 
+事实上，EVP方法不适用于大区域的缺陷在大规模并行计算的条件下并不是一个问题，因为大规模并行使得每个进程分得的区域变成了一个个小块。
+另外，我们得到的方程组中，与东西南北四个方向上的相邻点的系数比与其他方向上的相邻点的系数要小一到两个数量级。 
+我们发现，将这些小的系数去掉（赋值为零），能够将EVP预处理的开销减少一半，同时并不影响对ChronGear和P-CSI等迭代算法的预处理效果。 
+因此， EVP预处理开销的复杂度可以表示为$\mathcal{T'}_{p} = 14n^2\theta=
+14\frac{\mathcal{N}^2}{p}\theta$。 
+$\mathcal{T'}_{p}$的实际开销取决于局部块的大小，而这个大小是随着所使用的核数的增加而变小的。
+结合了EVP块预处理之后， ChronGear和P-CSI求解器执行一次的总开销分别为 
 \begin{eqnarray}
 \label{t_evppcg}
 &\mathcal{T'}_{cg}=\mathcal{K'}_{cg} (\mathcal{T'}_c + \mathcal{T'}_b+\mathcal{T'}_g )\nonumber \\
 &=\mathcal{K'}_{cg} [31 \frac{\mathcal{N}^2}{p}\theta + \frac{8\mathcal{N}}{\sqrt{p}}\beta +(4+\log p)\alpha],
 \end{eqnarray}
-and
+和
 \begin{eqnarray}
 \label{t_evppsi}
 \mathcal{T'}_{pcsi} = \mathcal{K'}_{pcsi}(\mathcal{T'}_c + \mathcal{T'}_b ) \nonumber \\
 = \mathcal{K'}_{pcsi}[26\frac{\mathcal{N}^2}{p}\theta+ 4\alpha + \frac{8\mathcal{N}}{ \sqrt{p}}\beta],
 \end{eqnarray}
-respectively.
-
+ 
 \begin {figure}[!t]
 \centering
 \includegraphics[height=6.5cm]{iteration.eps}
@@ -57,22 +37,10 @@ respectively.
 \vspace{-.1in}
 \end{figure}
 
-The implementation of EVP preconditioning in POP significantly reduces
-the number of iterations required for convergence for both the ChronGear and P-CSI solvers.
-In particular,  Figure \ref{fig:iteration} demonstrates that EVP
-preconditioning reduces the iteration count by about two-thirds for
-both the 1\degree\space and 0.1 \degree\space resolutions, which is comparable to the
-approximate-inverse preconditioner proposed in
-\cite{smith1992parallel} (which is not implemented in CESM POP).
-Although  EVP preconditioning doubles the computation in each iteration, it halves both global and boundary communications
-which dominate in the barotropic execution time at large core counts.
-Another advantage of EVP preconditioning is the low
-preprocessing cost.
-%EVP preconditioning matrix is totally parallelized, while traditional decomposition based preconditioning requires serial processing.
-In 0.1\degree\space case, the cost of setting up the preconditioning matrix
-is less than that of one call to the solver when 512 processor cores
-are used, and this cost is further decreased when more processors are used.
-Finally, we note that the 0.1\degree\space case requires fewer iterations than the
-1\degree\space case, because the higher resolution POP grid has a 
-ratio of longitude to latitude grid spacing that is closer to 1, resulting
-in a smaller condition number for the coefficient matrix.
+
+在海洋模式中采用EVP并行块预处理显著的减少了ChronGear和P-CSI求解器到达收敛条件所需要的迭代步数。
+如图\ref{fig:iteration}所示， EVP预处理将1度和0.1度分辨率的海洋模式中的迭代算法的迭代次数减小了约三分之二，这一结果 跟近似逆预处子\cite{smith1992parallel} （这一预处理子并没有在地球系统模式CESM的海洋模式分量POP中实现）的效果相当。
+尽管EVP预处子是的每一步迭代过程中的的计算量增加了一倍，它使得在正压模态在大核数上运行时占主要运行时间的全局通信和边界通信的次数也减少了一半。 
+EVP预处理子的另外一个优势是它的前处理过程的开销比较小。 
+在高分辨率0.1度的例子中， 使用512核并行时，计算预处理矩阵的开销比调用一次求解器的开销还要小。 并且，这一开销会随着所使用的处理器核心数的增加而减少，因为并行度的增加会导致每个进程上的块变小。 
+值得一提的是， 0.1度海洋模式中迭代算法所需要的迭代步数比1度的模式中的少，这是因为高分辨的海洋模式的网格在经纬两个方向上的网格大小比更加接近于1， 这也就导致了所得到的系数矩阵的条件数更小一些。 

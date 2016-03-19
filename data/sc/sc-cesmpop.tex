@@ -200,28 +200,18 @@ Yong Hu\thua, Xiaomeng Huang\thua, Allison H. Baker\ncarb,\\Yu-heng Tseng\ncara,
 %ABSTRACT needs to be 150 words that we submit on web site - not in
 %actual paper
 \begin{abstract}
-  High-resolution climate simulations are increasingly in demand and
-  require tremendous computing resources. In the Community
-  Earth System Model (CESM), the Parallel Ocean Model (POP) is
-  computationally expensive for high-resolution grids (e.g.,
-  0.1\degree) and is frequently the least scalable component of CESM for certain
-  production simulations. In particular, the modified Preconditioned
-  Conjugate Gradient (PCG), used to solve the elliptic system of
-  equations in the barotropic mode, scales poorly at the high core
-  counts, which is problematic for high-resolution simulations. In
-  this work, we demonstrate that the communication costs in the
-  barotropic solver occupy an increasing portion of the total POP
-  execution time as core counts are increased. To mitigate this
-  problem, we implement a preconditioned Chebyshev-type iterative
-  method in POP (called P-CSI), which requires far fewer global
-  reductions than PCG.  We also develop an effective block
-  preconditioner based on the Error Vector Propagation Method to
-  attain a competitive convergence rate for P-CSI.  We demonstrate
-  that the improved scalability of P-CSI results in a 5.2x speedup of
-  the barotropic mode in high-resolution POP on 16,875 cores, which
-  yields a 1.7x speedup of the overall POP simulation.  Further,
-  we ensure that the new solver produces an ocean climate consistent with the original
-  one via an ensemble-based statistical method.
+  
+
+  高分辨率气候模拟的需求量与日剧增，它所消耗的计算资源也是极其巨大。 
+  在公共地球系统模式（CESM）中， 并行海洋模式（POP）在高分辨网格（比如0.1度）的配置下的计算量极其巨大，在很多真实运行的实例中都是公共地球系统模式CESM中可扩展性最差的一个分量模式。 
+  尤其是在正压模态中求解椭圆方程所用到的改进后的预处理共轭梯度法（PCG）， 在大核数并行使可扩展很差， 从而成为了高分辨率的模拟中的一个主要瓶颈。 
+  此论文中，我们证明了正压求解器中的通信开销在整个海洋模式POP的运行时间中所占的比随着并行核数的增加而增加。 
+  为了解决这一问题， 我们在海洋模式POP中实现了一个预处理的Chebyshev迭代方法（称之为P-CSI方法）， 它所需要的全局归约操作要比预处理共轭梯度法少很多。 
+  我们还研发了一个高效的基于误差向量传播方法的块预处子，它是的P-CSI方法能在比较少的迭代步内收敛。 
+  我们还证明了P-CSI由于可扩展性得到改善， 在16,875核上对高分辨海洋模式POP的正压模态加速了5.2倍，并且是的整个POP的模拟速率提高了1.7倍。 
+  最后，我们还通过一个基于集合模拟的统计学方法来证明使用了我们的新的求解器后产生的模拟结果是与原始结果相容的。
+
+
 \end{abstract}
 
 
@@ -279,21 +269,13 @@ Yong Hu\thua, Xiaomeng Huang\thua, Allison H. Baker\ncarb,\\Yu-heng Tseng\ncara,
 %----------------------------------------------------------------------------
 \section{Conclusion} \label{se:conc}
 
-The scalability of high-resolution CESM climate simulations has been
-impeded by poor performance of the ChronGear barotropic solver in POP at
-large core counts.  This paper improves solver performance by
-reducing communication costs via an alternative solver with fewer
-global reductions and by improving convergence via the development of
-block EVP preconditioner particularly well-suited to the barotropic
-mode.  The performance of the resulting solver, P-CSI with block-EVP,
-is evaluated on two machines commonly-used for CESM simulations, and
-solver speedup is as high as 5x.  Confidence that the solver did
-not adversely impact the ocean simulation was ensured by adapting an
-ensemble-based consistency strategy to the POP, allowing for the solver's
-inclusion in a future CESM release.  The new barotropic solver
-will clearly benefit both future low- and high-resolution CESM simulations,
-particularly for the fully-coupled model whose scalability has historically been inhibited
-by POP.
+ 
+由于海洋模式POP中的ChronGear正压求解在大核数上的不良表现， 高分辨的公共地球系统模式CESM的可扩展性也不太好。
+这篇文章通过采用一个需要更少全局归约操作的新的求解器和一个专门为正压模态设计的基于误差向量传播方法的块预处理子，最终改进了求解器的性能。 
+我们评估了这个最终的求解器，也就是采用EVP块预处理的P-CSI方法，在两个经常用来运行公共地球系统模式的超级计算机上的性能，并且发现新的求解器相对于原始的求解器有了高达5倍的性能提升。
+同时，我们通过海洋模式POP中的一个基于集合模拟的一致性检验工具证明了我们的新的求解器不会影响海洋模式的模拟结果。 
+这也使得我们的新的求解器最终可以出现在公共地球系统模式的下一个版本中。 
+新的求解器将会有助于未来的低分辨率和高分辨率公共地球系统模式的模拟， 尤其是过去被海洋模式POP分量影响到可扩展性的全耦合模式。 
 
 % Low resolutions will also benefit as they are typically run for very long time periods.
 
