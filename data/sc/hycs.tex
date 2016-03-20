@@ -1,0 +1,170 @@
+ 
+ 
+
+
+
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Design of the CSI Solver} \label{se:csi}
+%----------------------------------------------------------------------------
+ 
+
+
+\subsection{特征值估计}
+The convergence speed of CSI reaches its theoretical optimum when $\nu = \lambda_{min}$ and $\mu =\lambda_{max}$. Accurate values of $\lambda_{min}$ and $\lambda_{max}$ are difficult to obtain. In addition, any transformation of the coefficient matrix $A$ is ill-advised because $A$ was distributed to processes. 
+To utilize the parallism of POP, we employ Lanczos method \cite{Paige1980235} to construct a series of tridiagonal matrixes $T_m (m=1,2,...)$ whose largest and smallest eigenvalues converge to those of $A$. 
+%In practice, we find that this theoretical optimum has a iteration number close to the one of PCG.
+The procedure of Lanczos-based eigenvalues estimation is shown in Algorithm \ref{alg:lanczos}.
+\vspace{-10pt}
+\begin{algorithm}
+\caption{Lanczos-based Eigenvalue Estimation}
+\label{alg:lanczos}
+\begin{algorithmic}[1]
+\REQUIRE Coefficient matrix $\tilde{\textbf{A}}$ and random vector $\textbf{r}_0$ associated with grid block $B_{i,j}$; \\
+ //\qquad    \textit{do in parallel with all processes}
+\STATE $\textbf{q}_1 = \textbf{r}_0/||\textbf{r}_0||$;\quad $\textbf{q}_0=\textbf{0}$;\quad $T_0=\emptyset$;\quad $\beta_0 =0$;\quad  $\mu_0 =0$;\quad $j=1$;
+\WHILE{$j<k_{max}$} 
+%\STATE $\textbf{q}_1 = \textbf{r}_0/||\textbf{r}_0||$; \quad $\beta_0\textbf{q}_0=0$;\quad  $\tilde{\mu}_k =0$; \quad $j=0$;
+%\FOR{$j = 1, 2,...,k$}
+\STATE $\textbf{r}_j=\tilde{\textbf{A}}\textbf{q}_j-\beta_{j-1}\textbf{q}_{j-1}$;\quad $update\_halo(\textbf{r}_j)$;
+\STATE $\tilde{\alpha}_j =\textbf{q}_j^T\textbf{r}_j$;\quad $\alpha_j=global\_sum(\tilde{\alpha}_j)$; 
+\STATE $\textbf{r}_j=\textbf{r}_j-\alpha_{j}\textbf{q}_{j}$;
+%\IF{$\textbf{r}_j \neq \textbf{0}$} 
+\STATE $\tilde{\beta}_j = \textbf{r}_j^T\textbf{r}_j$; \quad $\beta_j=sqrt(global\_sum(\tilde{\beta}_j))$;
+\STATE \textbf{if} $\beta_j == 0$ \textbf{then} \textbf{return}
+\STATE $\mu_j = max(\mu_{j-1}, \quad \alpha_j+\beta_j+\beta_{j-1})$; \COMMENT{Gershgorin circle theorem}\\
+%\ENDIF
+%\ENDFOR \\
+%//\qquad    \textit{do on master node}
+\STATE $T_k=tri\_diag(T_{k-1},\alpha_j,\beta_j)$; \quad $\nu_k = eigs(T_k,'smallest')$ ; \COMMENT{Tridiagonal}
+\STATE \textbf{if} $|\frac{\mu_k}{\mu_{k-1}} -1 |< \epsilon\quad\textbf{and}\quad|1- \frac{\nu_k}{\nu_{k-1}}|< \epsilon$ \textbf{then} \textbf{return}
+\STATE $\textbf{q}_{j+1}= \textbf{r}_j/\beta_j$;\quad $j=j+1$;
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+\vspace{-10pt}
+
+In step 12 of Algorithm \ref{alg:lanczos}, $T_m$ is a tridiagonal matrix that contains $\alpha_i (i=1,2,...,m)$ as its diagonal entries and $\beta_i (i=1,2,...,m-1)$ as off-diagonal entries. 
+\[ T_{m} = tridiag\left(\begin{array}{ccccccc}
+&\beta_1 && \bullet & &\beta_{m-1}&    \\
+\alpha_1 & &\alpha_2 && \bullet &&\alpha_{m}\\
+&\beta_1 && \bullet & & \beta_{m-1}&
+\end{array} \right)\]
+
+Let $\xi_{min}$ and $\xi_{max}$ be the smallest and largest eigenvalues of $T_m$, respectively. Paige\cite{Paige1980235} demenstrated that
+%\begin{equation}
+$\lambda_{min} \le \xi_{min} \le \lambda_{min}+\delta_1(m)$ and $\lambda_{max}-\delta_2(m)  \le \xi_{max} \le \lambda_{max}$.
+%\end{equation}
+Here, $\delta_1(m)$ and $\delta_2(m)$ vanish in most cases as $m$ increases. Thus, the eigenvalue estimation of $A$ is transformed to solve the eigenvalues of $T_m$. 
+Step 8 in Algorithm  \ref{alg:lanczos} employs the Gershgorin circle theorem to estimate the largest eigenvalue of $T_m$, that is,
+%\begin{equation}
+$\mu = \max_{1 \le i \le m}\sum^m_{j=1}|T_{ij}|=\max_{1 \le i \le m}(\beta_{i-1}+\alpha_i +\beta_{i})$.
+%\end{equation}
+%. In form of matrix, $\mu$ is the max element of vector $|A|u$, $|A| = (|a_{i,j}|)$, $u=(1,1,...,1)^T$. Here, matrix-vector multiplication $|A|u$, just like $Au$, is naturally supported by the parallelism of POP. 
+
+The efficient QR algorithm \cite{ortega1963llt} with a complexity of $\Theta(m)$ is used to estimate the smallest eigenvalue $\nu$ in step 12. As show in Fig. \ref{fig:lanczos}, a small number of Lanczos steps will generate favorable eigenvalue estimates of $A$, and make CSI converges at an optimal speed similar to PCG. 
+\begin {figure}%[htbp]
+\vspace{-20pt}
+\centering
+%\centering
+\includegraphics[width=160pt,height=120pt]{eigen_lanczos}
+\includegraphics[width=160pt,height=120pt]{scan_lanczos}
+\vspace{-10pt}
+\caption[] {Relationships between Lanczos steps and eigenvalue estimation\label{fig:lanczos}}
+%\end{minipage}
+\vspace{-20pt}
+\end{figure}
+%As shown in the section \ref{se:exp}, the estimates $\mu$, $\nu$ in the methods mentioned above is close to the smallest and largest eigenvalues. As a result, CSI converges at a favorable speed.
+%(Pls re-explain why choose $\mu$ and $\nu$ using these methods. The above comments is really not convincing.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experiments} \label{se:exp}
+%----------------------------------------------------------------------------
+%\subsection{Experimental Platform} \label{se:plat}
+To ensure that CSI will not introduce inaccuracies into POP, we conducted an experiment with the 1 degree POP on Explore100, which is described in section \ref{se:baro}. The calculated SSH of POP versions using PCG and CSI are compared in Table \ref{tab:err}. The mean difference between the PCG and CSI versions is small compared with the largest absolute SSH. It is interesting that large differences are only present at coastlines, where the sharp boundary causes instabilities in the difference scheme. The difference between the PCG and CSI versions is mainly due to the turbulence accumulation in the whole ocean model as the simulation period extends, rather than the error in each solver step.
+\begin{table}
+\vspace{-10pt}
+\centering
+\caption[] {The SSH differences between the PCG and CSI versions  \label{tab:err}}
+\begin{tabular}{l l@{\quad}l@{\quad}l@{\quad}l} 
+\toprule
+Time period   & one step  & one day     & one  month &one  season\\
+\hline
+\multicolumn{1}{l}{Step number } &\multicolumn{1}{c@{\quad}}{  1} &\multicolumn{1}{c@{\quad}}{  45} &\multicolumn{1}{c@{\quad}}{ 14053}	&\multicolumn{1}{c@{\quad}}{40800}\\
+%\hline
+Max relative error & 1.5016E-3&2.2181E-5& 1.2885E-2&1.4114E-1\\
+%\hline
+Mean relative error &3.0223E-6&5.2424E-7& 2.6125E-5&7.8872E-4\\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+
+To test the scalability, we ran the 0.1 degree POP (3600 $\times$ 2400) on the Sunway BlueLight MPP Supercomputer at the National Supercomputing Center in China.  BlueLight contains 8,704 SW1600 processors, which are connected by a 40Gb InfiniBand network. Each processor consists of 16 1.1GHz cores that share 16 GB memory. 
+%\begin{table}
+%\vspace{-10pt}
+%\centering
+%\caption[] {Properties of machines \label{tab:machine}}
+%\begin{tabular}{lllclll} 
+%\toprule
+%Machine  & Processor & Speed     & SMP size & Memory & Cache & Network \\
+%\hline
+%Explore 100 & Intel Xeon  & 2.93GHz& 12   &    24/48G   & 12M & InfiniBand 40Gb\\
+%BlueLight 	  & SW1600    & 1.1GHz& 16   & 16G       & N/A  &InfiniBand 40Gb\\
+%\bottomrule
+%\end{tabular}
+%\vspace{-10pt}
+%\end{table}
+
+We tested PCG and CSI on 100 to 15,000 cores and with convergence tolerances that varied from $\epsilon = 10^{-8}$ to $\epsilon = 10^{-16}$. The convergence criterion in POP is $||r||_2<\epsilon \bar{a}$, where $\bar{a}$ means the rms of area. A tolerance $\epsilon = 10^{-12}$ is recommended in POP. As shown in Fig. \ref{fig:scale}, PCG and CSI both scale well on less than 1,000 cores. When more than 1,000 cores are used, the superiority of CSI to PCG becomes clear. When the tolerance is $10^{-12}$, the execution time of CSI is 87\% that of PCG on 100 cores, and this ratio decreases to 21\% on 15,000 cores. PCG is less sensitive to convergence tolerance than CSI.  As the convergence tolerance varies from $10^{-8}$ to $10^{-16}$, the number of iterations per PCG step increases from 20 to 281, while the number of iterations in CSI increases from 33 to 1,434. However, the strength in convergence speed makes PCG superior to CSI for the strictest convergence condition($\epsilon = 10^{-16}$) and when fewer than 1,000 cores are used. In other cases, the increased global reduction overhead in PCG can not be matched by the smaller number of iterations. On 15,000 cores, the execution time of PCG is 4.7 times that of CSI when the convergence tolerance is $10^{-8}$ and $10^{-12}$ and is 3.3 times that of CSI when the convergence tolerance is $10^{-16}$. Due to the global reduction bottleneck, the execution time of PCG increases when more than 1,000 cores are used. In contrast, CSI scales well even when more than 10,000 cores are used.
+
+\begin {figure}
+\vspace{-10pt}
+\centering
+\begin{minipage}{360pt}
+\includegraphics[width=360pt,height=150pt ]{scale_pcg_csi}
+\end{minipage}
+\vspace{-10pt}
+\caption []{Scalability of PCG and CSI in the 0.1 degree POP \label {fig:scale}}
+\vspace{-10pt}
+\end {figure}
+%Fig.1(b) shows runtime ratio of barotropic and baroclinic modes of POP. Baroclinic mode deals with a three dimensional dynamical process which occupies a major proportion of computation of POP. It dominates in POP when process is few and computation time is much larger than communication. However, when using thousands of cores, runtime of baroclinic parts decreases linearly while on the opposite, runtime of barotropic increases because of global reduction.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related work} \label{se:rel}
+%----------------------------------------------------------------------------
+%improving barotropic
+The barotropic mode makes up a large proportion of the total execution time of POP, especially when it runs on a large number of cores. Much work has been done on optimizing the performance of the barotropic mode, most of which has been related to decreasing the amount of communication between processes and accelerating the computation of each process. The total costs of global reduction are proportional to the number of processes , and the communications overhead becomes increasingly intolerable as the number of processes increasing. OpenMP parallelism and land elimination are common strategies for reducing the number of processes and the associated MPI overhead. Worley et al. \cite{Worley:2011:PCE:2063384.2063457} strongly recommended the OpenMP strategy when a large count of cores are needed for the baroclinic phase, but a large number of processes would cause communications difficulties in the barotropic phase.
+Dennis \cite{dennis2007inverse,dennis2008scaling} proposed a load-balancing strategy based on newly developed space-filling curve partitioning algorithms. The strategy not only eliminates land blocks, but also decreases the communications overhead because of the reduced number of processes.  The simulation rate on approximately 30,000 processors doubles after applying this strategy. Reducing the frequency of communication also attenuates the overhead in the barotropic mode.
+As early as 1997,  Beare \cite{beare1997optimisation} proposed the performance of parallel ocean general circulation models can be improved by increasing the number of extra halos and overlapping the communications with the computation. 
+
+Another way to break the bottleneck of the barotropic mode is to improve algorithm and preconditioning of the PCG method. 
+A variant of the standard conjugate gradient method presented by D'Azevedo \cite{dAzevedo1999lapack}, called the Chronopoulos-Gear algorithm, proposed a way to halve the global communication in PCG.  It combines the two separate global reductions into a single global reduction vector by rearranging the conjugate gradient computation procedure, and achieves a one third latency reduction in POP. Preconditioning has been highlighted in the CG method since the 1990s. Many linear systems converge after a few PCG iterations with a suitable preconditioner.  Adamidis et al. \cite{adamidis2011high} implemented an incomplete Cholesky preconditioner in the global ocean/sea-ice model MPIOM to improve the scalability and performance of PCG.
+%Watanabe \cite{Watanabe2006pcg}  used  PCG combined with an overlapping domain decomposition method to improve the convergence and reduce the communications cost between the processor elements.
+
+The improvement of the methods described above is limited due to the inherent poor data locality and sequential execution of PCG. Some work has been done to accelerate the PCG solver by employing the developing hybrid  accelerating devices, such as GPUs\cite{cuomo2012pcg} and FPGAs\cite{Shida2007}. 
+%Cuomo et al. \cite{cuomo2012pcg} introduced the sparse approximate inverses preconditioning method into the numerical global circulation ocean model and implemented it on a GPU using a scientific computing code library.
+%Shida et al. \cite{Shida2007} moved the barotropic mode onto FPGAs, and found comparative performance on 100MHz FPGAs as on GHz processors with the appropriate use of internal memory and streaming DMA. 
+GPUs and FPGAs are helpful in reducing the global overhead. These devices have stronger computational ability and more memory than common CPU, so fewer devices and less communication are needed for the same scale computing job.
+%----------------------------------------------------------------------------
+\section{Conclusion} \label{se:conc}
+Much work has been done to improve the barotropic mode in POP. However, most of the methods described above did not eliminate the cause of the poor scalability of the barotropic mode of POP. This paper presents an evaluation model of the barotropic mode that quantifies the scalability of PCG. The advantage of CSI is demonstrated based on the analysis of this model. CSI is implemented in POP and shows better scalability than PCG. To closing, this paper highlights a promising complement to PCG with elliptic equations.
+
+\bibliographystyle{splncs}
+\bibliography{hycs}
+
+\end{document}
+
