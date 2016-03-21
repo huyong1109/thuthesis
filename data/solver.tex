@@ -387,12 +387,180 @@ CSI的收敛速度比预处理共轭梯度法稍慢， 它在小规模并行是�
 \vspace{-10pt}
 \end{figure}
 
+\subsection{特征值估计}
+
+The procedure of Lanczos-based eigenvalues estimation is shown in Algorithm \ref{alg:lanczos}.
+当特征值的估计是准确的时，即$\nu = \lambda_{min}$ ， $\mu =\lambda_{max}$，CSI方法的收敛速度达到理论上的最优值。 
+但是得到最大最小特征值$\lambda_{min}$ 和 $\lambda_{max}$ 的精确值是很困难的。
+另外，由于系数矩阵$A$ 是分布在各个进程上的，因此不建议对它做任何形式的变形。  
+为了能够利用POP的并行特性，我们使用Lanczos方法来构造 出一系列三对角矩阵$T_m (m=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$M^{-1}A$的最大最小特征值逼近。
+基于Lanczos方法的特征值估计的步骤如算法\ref{alg:lanczos}所示。 
+\vspace{-10pt}
+\begin{algorithm}
+\caption{ 基于Lanczos方法的特征值估计}
+\label{alg:lanczos}
+\begin{algorithmic}[1]
+\REQUIRE  网格块$B_{i,j}$ 的系数矩阵$\textbf{B}$和随机向量$\textbf{r}_0$；\\
+ //\qquad    \textit{所有进行并行执行}
+\STATE $\textbf{q}_1 = \textbf{r}_0/||\textbf{r}_0||$;\quad $\textbf{q}_0=\textbf{0}$;\quad $T_0=\emptyset$;\quad $\beta_0 =0$;\quad  $\mu_0 =0$;\quad $j=1$;
+\WHILE{$j<k_{max}$} 
+%\STATE $\textbf{q}_1 = \textbf{r}_0/||\textbf{r}_0||$; \quad $\beta_0\textbf{q}_0=0$;\quad  $\tilde{\mu}_k =0$; \quad $j=0$;
+%\FOR{$j = 1, 2,...,k$}
+\STATE $\textbf{r}_j=\tilde{\textbf{A}}\textbf{q}_j-\beta_{j-1}\textbf{q}_{j-1}$;\quad $update\_halo(\textbf{r}_j)$;
+\STATE $\tilde{\alpha}_j =\textbf{q}_j^T\textbf{r}_j$;\quad $\alpha_j=global\_sum(\tilde{\alpha}_j)$; 
+\STATE $\textbf{r}_j=\textbf{r}_j-\alpha_{j}\textbf{q}_{j}$;
+%\IF{$\textbf{r}_j \neq \textbf{0}$} 
+\STATE $\tilde{\beta}_j = \textbf{r}_j^T\textbf{r}_j$; \quad $\beta_j=sqrt(global\_sum(\tilde{\beta}_j))$;
+\STATE \textbf{if} $\beta_j == 0$ \textbf{then} \textbf{return}
+\STATE $\mu_j = max(\mu_{j-1}, \quad \alpha_j+\beta_j+\beta_{j-1})$; \label{lanczos_gersh} \COMMENT{Gershgorin圆盘定理}\\
+%\ENDIF
+%\ENDFOR \\
+%//\qquad    \textit{do on master node}
+\STATE $T_k=tri\_diag(T_{k-1},\alpha_j,\beta_j)$; \quad $\nu_k = eigs(T_k,'smallest')$ ; \label{lanczos_tridiag} \COMMENT{三对角矩阵}
+\STATE \textbf{if} $|\frac{\mu_k}{\mu_{k-1}} -1 |< \epsilon\quad\textbf{和}\quad|1- \frac{\nu_k}{\nu_{k-1}}|< \epsilon$ \textbf{then} \textbf{return}
+\STATE $\textbf{q}_{j+1}= \textbf{r}_j/\beta_j$;\quad $j=j+1$;
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+\vspace{-10pt}
+
+在算法\ref{alg:lanczos}的第\ref{lanczos_tridiag}步中, $T_m$ 是一个三对角矩阵。它以 $\alpha_i (i=1,2,...,m)$ 为对角线元素，  $\beta_i (i=1,2,...,m-1)$ 为次对角元素。 
+
+\[ T_{m} = tridiag\left(\begin{array}{ccccccc}
+&\beta_1 && \bullet & &\beta_{m-1}&    \\
+\alpha_1 & &\alpha_2 && \bullet &&\alpha_{m}\\
+&\beta_1 && \bullet & & \beta_{m-1}&
+\end{array} \right)\]
+
+假设 $\xi_{min}$ 和 $\xi_{max}$ 分别为 $T_m$的最小的和最大的特征值。 Paige\cite{Paige1980235} 证明了以下结论
+
+\begin{align}
+&\lambda_{min} \le \xi_{min} \le \lambda_{min}+\delta_1(m) \\
+&\lambda_{max}-\delta_2(m)  \le \xi_{max} \le \lambda_{max}
+\end{align}
+
+这里$\delta_1(m)$ 和 $\delta_2(m)$ 随着 $m$的增大而逐渐的向零逼近。 因此，系数矩阵 $A$ 的特征值的估计就可以转换成求解三对角矩阵  $T_m$的特征值。 
+算法\ref{alg:lanczos} 中第\ref{lanczos_gersh}步应用了 Gershgorin 圆盘定理来估计 $T_m$的最大特征值，也就是 
+\begin{align}
+\mu = \max_{1 \le i \le m}\sum^m_{j=1}|T_{ij}|=\max_{1 \le i \le m}(\beta_{i-1}+\alpha_i +\beta_{i})
+\end{align}
+ 
+
+在算法\ref{alg:lanczos} 中第\ref{lanczos_tridiag}中，采用了高效的QR算法\cite{ortega1963llt}来估计最小特征值$\nu$， 它的复杂度为$\Theta(m)$ 。 
+如图\ref{fig:lanczos}所示，我们发现合适的选择Lanczos迭代的步数，我们能够得到对最大最小特诊一个比较好的估计，这个估计值能够使得CSI方法与预处理共轭梯度法有相近的收敛速度。  
+\begin {figure}%[htbp]
+\vspace{-20pt}
+\centering
+%\centering
+\includegraphics[width=160pt,height=120pt]{eigen_lanczos}
+\includegraphics[width=160pt,height=120pt]{scan_lanczos}
+\vspace{-10pt}
+\caption[] { Lanczos迭代步数和特征值估计的关系\label{fig:lanczos}}
+%\end{minipage}
+\vspace{-20pt}
+\end{figure}
+ 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{实验} \label{se:exp}
+%----------------------------------------------------------------------------
+ 
+为了证明CSI方法并没有在海洋模式POP中引入误差，我们在清华大学的探索100集群（具体描述请参见第\ref{se:baro}节）上对1度POP做了一组实验， 分别使用PCG和CSI方法作为正压模态的求解器运行一段时间。 
+表格\ref{tab:err}给出的是这两个版本得到的结果的海表高度的差别。
+采用CSI和PCG的两个版本之间的平均误差相对于海表高度的绝对值非常的小。
+有意思的是，我们注意到，两者之间最大的误差主要出现在海岸线上。 这些地方比较尖锐的边界很容易造成差分格式的不稳定性。
+随着实验时间的延长，两个版本之间的误差也随着增大。 这并不是说求解器之间的误差在变大，而是由于海洋模式中湍流的累积效应将最初的小误差逐渐积累放大。 
+
+\begin{table}
+\vspace{-10pt}
+\centering
+\caption[] {采用PCG和CSI作为正压求解器的两个版本之间的海表高度的比较   \label{tab:err}}
+\begin{tabular}{l l@{\quad}l@{\quad}l@{\quad}l} 
+\toprule
+模拟时间   & 一步  & 一天    & 一个月 &三个月\\
+\hline
+\multicolumn{1}{l}{总步数 } &\multicolumn{1}{c@{\quad}}{  1} &\multicolumn{1}{c@{\quad}}{  45} &\multicolumn{1}{c@{\quad}}{ 14053}	&\multicolumn{1}{c@{\quad}}{40800}\\
+%\hline
+最大相对误差 & 1.5016E-3&2.2181E-5& 1.2885E-2&1.4114E-1\\
+%\hline
+平均相对误差 &3.0223E-6&5.2424E-7& 2.6125E-5&7.8872E-4\\
+\bottomrule
+\end{tabular}
+\vspace{-10pt}
+\end{table}
+
+
+ 
+为了测试算法的可扩展性，我们在中国的国家超算中心的神威蓝光超级计算机上测试了0.1度的海洋模式POP（3600 $\times$ 2400个网格点）。
+神威蓝光是由8,704个SW1600处理器由40Gb 无限带宽网络连接组成。
+每一个处理器包含16个1.1GHz的处理器核心以及16GB的内存。 
+
+
+我们分别测试了PCG 和 CSI两个版本的求解器在不同的处理器核数（100到 15,000 ）和不同的收敛条件（ $\epsilon = 10^{-8}$ 到 $\epsilon = 10^{-16}$）时的性能。
+海洋模式 POP 中的收敛准则是 $||r||_2<\epsilon \bar{a}$，这里 $\bar{a}$ 表示总面积的均方根。 
+在单独版本的POP中，默认设置为 $\epsilon = 10^{-12}$。 
+如图\ref{fig:scale}所示， PCG 和 CSI 在小于  1,000核时可扩展性都很好。但是当使用超过1,000 核时， CSI相对于PCG的优势就很明显了。 
+当收敛条件为 $10^{-12}$时，在100核上CSI的执行时间只有PCG的87\%， 这个比例在15,000核上下降到了 21\% 。
+但是PCG方法对于收敛条件没有CSI方法敏感。 
+当时收敛条件从$10^{-8}$变化到$10^{-16}$ 时， PCG方法的迭代步数从原来的20步增长到281步，但是CSI方法的迭代步数从33步增长到了1,434步。 
+但是，PCG方法在收敛速度上的优势并没有使得PCG方法完全的比CSI方法快。 
+只有当收敛条件是最为严格的$\epsilon = 10^{-16}$并且当使用的核心数少于1000核时，PCG的执行时间才会比CSI的短。
+其他情况下， PCG方法中的全局归约操作的开销并不能被迭代步数的减少给抵消掉。
+在1,500核上，当收敛条件$10^{-8}$ 和 $10^{-12}$时，PCG的执行时间是CSI的4.7倍， 而当收敛条件为$10^{-16}$时，这个倍数仍然高达3.3. 
+由于全局归约操作的瓶颈， 当使用的核心数大于1,000时，PCG求解器的执行时间随着所使用的核数的增加而增加。 
+相对应的，CSI算法一直到10,000核以上都能保持比较好的可扩展性。 
+P 
+
+\begin {figure}
+\vspace{-10pt}
+\centering
+\begin{minipage}{360pt}
+\includegraphics[width=360pt,height=150pt ]{scale_pcg_csi}
+\end{minipage}
+\vspace{-10pt}
+\caption []{ 0.1度POP中PCG和CSI方法的可扩展性 \label {fig:scale}}
+\vspace{-10pt}
+\end {figure}
+%Fig.1(b) shows runtime ratio of barotropic 和 baroclinic modes of POP. Baroclinic mode deals with a three dimensional dynamical process which occupies a major proportion of computation of POP. It dominates in POP when process is few 和 computation time is much larger than communication. However, when using thous和s of cores, runtime of baroclinic parts decreases linearly while on the opposite, runtime of barotropic increases because of global reduction.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{相关工作} \label{se:rel}
+%----------------------------------------------------------------------------
+ 
+正压模态的执行时间占整个海洋模式POP的很大一部分，尤其是当它所使用大量的处理器核心时。
+目前已经有很多的关于如何优化正压模态性能的工作，其中大部分都是通过减少进程间的通信量或者加速每个进程上的计算速度。 
+全局归约操作的开销适合所使用的进程数的多少成正相关的， 所以通信开销随着进程数的增加会逐渐变得不可接受。
+OpenMP并行和陆地点移除在海洋模式中是比较常见的减少进程数量及其相应的通信开销的常用策略。 
+Worley et al. \cite{Worley:2011:PCE:2063384.2063457} 强烈推荐使用OpenMP的策略来解决斜压模态需要很多的处理器核心来进行计算而正压模态的进程数太多会造成通信瓶颈越大这一矛盾。 
+Dennis \cite{dennis2007inverse,dennis2008scaling}提出一个基于最新的空间填充曲线划分算法的负载均衡的策略。 
+这个策略不仅能够方便的去全是陆地点的块，同时还能减少通信开销。 因为通过去掉陆地块，模式运行所需要的进程数就随之减少，相应的通信开销也随之减少。 
+他们的实验表明，在接近30,000个处理器核心上，新的策略使得模式的模拟速度增加了近一倍。 
+减少通信的频率也是一种减少正压模态中通信开销的方法。 
+早在1997年， Beare \cite{beare1997optimisation}等人就提出了通过增大边界缓存区域的大小以及重叠计算和通信部分的手段来提高并行大洋环流模式的性能。 
+
+
+
+Adamidis等人\cite{adamidis2011high} 在全球海洋海冰耦合模式MPIOM中实现了一个基于不完全 Cholesky分解的预处理子，来提高预处理共轭梯度法的性能。 
+Watanabe \cite{Watanabe2006pcg} 等人通过预处理共轭梯度法和重叠的区域分解法相结合，提高了迭代方法的收敛速度，减少了处理器间的通信开销。 
+
+ 
+
+Cuomo  \cite{cuomo2012pcg} 等人在数值全球大洋环流模式中引入了一个系数近似逆预处理方法，并且将其是利用一个科学计算代码库将其实现在GPU上。
+Shida  \cite{Shida2007}等人将正压模态移植到了 FPGAs, 并且发现100MHz FPGAs 和1GHz CPU处理器有着相同的性能。 
+GPUs 和 FPGAs 对于减少全局通信的开销是非常有帮助的。
+这些加速设备相比于传统的CPU，有着更强的计算能力更大的内存，因此，计算相同的科学任务，只需要更少的加速设备即可。 进而，全局通信的开销也相应的减少。 
 \section{试验方法和结果分析}
 \label{sec:verifyExp}
 
 \section{本章小结}
 \label{sec:verifyConclusion}
 
-
+目前已经有很多的工作在研究如何提高海洋模式POP中正压模态的性能。 
+但是他们的大部分都没有从根本上解决POP正压模态中的可扩展性瓶颈。 
+这篇文章提出了一个评估海洋模式POP正压模态的模型， 通过这个模型，我们对预处理共轭梯度法的可扩展性进行量化。 
+这个模型从理论上证明了CSI的优越性。 
+我们将CSI方法实现在海洋模式POP中并且得到了比原始的预处理共轭梯度法更好的可扩展性。 
+总之，这篇文章提出了一个比传统的预处理共轭梯度法更有前景的求解椭圆方程的方法。 
 
 
