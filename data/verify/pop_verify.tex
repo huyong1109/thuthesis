@@ -1,38 +1,21 @@
  
+\subsection{研究动机}
 
  
-
-
-\introduction \label{sec:intro}
-
-
- 
-
-
-
-
- 
-\section{Background discussion} \label{sec:back}
-
-\subsection{Current ocean model quality assurance testing}
-
-   
-
-
-
-\subsection{集合模拟一致性检测}
-
-
-
-
-
-
-
-
-
-\subsection{Motivation}
-
-While the solver verification work in \cite{yong2015} was illuminating和adequate for the task at hand, it prompted several questions that motivated our work to develop a more comprehensive technique such as CAM-ECT for evaluating CESM-POP data.  First, a key consideration for a more general POP verification tool was the concern over spatial variability in the ocean, which is much more pronounced than in the atmosphere. Both CAM-ECT as well as the RMSZ strategy in \cite{yong2015} evaluate the differences in terms of spatial averages,和it was unclear whether this approach would be sufficient to detect any accuracy issue or model error in the ocean.  Second, because CESM-POP has fewer independent diagnostic variables than the CAM, we re-visit the question of appropriate metrics for consistency evaluation.  Third, the selection of different metrics prompted further examination of the appropriate ensemble size.  While an ensemble of size 40 ensemble was sufficient for detecting linear solver errors in \cite{yong2015}, this dimension was not thoroughly explored in a more general context, particularly in light of the recommended ensemble size of 151 for CAM-ECT.  Finally, the difference in temporal scales between the ocean和atmosphere prompted us to investigate the required length of ensemble runs.  Because the time-scales in the ocean are slower than in the atmosphere, intuitively a longer ensemble length is needed for statistical consistency testing with CESM-POP.  Note, though, that the initial results in Fig. \ref{fig:rmsz_temp_ens} suggest that this presumption may not be true.  The RMSZs continue to decrease with time after a few months when the tolerances are small enough (i.e., tolerance is smaller than $10^{-12}$), suggesting the required length of simulation merits further investigation.  In fact, Fig. \ref{fig:rmsz_temp_ens} shows that this particular 1-degree ocean data is relatively deterministic和the initial differences begin to damp out (grow) after the first year when the tolerances are small (unrealistically large).
+文章 \cite{yong2015} 中给出来的求解器验证性工作很有启发性，而且完全满足目前的需求。 
+但是它仍然有几个遗留问题没有解决，这促使我们研发了一个类似于CAM-ECT这样的更强大的针对CESM-POP数据的评测工具。 
+第一，一个更通用的海洋模式POP的验证性工具首先考虑的是海洋中空间的变化特点，这个特点比大气中的要更加突出。
+CAM-ECT和文章\cite{yong2015} 中的RMSZ方法是利用空间的平均值的差别来作评估，目前还不清楚这样的策略是否有足够的能力来检测海洋中的正确性表达问题以及模式本身的误差。
+第二，由于CESM-POP的相互独立的诊断性变量要比大气模式CAM少很多，因此我们需要重新思考了一下一致性检测的量化指标。
+第三，不同的衡量指标的选择促使我们进一步检查集合模拟的大小应该如何选择。
+在文章\cite{yong2015} 中，四十个实例组成的集合模拟就足以检查出线性求解器中的误差，而这个集合模拟的大小并没有在更通用的环境中进行实验验证。
+而且，这个大小要比CAM-ECT中使用的默认大小151要小很多。
+最后，海洋和大气中时间尺度的不同也促使我们去研究集合模拟的模拟时间究竟多长最为合适。 
+由于海洋中的时间尺度比大气中的要长一些， 直观上讲，CESM-POP中额统计学一致性检测工具需要的集合模拟的模拟时间应该会更长一些。 
+值得一提的是，图\ref{fig:rmsz_temp_ens} 似乎又有悖于我们的这个假设。 
+我们可以看出来，当收敛条件足够严格的时候（收敛条件小于$10^{-12}$时）， 均方根标准分在模式运行几个月之后随着时间的推移而逐渐减小。
+这表明，我需要进一步的研究一致性检测所需要的模拟时间的长度。 
+实际上， 图\ref{fig:rmsz_temp_ens}可以看出，这个给定的1度分辨率的海洋数据是相对确定的，在求解器中引入的误差足够小（也就是收敛条件足够小的时候）初值场中的误差在模拟了一年之后逐渐的耗散掉了。
 
 
 %----------------------------------------------------------------------------
@@ -40,99 +23,181 @@ While the solver verification work in \cite{yong2015} was illuminating和adequat
 %----------------------------------------------------------------------------
 
 
-\section{A new statistical consistency test for POP}\label{sec:newtest}
+\section{CESM-POP的新的一致性检测工具}\label{sec:newtest}
 
-Expanding the CESM-ECT suite to include a consistency test for CESM-POP, which we denote POP-ECT, data requires determining an appropriate ensemble to represent ocean model variability和developing a methodology to address ocean-specific characteristics. We first discuss the ensemble creation. We then describe the new testing procedure.
+ 
+在CESM-ECT工具集中扩充CESM-POP一致性检测的工具（我们记为POP-ECT），我们需要一个能够反映海洋模式自身不确定性的恰当的集合模拟结果，并且开发一种针对海洋自身特点的方法。
+这里我们首先讨论一下如何构造这个集合模拟结果，然后介绍一下新的测试工具的流程。 
+\subsection{POP数据集合的构造}\label{sec:ensemble}
 
-\subsection{POP ensemble construction}\label{sec:ensemble}
+ 
+我们通过与很多被认可的海洋状态组成的集合作对比，来评估CESM-POP的输出数据与数据集合在统计学上的差别是否明显。
+明显则我们认为这个输出数据与给定的数据集合是不同的气候状态。 
+因此，将CESM-ECT应用到CESM-POP数据的第一步就是要构造出一个合适的数据集合。 
+很明显，数据集合的组成对于测试的有效性来说至关重要，而且这些数据必须在一个被认可的机器上采用被认可的CESM版本来生成。
+这里，与CAM相比，海洋模式的诊断变量要少很多，相互独立的诊断变量有：温度（TEMP），海表高度（SSH），盐度（SALT）， 以及与模式网格相对应的经向和纬想得速度（分别为UVEL和VVEL）。
+这五个变量中，只要海表高度SSH是二维变量，其他都是三维变量。 
 
-%As with CAM data in \cite{baker2015}, 
-We evaluate whether differences in CESM-POP output data are statistically significant (i.e., indicative of a changed climate state) by comparing to an ensemble of simulations representing an accepted ocean state.  Therefore, the first stage in applying the CESM-ECT approach to CESM-POP data is creating an appropriate ensemble. Clearly, the ensemble composition is critical to an effective test,和simulations should be produced on an accepted machine with an accepted version of CESM.  Note that as compared to CAM, the ocean model has fewer independent diagnostic variables: temperature (TEMP), sea surface height (SSH), salinity (SALT),和the zonal和meridional velocities with respect to the model grid (UVEL和VVEL, respectively).  Of these five variables, SSH is 2D和the remainder are 3D.
+ 
+在POP-ECT中，我们够早了一个由$N_{ens}$模拟结果组成的数据集合 $E$， 记为 $E =\{E_1, E_2, \dots, E_{N_{ens}} \}$。
+这些模拟结果与指定的默认版本之间的唯一不同是在初始的海洋温度场中加入$\mathcal{O}(10^{-14})$量级的随机扰动。 
+这个初值扰动的大小和双精度浮点数的舍入误差在一个量级，因此它应该不会造成气候上的改变。
+这个数据集合的成员的数量必须足够的多才能够生成一个比较有表达力的分布，但是这个数量又要足够的小，因为增加一个成员就以为增加一份计算开销。 
+我们将在稍后的第\ref{sec:ens}节中讨论数据集合的大小的选择 。这里的讨论和之后的实验我们都采用 $N_{ens} \;=\; 40$这个配置。
+我们的实验表明，如果只是用来做一致性测试，这个大小的集合 足以充分的反应海洋的内在的不确定性。
+模拟数据集合包含有在每个点上五个POP诊断变量（TEMP, SSH, SALT, UVEL和VVEL）的月平均数据。
+每一个这样的变量$X$都包含有$N_X$个网格点，记为${X} = \{ x_1, x_2, \dots, x_{N_X}\}$， 这里$x_i$ 表示在网格点$i$上变量$X$的月平均值。
+我们收集了$T$个月份的数据（即$T$个时间片的月平均数据）。
 
-For POP-ECT, we create an ensemble $E$ of $N_{ens}$ simulations, denoted by $E =\{E_1, E_2, \dots, E_{N_{ens}} \}$, that differ only by an $\mathcal{O}(10^{-14})$ perturbation to the initial ocean temperature field.  This initial perturbation size is on the order of double-precision round-off error和should not be climate-changing.
-% over the first several years.  
-The size of the ensemble must be sufficient to create a representative distribution, but as small as possible to avoid high computational cost.  While we address in detail our choice of ensemble size later in Sect. \ref{sec:ens}, we use $N_{ens} \;=\; 40$ for the discussion in this section和the experiments in the next.  Our experiments indicate that this choice of ensemble size adequately represents the natural variability in the ocean for testing purposes.  The ensemble simulation data consists of monthly temporal averages at each grid point $i$ for the 5 POP diagnostic variables: TEMP, SSH, SALT, UVEL,和VVEL.  Each of these variable datasets $X$ contains $N_X$ grid points和is denoted by ${X} = \{ x_1, x_2, \dots, x_{N_X}\}$, 这里 $x_i$ is a scalar monthly average at grid point $i$.  Data is collected for $T$ months (i.e., $T$ time slices of monthly data).
+ 
+CESM-ECT方法的下一步是量化数据集合的分布特征，进而为行的模拟结果提供评估依据。
+这个数据集合的统计特诊描述被存在一个叫做数据集合汇总的文件中，并且这个文件会被贴上生成这些模拟结果的CESM自带的软件标签。
+当这个汇总文件一旦生成， 数据集合中$N_{ens}$个模拟结果的历史文件就不需要继续保存了。 
+回忆一下CAM数据所使用的方法，CAM-ECT会计算每个变量在每个点上的可用的年平均数据的全球面积加权平均值。
+这些计算结果就构成了每个变量的$N_{ens}$个全球平均。 
+然而， 这个方法采用的全面积加权平均不能很好的应用在海洋模式数据中，因为海洋模式的不确定性相比于大气模式数据来说，在网格点上的一致性更差一些。
+因此，我们需要更多的考虑到空间上的分布特诊。 
 
-%Volume averaging is used to weight each point - cells on the bottom are larger, but also have smaller RMSE because less is happening (slower time scales).  So by giving them larger weights, we have more equality in contribution to calculating  failures (check this)
 
-%\subsection{Requirement for spatial considerations}\label{sec:spatial}
+比如，我们考虑一个由$N_{ens} \;=\; 40$个使用1度分辨的海洋模式POP作为海洋模式分量的CESM模拟$T\;=\;36$个月得到的模拟结果组成的数据集合。 
+图 \ref{fig:SST_STD_all}中给出的是数据集合的1,12,24和36个模拟月份中海表温度（SST）的标准方差的空间分布。
+注意到这里海表温度SST仅仅只是三维变量TEMP的最上面一层（更加准确的说，是10米的海洋表层）。
+图 \ref{fig:SST_STD_all}可以看出来，标准方差远远不是空间一致分布的，不同的网格点之间的值相差好几个数量级（注意颜色刻度尺的刻度）。 
+从1月份到12月份的变化也十分明显，这主要是与模式冷启动时由于流体动力学不稳定性造成的模式不稳定相关。  
+在模拟一年之后，在热带区域出现的标准差最大表明集合模拟中热带不稳定波的增长带来了更大的不确定性\citep{legeckis1977}。
+由于赤道区域的网格分辨率更细一些（$1/3^\circ$左右），这些大的可变性在 赤道地区很容易被强化。 
+在几个主要的海洋环流系统区域内，也有几个比较大的标准方差集中区域。
+从12个月到36的变化相对较小，这表明相应的物理不稳定性由于海洋的耗散将不会继续增长。
+鉴于图 \ref{fig:SST_STD_all}中明显的不确定性，文章\cite{yong2015} 中的均方根标准分策略可能在某些不确定性很小的区域由于方程\ref{e:rmsz}中的分母太小引入不必要的潜在误差。
+这里强调一下，图\ref{fig:SST_STD_all} 中不确定性的大小确实是与分辨率有关的，并且，图\ref{fig:SST_STD_all} 中的结果只适应于有耗散的低分辨率海洋模式，比如说目前大部分气候研究中所使用的1度的CESM-POP。
 
-The next step in CESM-ECT approach is to characterize the ensemble distribution in a qualitative way to facilitate the evaluation of new runs.  This statistical description of the ensemble is stored in a so-called ensemble summary file和is associated with the CESM softare tag used to generate the ensemble simulations.  The history files from the $N_{ens}$ simulations do not need to be retained once the summary file has been created.  Recall that for CAM data, CAM-ECT calculates the global weighted-area mean for each variable from the annual temporal averages available at each grid point.  This calculation results in a distribution of $N_{ens}$ global means for each variable. However, this approach of using global weighted-area means will not be appropriate for ocean model data, as ocean variability is less uniform across the grid than atmospheric data.
 
-For example, consider an ensemble of $N_{ens} \;=\; 40$ CESM simulations with a 1\degree\space resolution CESM-POP grid run for $T\;=\;36$ months.  In Fig. \ref{fig:SST_STD_all}, we show spatial plots of the standard deviations of the sea surface temperature (SST), across the ensemble members after 1, 12, 24,和36 months.  Note that the SST is simply the top layer of the 3D variable TEMP (more precisely, the top 10 meters of upper ocean).  Figure \ref{fig:SST_STD_all} shows that the standard deviation is far from uniform with orders of magnitude differences across the grid (see the color bar scale).  Also notable is the change from 1 month to 12 months associated with the model instability 
-associated with the development of hydrodynamic instability of the flow as the model spins up.
-At the end of one year, the larger standard deviation in the tropical regions suggest a larger uncertainty due to the growth of tropical instability waves \citep{legeckis1977} in the ensembles.  The large variability can be easily enhanced in the equatorial regions because of the finer resolution in the tropics (approximately $1/3^\circ$).  There are also some pools of large standard deviation in the downstream of the major ocean current systems.  The change from 12 months to 36 is more subtle, indicating the associated physical instability may not grow further due to the ocean dissipation.  Given the range in variability evident in Fig. \ref{fig:SST_STD_all}, the RMSZ score strategy as used for verification in \cite{yong2015} (and discussed in Sect. \ref{sec:back}) may include the uncertainty introduced by the actual physical instability in regions with large variability (e.g., the equatorial Pacific)和may unnecessarily flag potential errors in regions with little to no variability due to the denominator in Eq. (\ref{e:rmsz}). 
-Note the range of variability shown in Fig. \ref{fig:SST_STD_all} is certainly resolution dependent,和the results in Fig. \ref{fig:SST_STD_all} are specific to the rather dissipative low-resolution ocean model (e.g., 1\degree\space CESM-POP) used in most climate studies.
-
-Therefore to create an ensemble statistical consistency test that is robust for CESM-POP data, we must create a distribution describing the ensemble that contains spatial as well as temporal information. In particular, POP-ECT creates an ensemble file with $T$ monthly time slices of CESM-POP data that contains:  
+ 
+综上所述，为了构造出一个在CESM-POP数据上比较健壮的集合统计学一致性检测工具，我们必须得到一个既包含有空间信息，又包含有时间信息的数据集合。
+特别的，POP-ECT构造的集合综述文件中第$T$ 个 月份的时间片CESM-POP数据包含有：
 \begin{itemize}
  \item $N_{var} \times N_X \times T$  monthly mean values across the ensemble at each grid point $i$ ($\mu_i$)
  \item $N_{var} \times N_X \times T$ standard deviations of ensemble monthly mean values at each grid point $i$ ($\sigma_i$),
  \end{itemize}
-which is to say that we retain the ensemble mean和standard deviation at each of $N_x$ grid points (note that $N_X$ depends on whether $X$ is a 2D or 3D variable) for the specified number of months, e.g. $T \;=\; 36$.
+ 这也就是说，我们保存了指定个月份$T \;=\; 36$ 在所有$N_x$ 个点上的集合平均值和标准方差值（这里 $N_x$ 是变量是二维还是三维的变量有关系）。
+ 
 
-Finally, we note that without special treatments, the CESM-POP could generate unrealistic salinity distributions in the closed marginal seas because there is no appreciable freshwater feedback between the freshwater和salinity (e.g. Hudson Bay, the Mediterranean Sea).  The current CESM-POP imposes a strong freshwater restoring in the uncoupled simulation和a marginal sea freshwater balancing strategy in the coupled simulation.  These specific treatments can maintain a salinity balance but act as artificial forcings to the model dynamics.  Therefore, in this work we do not address the complexity of how to do verification properly in the marginal seas和instead restrict our attention to the open oceans.
+ 最后值得一提的是，由于在淡水和盐度之间没有合适的淡水反馈机制，在没有任何特殊改动的情况，CESM-POP在封闭的内海区域（比如哈德逊湾和地中海）可能会产生一些与实际不符的盐度分布。
+当前版本的CESM-POP在非耦合的模拟中强加了一个很强的淡水恢复机制，而在耦合模拟中加入的是边缘海淡水平衡机制。
+这些特殊的处理能够保持盐度的平衡，但是对于模式的动力过程造成了虚假的强迫。
+因此，本文的工作中我们不去讨论如何在边缘海中正确的做验证，而是将重心限制在开放海域内。
 
-\subsection{Testing procedure}
-
-Given the POP-ECT summary file, we determine whether new simulation output data (e.g. from a code modification, a new machine, a new compiler option) is statistically consistent with the ocean climate categorized by the reference ensemble distribution as follows.  Because we only have five diagnostic variables that are well-understood, we do not need to use PCA. % as in CAM-ECT.  
-Instead,  we take the approach of evaluating the standardized difference between the ensemble和the new run \textit{at each grid point}. For each grid point $i$和each new variable $\tilde{{X}}$, we calculate the distance between $\tilde{{X}}$和the ensemble data via a standard Z-score measurement for a given monthly time slice $t$.
-In particular, given the values of  $\tilde{{X}}$ at time $t$, $\tilde{{X}} = \{ \tilde{x}_{1,t}, \tilde{x}_{2,t}, \dots, \tilde{x}_{N_X,t}\}$, the Z-score at grid point $i$ for variable $\tilde{{X}}$ at time $t$ is
+\subsection{验证过程}
+ 
+利用前面所得到的POP-ECT综述文件，我们利用以下的方法来判断一个新的模拟输出结果（比如说改动了代码，或者移植到了新的机器上，或者采用了一个新的编译器选项等)是否和指定的数据集合的分布所描述的海洋气候状态在统计学上是一致。 
+由于我们只有五个比较基础的诊断变量，因此我们不需要采用主成分分析的方法。 
+这里，我们采用的策略是在每一个给定点上评估新的模拟结果和数据集合之间的标准差。
+对于每一个给定点$i$和某一个给定的变量$\tilde{{X}}$， 在给定的时间片$t$上我们采用标准分方法计算$\tilde{{X}}$和数据集合的距离。 
+特别的，给定变量$\tilde{{X}}$ 在 $t$时刻的值，$\tilde{{X}} = \{ \tilde{x}_{1,t}, \tilde{x}_{2,t}, \dots, \tilde{x}_{N_X,t}\}$， 那么在给定点$i$ 处变量$\tilde{{X}}$ 在$t$时间的标准分为
 \begin{equation*}
 Z_{\tilde{x}_{i,t}}=  \frac{\tilde{x}_{i,t} -\mu_{i,t}}{\sigma_{i,t}},
 \end{equation*}
-这里 $\mu_{i,t}$和$\sigma_{i,t}$ are the ensemble mean和standard deviation respectively, at grid point $i$ for variable $X$ at the specified month $t$ as specified in the ensemble summary file.
+这里 $\mu_{i,t}$和$\sigma_{i,t}$分别表示指定的数据集合在点 $i$处，变量$X$在给定的$t$月份的几何平均和标准方差。  
 
-Now for a particular time slice $t$, we drop all subscripts $t$ from relevant variables, e.g. the Z-score becomes $Z_{\tilde{x_i}}$.
-We define an allowable tolerance $tol_{Z}$ for the Z-score at each point, meaning that if $Z_{\tilde{x_i}} > tol_{Z}$, then point $i$ is denoted a ``failed'' point. 
-Recall that a Z-score indicates the number of standard deviations away from the mean,和a large Z-score indicates that the new case is far from its climate state in the ensemble.
-%By default we choose  $tol_{Z} \; = \; 3.0$, meaning that the new value must be within $3.0$ standard deviations of the ensemble mean at each grid point $i$ to ''pass''.
-Next we look at the overall percentage of grid points that have passing  Z-scores, defining the Z-score Passing Rate (ZPR) for variable $\tilde{X}$  as:
+ 
+下面，为了简洁，对于某一个时间片$t$，我们从相关的变量中去掉时间变量下表。比如说，标准分我们记为$Z_{\tilde{x_i}}$。 
+我们假设在每一个点上允许的阈值为$tol_{Z}$，也就是说如果 $Z_{\tilde{x_i}} > tol_{Z}$就表明$i$这个点是一个“不通过”的点。 
+由于标准分表示的是一个数与平均值之间的标准方差，所以标准分越大就表明这个新的模拟结果和数据集合所给的气候状态就越远。 
+下一步，我们将考察一下所有点中通过标准分标准的点所占的比例。 定义给定变量$\tilde{X}$的标准分通过比例（ZPR）为：
 \begin{equation}\label{e:zpr}
 ZPR_{\tilde{X}} = \frac{ \#\{i \;|\; \tilde{x_i} \in \tilde{X} \; \land \; |Z_{\tilde{x_i}}| \; \leq \; tol_{Z}\} }{\#\{i \;|\; \tilde{x_i} \in \tilde{X} \} }.
 \end{equation}
-To make an overall determination of whether variable $\tilde{X}$ passed, we set a minimum threshold for the ZPR ($min_{ZPR}$).  In particular, if $ZPR_{\tilde{X}} \geq min_{ZPR}$ then variable $\tilde{X}$ passes.  
-By default,  the Z-score tolerance is $tol_{Z} \; = \; 3.0$,和the ZPR threshold is $min_{ZPR} \; = \; 0.9$.  In other words, 90$\%$ of the new values for variable $\tilde{X}$ must be within $3.0$ standard deviations of the ensemble mean ($\mu_i$) at each grid point $i$ for $\tilde{X}$ to ''pass''.  This process is repeated for all five independent diagnostic variables,和all variables must pass for the overall simulation to be deemed statically consistent.
+ 
+为了给出一个评判给定变量$\tilde{X}$ 是否通过测试的整体性标准，我们对标准分通过比例设置了一个最小阈值($min_{ZPR}$)。 
+也就是说，如果$ZPR_{\tilde{X}} \geq min_{ZPR}$成立，则我们认为 $\tilde{X}$通过测试。
+默认情况下，标准分的通过阈值为$tol_{Z} \; = \; 3.0$， 而标准分通过比例ZPR的阈值为$min_{ZPR} \; = \; 0.9$。 
+换句话说，新的模拟结果中变量$\tilde{X}$要想通过测试，必须保证这个变量在90$\%$以上的点上的值落在在对应点对应变量的集合平均值($\mu$) 的$3.0$ 个标准差之间。
+我们对五个独立的诊断变量依次做上面的判断。 
+只有当所有的变量都通过测试，我们才认为这个新的模拟结果整体上来说和数据集合在统计意义上是一致的。
 
-Note that the calculated Z-scores change with simulation length. Because of the longer time-scales present in the ocean, we ran the CESM simulations for most of the experiments in the paper for 36-months. % longer than the 12-months that CAM-ECT requires for CAM data.
- In addition, we output monthly time slice data for POP-ECT (as opposed to the annual temporal mean for CAM-ECT) to determine whether the ensemble ocean states stabilize (or not) over time.  
 
-As will be evident in the following section, the ZPRs generally become stable after a few months,和the stability trends across the diagnostic variables are similar.  Therefore, in addition to picking a suitable Z-score tolerance和passing rate, we choose a checkpoint ($t_C$) at which to evaluate the new run result (instead of checking at all $T$ months of data).  Note that the length of the ensemble simulations does not need to be longer than $t_C$.
+ 
+我们注意到计算得到的标准分随着模拟时间的改变而改变。 
+由于海洋运动的时间尺度比较长，本章中大部分的实验我们都将CESM运行36个月。
+另外，模拟过程中我们会保存月输出的时间片数据（CAM-ECT中只保存了年平均数据），用来考察数据集合中的海洋状态能否随着时间的延长而稳定下来。 
 
 
-\subsection{Software tools}
 
-To make our new POP-specific testing methodology accessible to both users和developers, we added POP-ECT to the existing CESM-ECT suite of Python tools (pyCECT v2.0) , which are included in the CESM public releases. The CESM-ECT Python tools include the tools that create the CESM module-specific ensemble summary files as well as pyCECT, which performs the statistical consistency test using the specified ensemble summary file.  Because the POP-ECT summary file is distinct from the CAM-ECT summary file, we created the parallel Python code pyEnsSumPop to generate the POP-ECT summary files.  In particular, from an ensemble of CESM-POP simulation output files, pyEnsSumPop creates the ensemble summary file (in parallel) containing the ocean model statistics as described in Sect. \ref{sec:ensemble}.  The CESM Software Engineering Group creates a new ensemble of POP simulation data as needed, which currently coincides with the release of a software tag that contains modifications known to alter the climate from the previously tagged version's climate.  The appropriate POP-ECT ensemble summary files are included in development和release tags for CESM as noted in Sect. \ref{sec:code}.  Given a POP-ECT summary file, a user or developer can then evaluate ``new'' simulation data for consistency using the pyCECT Python tool, which is now able to evaluate results based on either the POP-ECT or CAM-ECT methodology.  New CESM-POP simulation data to be evaluated may be the result of using a new architecture or a different compiler option, making a code modification, or changing the input data deck.  pyCECT evaluates whether the new ocean model simulation results are statistically consistent with the specified POP-ECT ensemble和issues an overall ``pass'' or ``fail'' designation.  In addition, the Z-score passing rate is given for each ocean model variable at the selected checkpoint time $t_C$.
+在后面的章节中我们可以看到，ZPRs通常在几个月的模拟之后便会平稳下来，而且这种平稳的趋势在几个诊断变量中都是相似的。 
+因此，除了挑选出合适的标准分阈值以及ZPRs的通过率阈值，我们还选择了一个时间点（$t_C$）
+来判断新的运行结果（而不是去检查每个月的数据）。 
+于是，集合模拟的时间长度不需要比$t_C$更长。 
 
+\subsection{软件工具}
+
+为了使得用户和开发展都能够使用我们的新的针对POP设计的诊断方法，我们将POP-ECT添加到现成的CESM-ECT Python工具集中（pyCECT v2.0）。
+这个工具集已经被集成到当前CESM发布的版本中。 
+这个CESM-ECT Python工具集包括了生成CESM特定模块的集合模拟综述文件的工具，以及利用这些集合模拟综述文件来进行统计学一致性检测的工具pyCECT。
+由于POP-ECT的综述文件和CAM-ECT的综述文件完全不同，我们利用并行的Python代码pyEnsSumPop来生成POP-ECT综述文件。
+具体来讲，从CESM-POP集合模拟的输出文件中，pyEnsSumPop并行的生成一个包含有第\ref{sec:ensemble}节中描述的海洋模式一些统计量的集合综述文件。 
+CESM软件工程组将会按照需要生成一个新的POP模拟数据的集合，这个数据集合包含有一个注明了具体改动的软件标签。
+POP-ECT所生成的集合综述文件和第\ref{sec:code}节提到的CESM的版本标签将被放到未来发展的模式中。 
+有了POP-ECT的综述文件，用户或者开发者就可以利用pyCECT Python工具来评估新的模拟数据的一致性。目前可以选择POP-ECT或者CAM-ECT来对结果进行评估。
+新的CESM-POP模拟数据可能来自一个新的机器的移植， 一个新的编译器选项的使用，代码的更新，或者输出数据的改变。
+pyCECT评估新的海洋模式模拟结果是否与给定的POP-ECT生成的数据集合是统计意义上一致的，并且从总体上给出一个“通过”或者“不通过”的判断。
+另外，在指定的检查时间点$t_C$，每一个变量的标准分通过率都会被给出。 
 
 % %-----------------------------------------------------------------------------
 % % -----------------------------------------------------------------------------
 % %----------------------------------------------------------------------------
-\section{Experiments} \label{sec:exp}
+\section{实验} \label{sec:exp}
 
-%As with applying CESM-ECT  to CAM data, the most straightforward approach to verifying the method itself is to apply CESM-ECT to cases with expected outcomes. 
+ 
+这一节的主要目标是通过一 系列的实验来评估我们的新的POP一致性检测工具在CESM-POP的模拟数据上的效果。
+我们的这些实验都是有预判结果的，比如说重新考察一下改变正压求解器的收敛条件所带来的效果。
+这些实验都是用的CESM 1.2.2版本来运行，使用CESM-POP作为活跃的海洋模式分量，CICE作为活跃的海冰分量，而大气和路面模式都采用数据来驱动。
+因此，不会出现逐年响应的事件（比如厄尔尼诺南方涛动），而且赤道太平洋地区的变化可能会受到人为的抑制。
+我们这个特殊的分量模式的配置在CESM的官方文档中被记为“G\_NORMAL\_YEA”分量设置。
+CESM的网格分辨率采用“T62\_g16”，对应的海洋和海冰模式分量采用是1度($320 \times 384$)分辨率，垂直方向上有60层，以格林兰岛为偏移极点的偏移网格。 
+这些模拟都是在美国国家大气研究中心的黄石超级计算机上使用$96$ 个处理器核心（除非特殊说明了处理器核心的数目）运行得到的。 
 
-% The primary objective of this section is to evaluate the new POP-ECT tool on CESM-POP simulation data with a series of experiments on configurations with expected outcomes, including revisiting the effect of changing the barotropic solver convergence tolerance.  Experiments were run with the CESM 1.2.2 release, using CESM-POP for the active ocean component, the CICE model for the active sea ice component,和data-driven atmosphere和land components.  In addition, we use the ``normal year'' forced testing framework for ocean-ice simulations, which means that there are no ENSO (El Ni\~{n}o Southern Oscillation) events和variance in the equatorial Pacific may be artificially suppressed.  (Note that this particular CESM component configuration is referred to in CESM documentation as a ``G\_NORMAL\_YEAR'' component set).
-% The CESM grid resolution was ``T62\_g16'', which corresponds to a 1\degree grid ($320 \times 384$) for the ocean和ice components, with $60$ vertical levels和a displaced Greenland pole.  Simulations were run on 96 processor cores (unless otherwise specified) on the Yellowstone machine at NCAR.
+ 对于这些模拟实验，我们不单单是对某一个时间片做了评估，而是对36个月的数据都进行了评估，以此来观察ZPRs随着时间的变化规律，同时也为$t_C$的选择提供参考依据。
+为了从ZPRs的角度来刻画标准分和模拟时间的关系，并且为$tol_{Z}$和$min_{ZPR}$的选择提供参考依据，我们采用了反应曲面法（RSM）\citep{box2007}。 
+也就是说，我们提供了变量$\tilde{X}$的反应曲面的图标，这个图表中给出了不同的模拟月份中，满足一系列的标准分阈值条件$Z_{\tilde{x_i}} > tol_{Z}$的点的比例的关于给定阈值$tol_{Z}$的累积分布函数。
+最后，如前面提到的那样，我们发现，40个模拟结果组成集合模拟对于我们的实验来说已经足够。
+但是我们还是在第 \ref{sec:ens}节进一步的探讨了集合成员的个数的选择。  
 
-The primary objective of this section is to evaluate the new POP-ECT tool on CESM-POP simulation data with a series of experiments on configurations with expected outcomes, including revisiting the effect of changing the barotropic solver convergence tolerance. Experiments were run with the CESM 1.2.2 release, using CESM-POP for the active ocean component, the CICE model for the active sea ice component,和data-driven atmosphere和land components. In addition, we use the climatologically-averaged atmospheric forcing (one-year repeating forcing) framework for ocean-ice simulations. Therefore, there are no year-to-year corresponding events (such as El Ni\~{n}o Southern Oscillation),和the variance in the equatorial Pacific may be artificially suppressed. (Note that this particular CESM component configuration is referred to in CESM documentation as a ``G\_NORMAL\_YEA`` component set). The CESM grid resolution was “T62\_g16”, which corresponds to a 1\degree grid ($320 \times 384$) for the ocean和ice components, with $60$ vertical levels和a displaced Greenland pole. Simulations were run on $96$ processor cores (unless otherwise specified) on the Yellowstone machine at NCAR. 
+为了简洁，尽管我们也分析了其他变量，我们只展示了温度（TEMP）和海表高度（SSH）的结果。 
+这两个变量在海洋模式系统有很强的代表性。海表高度和海洋海流动力系统密切相关，而温度是由模型的标量传输决定的。
+ 
+
+\subsection{正压求解器收敛性条件}
+
+ 
+首先，我们先用我们新的加强版本的CESM-ECT工具来重新评估一下改变正压求解器收敛性条件所带来的影响。
+CESM-POP中正压求解器默认的收敛条件是$10^{-13}$， 我们运行一些采用 $10^{-9}$ 到 $10^{-16}$之间值作为收敛条件的模拟，然后输出所有点上的36个月平均数据。
+我们预测采用比默认的收敛条件$10^{-13}$更加严格的条件得到的模拟结果应该是与原结果在气候学上是一致的，但是更送一些的收敛条件将会引入一些误差。
 
 
-For these experiments, we evaluate 36 months of data as opposed to a single time slice to provide insight as to how the ZPRs vary over time和guide the selection of $t_C$.  Further, to illuminate the relationship between the Z-score和simulation month in terms of ZPR和guide the selection of $tol_{Z}$和$min_{ZPR}$, we utilize a Response Surface Methodology (RSM) \citep[e.g.,][]{box2007}. That is, we provide plots of the response surfaces for variable $\tilde{X}$ 这里 the percentage of grid points $i$ that meet the Z-score tolerance criteria, $Z_{\tilde{x_i}} > tol_{Z}$, are shown with a cumulative distribution function (CDF) for a range of $tol_{Z}$ values和simulation months. Finally, as noted previously, we find an ensemble size of $40$ to be sufficient for our experiments, but we further explore和discuss the ensemble size parameter selection in Sect. \ref{sec:ens}.
+ 
+图 \ref{fig:RSM-TEMP-tol}和Fig. \ref{fig:RSM-SSH-tol}分别给出了温度和海表高度的反应曲面。 
+每张图包含有四个反应曲面：上面两个分别是采用原始默认收敛条件($10^{-13}$)和更严格的收敛条件得到的结果，下面两个是更松的收敛条件（$10^{-10}$和$5.0*10^{-9}$）得到的结果。 
+每一个反应曲面中，X轴表示模拟的月份（从1月到36个月），Y轴表示衡量标准分的分布的阈值$tol_{Z}$。这里阈值就是计算方程中ZPR所用的划定标准分满足某个条件的比例时所用到的阈值。
+颜色刻度中ZPR采用的是以10\%为间隔的百分比。 
+反应曲面对于评估$tol_{Z}$和$min_{ZPR}$的不同组合非常有效。
+比如说，考虑变化求解器收敛条件对温度变量的影响。 图中左上角的 \ref{fig:RSM-TEMP-tol}子图显示，原始的收敛条件($10^{-13}$)下，在所有模拟月份中90\% 的点的标准分都小于2.0。
+与之相对的，下面的采用为$10^{-10}$收敛条件的子图表明，在第九个模拟月份之后，90\% 的点的标准分要小于3.0， 而在12个分，只有百分之七十到八十左右的网格点的标准分要小于2.0. 
+右下角的子图采用的收敛条件进一步放松 到$5.0*10^{-9}$，它的比较低的ZPR比例表明这个例子中引入较大的误差。
+我们继续考察图\ref{fig:RSM-SSH-tol} 中关于海表高度的反应曲面，四个子图分别表示与图\ref{fig:RSM-TEMP-tol}中相同的四个收敛条件，可以看到总体趋势与温度的反应曲面很相似。 
+对于采用$10^{-13}$为收敛条件的模拟结果中，在除了第六个月的所有模拟月份中， 90\%的点上标准分都要小于2.0。 
+与温度变量的反应曲面类似， 收敛条件为$10^{-10}$ 对应的子图可以出来有明显的误差，这个误差在收敛条件为$5.0*10^{-9}$对应的例子中更加明显。 
+温度和海表高度的反应曲面中有一个明显的不同就是，温度得到的曲线随着时间的变化更加光滑。 这主要是由于温度的计算中有一个很很要的扩散过程。
 
-For simplicity, we show results for temperature (TEMP)和sea surface height (SSH).  Though we analyzed the other variables as well, these two are representative of the ocean system model in general as SSH is related to ocean circulation dynamics和TEMP is determined by model scalar transport. 
-%(Note that results for UVEL和VVEL  look quite similar to temperature.)
+ 
 
-\subsection{Barotropic solver convergence tolerance}
+如果我们在图\ref{fig:RSM-TEMP-tol}和图\ref{fig:RSM-SSH-tol}中固定标准分的衡量阈值，我们就可以很容易的评估ZPR。 
+假设我们采用一个比较保守的选择$tol_{Z} \; = \; 3.0$。 
+图 \ref{fig:PRZ-tol}给出了温度和海表高度两个变量中，标准分超出阈值 $tol_{Z} \; = \; 3.0$ 的点的百分比。 
+如果我们选择ZPR的阈值为$min_{ZPR} \; = \; 0.9$， 也就对应着图\ref{fig:PRZ-tol}中10\%的不通过率，我们可以很明显的看出收敛条件为$10^{-10}$的例子就处于我们定义通过与不通过的边界线上（因此，这个收敛条件值在实际模拟中不能使用）。 
+而采用比$10^{-10}$更严格的收敛条件得到的结果的不通过率更低一些，因此，看起来它们的两个变量跟原始结果所得到的变量在统计学上时一致的。
+图\ref{fig:PRZ-tol}中的图标很明晰的证明了，随着收敛条件的放松，超出给定标准分阈值的点会增多。 
+这个结果比文章\cite{yong2015}中的结果更加清楚。 
 
-First we use the newly enhanced CESM-ECT to revisit the effect of changing the barotropic solver convergence tolerance, as discussed in Sect. \ref{sec:back} in reference to the work in \cite{yong2015}. The default barotropic solver convergence tolerance in CESM-POP is $10^{-13}$,和we ran experiments with convergence tolerances ranging from  $10^{-9}$ to $10^{-16}$, outputting monthly temporal averages at each grid point for 36 months.  
-%Changing the convergence tolerance for the barotropic solver corresponds to a perturbation of the forcing term at each time step (c.f. Section \ref{sec:pert}).  
-We expect convergence tolerances tighter than the default $10^{-13}$ to result in a consistant climate, but looser tolerances to introduce some error.
-
-Response surfaces for TEMP和SSH are given in Fig. \ref{fig:RSM-TEMP-tol}和Fig. \ref{fig:RSM-SSH-tol}, respectively.  Each figure contains four response surfaces: the original default convergence tolerance ($10^{-13}$)和a tighter tolerance ($10^{-16}$) in the top two subplots和looser tolerances ($10^{-10}$和$5.0*10^{-9}$) in the bottom two subplots.  For each response surface, the x-axis indicates the simulation month (ranging from 1 to 36),和the y-axis indicates the range of Z-score values used for $tol_{Z}$ when calculating the percentage of grid points that fall below the Z-score tolerance, i.e. ZPR in Eq. (\ref{e:zpr}) . The color bar indicates the ZPR as a percentage in increments of 10\%.  The response surface plots are useful for evaluating various combinations of options for $tol_{Z}$和$min_{ZPR}$. For example, consider the effect on variable TEMP of modifying the solver convergence tolerance.  The upper left subplot in Fig. \ref{fig:RSM-TEMP-tol} indicates that for the original convergence tolerance ($10^{-13}$),  90\% of all grid points had a Z-score of less than 2.0 at all simulation months.  In contrast, the subplot below for $10^{-10}$ shows that after the first 9 simulation months, 90\% of the grid points have a Z-score less 3.0,和by 12 months, between 70和80 percent of the grid points have Z-scores less than 2.0. Further loosening the convergence tolerance to $5.0*10^{-9}$ as in the lower right subplot shows pronounced errors in terms of the relatively low ZPR percentages.  If we turn our attention to SSH in Fig. \ref{fig:RSM-SSH-tol} for the same four convergence tolerances, the overall trends are similar.  In particular, for $10^{-13}$, 90\% of all grid points have a Z-score of less than 2.0 at all simulation months (except month 6).  Similarly to TEMP, the subplot for $10^{-10}$ shows that errors have been introduced和errors are even more pronounced for $5.0*10^{-9}$. A notable difference between the response surfaces for TEMP和SSH is that the plots for temperature are smoother over time because diffusion is an important process in the temperature calculation.
-
-If we fix the Z-score tolerance for the data shown in Fig. \ref{fig:RSM-TEMP-tol}和Fig. \ref{fig:RSM-SSH-tol}, we can more easily evaluate the ZPR.
-Consider setting $tol_{Z} \; = \; 3.0$, a rather conservative choice. Fig. \ref{fig:PRZ-tol} illustrates the percentage of grid points with Z-scores that exceed $tol_{Z} \; = \; 3.0$ ( i.e. \textit{fail}) for both TEMP和SSH. If we choose a ZPR threshold of $min_{ZPR} \; = \; 0.9$, which corresponds to a 10\% failure rate in Fig. \ref{fig:PRZ-tol}, it is clear that a convergence tolerance of $10^{-10}$ is borderline in terms of passing or failing (and therefore should not be used in practice).  Whereas tolerances tighter than $10^{-10}$ have low failure rates和appear statically consistent with the original tolerance for both variables.  This plot in Fig. \ref{fig:PRZ-tol} is of interest as well as it nicely demonstrates that as the convergence tolerance becomes less strict, the number of grid points exceeding the Z-score tolerance increases.  This result is much clearer than in \cite{yong2015}.
 
 \subsection{Processor layouts}
 
@@ -191,134 +256,3 @@ We plan to extend this work in a number of ways.  First, the existing spatial ap
 The CESM-ECT Python tools (pyCECT v2.0) can be obtained independently of CESM from NCAR's public git repository (\url{https://github.com/NCAR/PyCECT/releases}).  The version of CESM used for our experiments, CESM 1.2.2, is available at \url{http://www.cesm.ucar.edu/models/cesm1.2}. The CESM-ECT software tools are also included in the CESM public releases, with the POP-ECT addition available starting with the CESM 2.0 release series. 
 %Alternatively, the tool can also be obtained as a subset of the CIME tools (statistical\_ensemble\_test), which are available at {\url{https://github.com/CESM-Development/cime}.  
 CESM-POP simulation data is available from the corresponding author upon request.
-
-
- 
-
-\bibliographystyle{copernicus}
- \bibliography{pv}
-
-% %------------------------------------------------------------------------------
-
-%Figures和tables at the end
-
-\clearpage
-\begin{figure}[h]
-\includegraphics[height=6.5cm]{fig/temp_rmse_GMD.png}
-\caption {Monthly Root Mean Square Error (RMSE) of temperature for experiments with different barotropic solver convergence tolerances. Note that this is a subset of Fig. 12 in \cite{yong2015}.}
-\label{fig:rmse_temp}
-\end{figure} 
-
-\clearpage
- \begin{figure}[h]
- \begin{center}
- \includegraphics[height=6.5cm]{fig/temp_rmsz_GMD.png}
- \end{center}
- \caption {Monthly Root Mean Square Z-score (RMSZ) of temperature with respect to an ensemble (denoted by yellow) for experiments with barotropic different convergence tolerances. Note that this is subset of Fig. 13 in \cite{yong2015}. }
- \label{fig:rmsz_temp_ens}
- \end{figure} 
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =6.5cm]{fig/pert-force.png}
-\caption{The top panel displays four analytic solutions to Eq. (\ref{e:2}) with the indicated perturbations to the initial conditions (P)和perturbation to the forcing term (F).  Note that all four perturbations have similar effect on the ``original'' (unperturbed) solution.  The bottom panel plots the error between the four perturbations和the original solution. In this example, the error due to perturbing the forcing term (F) is constant和smaller in magnitude that the errors caused by the initial condition perturbations.}
-\label {fig:1Danalytical}
-\end {figure}
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =20cm]{fig/gimp_all_sst_std.png}
-\caption{The ensemble distribution for the standard deviation of sea surface temperature (SST) at months 1, 12, 24,和36.}
-\label{fig:SST_STD_all}
-\end {figure}
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =12cm]{fig/RSM-TEMP-tol.png}
-\caption {Response surfaces for Z-score of temperature (TEMP) over time (monthly)和 Z-score tolerance.  Each subplot represents a different barotropic
-solver convergence tolerance (labeled above). The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-TEMP-tol}
-\end {figure}
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =12cm]{fig/RSM-SSH-tol.png}
-\caption {Response surface for Z-score of sea surface height (SSH) over time (monthly)和Z-score tolerance.  Each subplot represents a different barotropic
-solver convergence tolerance (labeled above). The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-SSH-tol}
-\end {figure}
-
-
-\clearpage
-\begin{figure}[h]
-\centering 
-\includegraphics[height=7cm]{fig/prz_tol_combined.png}
-\caption {Percentage of grid points with Z-scores for temperature
-  (TEMP)和sea surface height (SSH) that exceed the 3.0 tolerance for simulations with various barotropic solver convergence tolerances. }
-\label {fig:PRZ-tol}
-\end{figure}
-
-\clearpage
-\begin{figure}[h]
-\includegraphics[height=7.0cm]{fig/temp_cores_zoom_combine.png}
-\caption{Percentage of grid points with Z-scores for temperature (TEMP) that exceed the 3.0 tolerance for simulations with various numbers of processor cores. (Note that the left和right subplots contain the same information, with different scales for the y-axis.)}
-\label {fig:combine}
-\end{figure}
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =12cm]{fig/RSM-TEMP-param.png}
-\caption {Response surfaces for Z-score of temperature (TEMP) over time (monthly)和 Z-score threshold.  The top two subplots represent two different processor core layouts.
-The bottom left has a tracer mixing coefficient for convective instability that is 10 times larger than the original,和the bottom right uses a different tracer advection scheme. The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-TEMP-param}
-\end {figure}
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =12cm]{fig/RSM-SSH-param.png}
-\caption {Response surfaces for Z-score of sea surface height (SSH) over time (monthly)和 Z-score threshold.  The top two subplots represent two different processor core layouts.
-The bottom left has a tracer mixing coefficient for convective instability 10 times larger than the original,和the bottom right uses a different tracer advection scheme. The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-SSH-param}
-\end {figure}
-
-
-\clearpage
-\begin{figure}[h]
-\centering
-\includegraphics[height=7cm]{fig/prz_param_combined.png}
-\caption{Percentage of grid points with Z-scores for temperature
-  (TEMP)和sea surface height (SSH) that exceed the 3.0 threshold for simulations with an alternative tracer advection scheme (lw\_lim)和several tracer mixing coefficients for convective instability.}
-\label {fig:PRZ-temp-param}
-\end{figure}
-
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =20cm]{fig/zscore_sst_combine_crop.png}
-\caption{Z-score of sea surface temperature (SST) at month 12 for the
-original (default) case, a 384 processor core case, a case with a
-  larger tracer mixing coefficient for convective instability,和a case with an alternate tracer advection scheme.}
-\label {fig:zscore-combine}
-\end {figure}
-
-\clearpage
-\begin {figure}[h]
-\centering
-\includegraphics[height =6.5cm]{fig/ens_size_combined.png}
-\caption{The distributions of experimental failure rates based on 1000 tests for variables temperature (TEMP)和sea surface height (SSH).  For each ensemble size, the green bars indicate the maximum和minimum values obtained,和the red boxes indicate the mean.   }
- \label {fig:temp_ens_80}
-\end {figure}
-
-
-
-% %------------------------------------------------------------------------------
-
- \end{document}
-
