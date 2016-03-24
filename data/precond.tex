@@ -4,10 +4,10 @@
 \section{本章概述}
 
 \section{背景和动机}
-\label{sec:precondBackgroud}
+\label{precond:precondBackgroud}
 
 \section{预处理方法比较}
-\label{sec:precond1}
+\label{precond:compare}
 正压模态求解器的总时间开销等于求解器达到收敛所需要的迭代步数乘以每一次迭代的时间开销。
 随着计算使用的处理器核心数的增大，每一步迭代中的计算所消耗的时间是逐渐减少的，
 但是通信所需要的时间会逐渐增加。 
@@ -61,18 +61,16 @@ Smith et al. \cite{smith1992parallel}在海洋模式POP 的最原始版本中采
 这个技术对于海洋模式POP尤为有潜力，因为它能够充分地利用POP中由椭圆方程离散化后得到的矩阵的块状结构的性质。 
 
 \section{块预处理方法}
-\label{sec:precond2}
-\section{EVP块预处理子} \label{se:evp}
+\label{precond:block}
+
+\section{EVP块预处理子} \label{precond:EVP}
  
 
+\subsection{并行块预处理} \label{precond:EVP:Parallel}
  
-
-\subsection{块预处理方法}
- 
-
 \begin {figure}
 \centering
-\includegraphics[height=5.0cm]{blockpreconditioning.eps}
+\includegraphics[height=0.5\linewidth]{blockpreconditioning}
 \caption[] {海洋模式POP中采用九点差分格式得到的系数矩阵的系数模式。这个例子中，总个区域被分成了$3\times3$个互不重叠的小块。
 红色正方形中的元素表示块内的点之间的相关系数，而蓝色方块中的点表示第$i$个块中的点与其相邻块内的点之间的相关系数。 \label{fig:blockprecond}}
 \end{figure}
@@ -105,14 +103,14 @@ M^{-1}=    \left [
  
 
 \subsection{误差向量传播方法}
-\label{sec:precondEVP}
+\label{precond:EVP:EVP}
 相比于LU分解，使用误差向量传播方法（EVP）求解线性方程$B_i \textbf{x}_i =\textbf{y}_i$ 的计算复杂度是 $\mathcal{O}(n^2)$， 这里$B_i$ 的大小为$n^2\times n^2$。 
 据我们所知，EVP方法的计算复杂度是串行求解椭圆方程的算法中最低的一个 \cite{roache1995elliptic}。 
 EVP方法及其变化形式被用在很多个海洋模式中，如Sandia海洋模拟系统\cite{dietrich1987ocean}和加拿大版本的DIEcast模式\cite{tseng2011parallel}。 
 同时，Tseng和Chien等人还将改进过的基于区域分解的并行EVP方法作为求解器应用在全球海洋模拟中。
 
 
-\begin {figure}[!t]
+\begin {figure}
 \centering
 \includegraphics[height=5.0cm]{evp9pmarch1.png}
 \caption []{针对九点差分的EVP求解方法。 当$(i,j)$周边除了点 $(i+1,j+1)$之外的其他点的值都已知时， 点$(i+1,j+1)$上的值可以利用点$(i,j)$对应的方程求解。 \label {fig:evp9p}}
@@ -183,7 +181,7 @@ EVP方法主要包括两个步骤： 前处理和求解过程。
 
 %----------------------------------------------------------------------------
 \subsection{ChronGear求解器}
-\begin {figure}[!t]
+\begin {figure}
 \centering
 \includegraphics[height=6.5cm]{newPOPStepComp}
 \caption[] {0.1度POP采用默认的对角预处理的ChronGear求解器时个分量耗时的百分比。\label{fig:StepComp}}
@@ -198,7 +196,7 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 
 \begin{algorithm}[!t]
 \caption{Chronopoulos-Gear求解器}
-\label{alg:pcg}
+\label{alg:cg}
 \begin{algorithmic}[1]
 \REQUIRE   与网格快$B_{i,j}$相应的系数矩阵$\textbf{B}$, 预处理子 $\textbf{M}$, 初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
 //\qquad    \textit{do in parallel with all processes}
@@ -227,14 +225,15 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \end{algorithm}
 
 我们给出ChronGear方法的具体算法
-\ref{alg:pcg}， 以供参考.  ChronGear主要包括三个部分：计算部分，边界通信部分和全局通信部分。
+\ref{alg:cg}， 以供参考.  ChronGear主要包括三个部分：计算部分，边界通信部分和全局通信部分。
 计算部分主要包括矩阵向量乘操作，向量向量乘操作以及向量的伸缩操作（向量与常数相乘）等具有很好的可扩展性的操作。 
 边界通信会在每次矩阵向量乘操作之后被调用，其开销随着计算使用的处理器核心数的增加和减少，但是有一个下界。 
 但是，我们后面的章节将会证明，每一步迭代过程中的內积操作\ref{pcg_global1}之后需要调用的全局通信，当使用很大的核心数时，将会成为可扩展性的瓶颈。
  
 
 %----------------------------------------------------------------------------
-\subsection{通信瓶颈}\label{se:bottleneck}
+\subsection{通信瓶颈}
+\label{precond:EVP:comm}
   
 假设使用$p=m^2$个进程，每一个进程恰好分得一个网格块（这在高分辨率POP中是比较常见的配置）。 
 这是正压模态的总运行时间就等于ChronGear求解器在每一个块上的运行时间。 
@@ -242,7 +241,7 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 %----------------------------------------------------------------------------
 
 
-从算法\ref{alg:pcg}中可以得出, 计算开销
+从算法\ref{alg:cg}中可以得出, 计算开销
 $\mathcal{T}_c$主要涉及到四个向量伸缩操作 (算法中步骤\ref{pcg_scale1}, \ref{pcg_scale2} ,\ref{pcg_scale3}, 和
 \ref{pcg_scale4}), 两个向量向量乘积操作或內积操作 (算法中步骤\ref{pcg_dot1} 和 \ref{pcg_dot2}), 以及一个矩阵向量乘积操作 (算法步骤\ref{pcg_mat}).  
 因此,$\mathcal{T}_c= (4 n^2 +2n^2+ 9n^2)\theta + \mathcal{T}_{p}=15\frac{\mathcal{N}^2}{p}\theta+\mathcal{T}_{p}$，
@@ -268,14 +267,14 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 结合以上三个部分，使用对角预处理的ChronGear求解器求解一次所需要的时间开销为：
 \begin{eqnarray}
 %\begin{tabular}{l}
-\label{t_pcg}
+\label{t_cg}
 &\mathcal{T}_{cg}=\mathcal{K}_{cg} (\mathcal{T}_c + \mathcal{T}_b+\mathcal{T}_g )\nonumber \\
 &=\mathcal{K}_{cg} [18 \frac{\mathcal{N}^2}{p}\theta + \frac{8\mathcal{N}}{\sqrt{p}}\beta +(4+\log p)\alpha]
 %\end{tabular}
 \end{eqnarray}
 这里 $K_{cg}$ 表示算法达到指定收敛条件所需要的迭代次数。
 这个迭代次数不会随着进程数的增加而改变 \cite{hu2013scalable}。 
-方程\ref{t_pcg}）表明，计算和边界更新所需要的时间开销都会随着进程数的增加而减少。 
+方程\ref{t_cg}）表明，计算和边界更新所需要的时间开销都会随着进程数的增加而减少。 
 但是，全局归约操作的时间开销则会随着进程数的增多而增加。 
 因此，我们可以预测到，当进程数操作某一个值时， ChronGear求解器的运行时将会增加。 
 图 \ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算（详情见节\ref{se:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
@@ -293,7 +292,7 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
  
 
 \section{CSI迭代法}
-\label{sec:barocsi}
+\label{precond:pcsi}
 
 为了提高海洋模式POP的可扩展性，一个好的正压模态求解器应该具备的特点是需要尽可能少的全局归约操作。 
 在文章\cite{hu2013scalable}中，胡勇等人提出了一个基于Stiefel的CSI方法的求解器。这个求解器被现在了单独版本的POP中。 
@@ -344,7 +343,7 @@ P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接
 \end{algorithm}
 
 \subsection{特征值估计}
-\label{sec:barocsi}
+\label{precond:pcsi:eigs}
 P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最小特征值$\nu$进行估计。 
 海洋模式POP中的系数矩阵$A$ 和它的对角预处理矩阵$M = \Lambda(A)$都是实对称矩阵， 因此预处理后的矩阵的最小最大特征值并不难估计。 
 论文\cite{hu2013scalable} 中给出$A$的特征值的估计，这里我们采用Lanczos方法\cite{Paige1980235}来对$M^{-1}A$的最大最小特征值进行估计。
@@ -356,7 +355,7 @@ P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最�
 我们注意到，为了达到相同的收敛条件，P-CSI算法需要的迭代步骤比ChronGear的略多($K_{pcsi} > K_{cg}$)。 
 以上的两点现象，我们可以解读出来，在当并行使用的处理器核心数比较小的时候，P-CSI应该会比ChronGear的开销更大一些。
 因为处理器核心较少的时候，全局归约操作的开销并不算大。 
-但是，当采用高分辨的网格时，需要用到更多的处理器核心，这是P-CSI的每一步迭代的开销应该会比ChronGear的要明显的快一些（参见公式\ref{t_pcg})和
+但是，当采用高分辨的网格时，需要用到更多的处理器核心，这是P-CSI的每一步迭代的开销应该会比ChronGear的要明显的快一些（参见公式\ref{t_cg})和
 (\ref{t_psi}）。
 而这将进一步减少P-CSI算法到达收敛的时间。 
 
@@ -395,7 +394,7 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 这个算法需要$\textbf{A}$ 是正定对称矩阵。海洋模式POP中直接得到的系数矩阵是负定对称矩阵，此时只需将方程两边同时乘以单位矩阵和-1，即可将系数矩阵转换成正定对称矩阵。 
 
 \section{试验方法和结果分析}
-\label{sec:precondExp}
+\label{precond:exp}
 
  
 我们首先利用美国国家大气研究中心NCAR-Wyoming超级计算中心
@@ -417,13 +416,14 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 
 
 \subsection{低分辨率模拟}
+\label{precond:exp:low}
 图\ref{fig:runtime1}给出了几个可用的求解器在黄石超级计算机上模拟1度海洋模式POP时正压模态的运行时间。  
 采用默认的对角预处理子， 在各种并行度下， P-CSI要比ChronGear的性能好。
 在最大的并行度下（768处理器核心），P-CSI将每个模拟天中求解器的的执行时间从0.58s减少到了0.41s，也就是1.4倍的加速比）。 
 另外，使用新的EVP块预处理，默认的ChronGear和P-CSI求解器的收敛性都得到提升。 
 在768核上, 使用EVP预处理的P-CSI的计算效率为0.37s每模拟天, 相对于默认的对角预处理的ChronGear求解器加速了1.6倍。 
 
-\begin {figure}[!t]
+\begin {figure}
 \centering
 \includegraphics[height =6.5cm]{NEW1deg_solverruntime}
 \caption []{1度POP每模拟天中正压模态的运行时间.\label {fig:runtime1}}
@@ -452,7 +452,9 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 另外，当海洋模式POP中开启生物化学的模块时，即使是1度的分辨率也需要使用相对较多的处理器核心，因为这个模块需要引进很多新的示踪物，进而导致计算量增加很多。 
 
 \subsection{高分辨率模拟}
-\begin {figure*}[t!]
+\label{precond:exp:high}
+
+\begin {figure*}
 \begin{center}
 \includegraphics[height =6.5cm]{NEW01deg_solverruntime}
 \hspace{10pt}
@@ -486,10 +488,9 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 结合EVP预处理的P-CSI求解器在16,875核心上使得核心模拟速率提高了1.7倍，从原来的6.2模拟年年每天到10.5模拟年每天。 
  
 
-\begin {figure}[t!]
+\begin {figure}
 \centering
-
-\includegraphics[height=6.5cm]{NEWPOPStepComp_pcsi.eps}
+\includegraphics[height=6.5cm]{NEWPOPStepComp_pcsi}
 \caption[] { 0.1度海洋模式 POP采用EVP块预处理的P-CSI后的各部分的时间分析。 \label{fig:StepComp_pcsi}}
 \end{figure}
 
@@ -500,24 +501,26 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 全局归约操作的减少同时也显著的减少了海洋模式POP对操作系统噪声的敏感程度\cite{ferreira}，因为更少的归约操作意味着相邻两次全局同步之间的时间变得更长了。 
 除此之外，EVP块预处子还可以进一步减少边界通信，因为它是的达到收敛所需要的迭代次数变少了。 
 在大规模并行环境下，正压求解器的计算开销相比于全局归约操作和边界通信的开销来说基本上可以忽略，因此，EVP预处理子引入的那多出来的一倍的计算量对总体的运行时间影响不大。
-最后我们还要注意到，在处理器核心数小于1200时，全局归约操作的时间是随着进程数的增加而减少的，这与等式\ref{t_pcg}所给出的理论结果是一致的。
+最后我们还要注意到，在处理器核心数小于1200时，全局归约操作的时间是随着进程数的增加而减少的，这与等式\ref{t_cg}所给出的理论结果是一致的。
 
  
 
 \subsection{Edison超级计算机测试结果}
+\label{precond:exp:Edison}
+
  
 为了证明新的求解器不仅仅在黄石超级计算机上有性能提升，我们还在Edison超级计算机上测试0.1度海洋模式POP的模拟效果。Edison超级计算机是美国能源研究科学计算中心（NERSC）的最新的一台超级计算机，它是由 133,824 个2.4 GHz的英特尔的``Ivy Bridge'' 处理器核心组成，这些处理器核心是通过 8GBps 的Cray
 Aries高速网络以蜻蜓拓扑的结构连接起来。  
-\begin {figure*}[t!]
+\begin {figure*} 
 \begin{center}
 \includegraphics[height =7cm]{01deg_comp_all_gs}
 \hspace{10pt}
 \includegraphics[height =7cm]{01deg_comp_all_halo}
 \end{center}
-\caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中主要的耗时成分的分析：全局归约（左）和边界通信（右）。  }
+\caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中主要的耗时成分的分析：全局归约（左）和边界通信（右)。}
 \label{fig:component}
 \end {figure*}
-\begin {figure*}[t!]
+\begin {figure*}
 \begin{center}
 \includegraphics[height=6.5cm]{01deg_solverruntime_edison}
 \hspace{10pt}
@@ -557,4 +560,4 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 \end{table}
 
 \section{本章小结}
-\label{sec:precondConclusion}
+\label{precond:Conclusion}

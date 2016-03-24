@@ -175,7 +175,7 @@ CESM-POP中正压求解器默认的收敛条件是$10^{-13}$， 我们运行一�
 
 
  
-图 \ref{fig:RSM-TEMP-tol}和Fig. \ref{fig:RSM-SSH-tol}分别给出了温度和海表高度的反应曲面。 
+图 \ref{fig:RSM-TEMP-tol}和图 \ref{fig:RSM-SSH-tol}分别给出了温度和海表高度的反应曲面。 
 每张图包含有四个反应曲面：上面两个分别是采用原始默认收敛条件($10^{-13}$)和更严格的收敛条件得到的结果，下面两个是更松的收敛条件（$10^{-10}$和$5.0*10^{-9}$）得到的结果。 
 每一个反应曲面中，X轴表示模拟的月份（从1月到36个月），Y轴表示衡量标准分的分布的阈值$tol_{Z}$。这里阈值就是计算方程中ZPR所用的划定标准分满足某个条件的比例时所用到的阈值。
 颜色刻度中ZPR采用的是以10\%为间隔的百分比。 
@@ -199,31 +199,67 @@ CESM-POP中正压求解器默认的收敛条件是$10^{-13}$， 我们运行一�
 这个结果比文章\cite{yong2015}中的结果更加清楚。 
 
 
-\subsection{Processor layouts}
+\subsection{进程数}
 
-While CESM simulations that are identical except for differing numbers of CESM-POP processor cores yield non-BFB identical results, the results from such simulations 
-should represent the same climate state (i.e., they should not be statistically distinguishable). Here we verify that such simulations definitively pass CESM-ECT.  Recall that the simulations comprising our CESM-ECT ensemble were run on 96 cores.  We ran additional simulations on 48, 192,和384 cores.  Note that we are not using threading in CESM-POP at this time.
-
-The response surface plots for 96 cores (labeled ``original'')和384 cores are the top subplots in Fig. \ref{fig:RSM-TEMP-param}和Fig. \ref{fig:RSM-SSH-param} for TEMP和SSH, respectively. These plots show that for both core counts, 90\% of all grid points have a Z-score of less than 2.0 for nearly all simulation months,和as expected, there is little discernable difference between the two core counts for both variables.  As before, we fix the Z-score tolerance at $tol_{Z} \; = \; 3.0$和show the Z-score failure rates for TEMP with all four core count options (48, 96, 192,和384) in Fig. \ref{fig:combine}.  As anticipated, the failure percentages are quite low (below 1.2\%) for all configurations at all monthly time slices, confirming that differences in simulation output due to varying the core count in CESM-POP are not statistically significant和correctly identified as such by the new CESM-ECT methodology.  Note that the corresponding plot for SSH is not provided as is looks similarly good in terms of very low failure rates.
-
- \subsection{Physical parameters}\label{sec:pp}
-
- Now we change two physical parameters expected to alter the ocean climate from the tracer equations: the tracer's vertical mixing coefficient for convective instability和the tracer advection scheme.  Results from these modifications should fail the CESM-ECT. First, by default, the vertical mixing coefficient for convective instability (\textit{convect\_diff}) is set to be \textit{convect\_diff} $=\; 10,000$ for the tracer mixing coefficient in the 1\degree CESM-POP configuration.  We increase this parameter by factors of 2, 5,和10, which is expected to increase the vertical mixing in the ocean interior when the density profile is unstable. This should noticeably impact the CEM-POP results due to the different mixing property.  Second, we change the POP tracer advection scheme (\textit{t\_advect\_ctype}) from the default 3rd-order upwind scheme (\textit{upwind3}) to the Lax-Wendroff scheme with 1D flux limiters (\textit{lw\_lim}). This change is also significant和should lead to a different climate state because the associated diffusion和dispersion errors differ.
-
-The response surface plots for increasing \textit{convect\_diff} by a factor of 10 are given in the lower left subplots in Fig. \ref{fig:RSM-TEMP-param}和Fig. \ref{fig:RSM-SSH-param} for TEMP和SSH, respectively.  This change clearly affects the climate state significantly, particularly as compared to changing the CESM-POP core count to 384 as depicted in the upper right subplot in both figures.  In fact, the impact on TEMP of increasing \textit{convect\_diff} in Fig. \ref{fig:RSM-TEMP-param} is almost as strong as changing the solver convergence tolerance to $10^{-9}$ in Fig. \ref{fig:RSM-TEMP-tol}.  The change of the advection scheme also leads to different climate state, evident in the lower right subplots in Fig. \ref{fig:RSM-TEMP-param}和Fig. \ref{fig:RSM-SSH-param} for TEMP和SSH, respectively.  Note that the Z-scores at nearly every grid point are failing.
-
-The Z-score failure rates for $tol_{Z} \; = \; 3.0$ are shown in Fig. \ref{fig:PRZ-temp-param} for advection scheme change as well as all the modifications to the tracer vertical mixing coefficient for convective instability.  If we choose a ZPR threshold of $min_{ZPR} \; = \; 0.9$, which corresponds to a maximum of 10\% failure rate,  then doubling the vertical mixing coefficient (\textit{convect\_diff}*2) is borderline in terms of passing or failing.  The remaining tests clearly fail for both TEMP和SSH, as expected. Based on our experiments thus far, choosing a Z-score tolerance of $tol_{Z} \; = \; 3.0$和a ZPR threshold of $min_{ZPR} \; = \; 0.9$ yields the expected outcome,和these parameter settings are the default for the pyCECT tool.  
+ 
+CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数时，都会产生不二进制一致的的结果，但是这些模拟结果都应该代表着相同的气候状态（也就说他们在统计学上是不可区分的）。
+所以这里我们确信，这样的模拟结果肯定能通过CESM-ECT的测试。 
+这里再次申明一下，CESM-ECT集合模拟中的成员都是在96个处理器核心上运行得到的。
+我们另外分别在48,192和384核上进行了同样的模拟。
+这里，我们并没有使用CESM-POP中的线程并行。 
 
 
- \subsection{Simulation length}
+ 
+图\ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param} 中上面两个子图分别对应的是96核（标记为“original”）和384核上运行结果中温度和海表高度得到的反应曲面图。 
+这些图显示，这两种核数的配置下， 对于几乎所有的月份，90\%以上的点的标准分都要比2.0要小。 
+正如我们所料想的那样，对于这两个变量，这两种不同的核数的配置得到的结果的差别是微乎其微的。
+像之前的做法一样，我们将标准分的阈值固定到$tol_{Z} \; = \; 3.0$时，就可以得到 图 \ref{fig:combine}中的温度变量在四个不同的核数配置 (48, 96, 192,和384) 下的结果的标准分的不通过率。
+正如我们预计的那样， 这四个核数的配置在所有的时间片的不通过百分比都很低（低于1.2\%），这也确认了我们之前的结论，即改变CESM-POP的运行核数对结果造成的影响在统计学意义上并不是显著的，并且这一特征被我们新的CESM-ECT给准确的判断出来。 
+由于海表高度对应的图片放映出来的很低的不通过率跟这张图很相似，所以我们就不重复给出了。
+
+ \subsection{物理参数}\label{sec:pp}
+ 
+接下来我们考察了一下预计能够对海洋气候造成改变的例子。我们改变示踪物的两个物理参数 ：一个是垂直混合中对流不稳定系数，另一个是示踪物的平流方案的系数。
+这样改变物理参数的改动应该是不能通过CESM-ECT的测试。
+对于第一个物理参数，在默认情况下，1度的CESM-POP的示踪物混合系数的配置中将对流不稳定的垂直混合系数(\textit{convect\_diff})设为\textit{convect\_diff} $=\; 10,000$。
+我们将这个参数分别放大2,5,和10倍，以期增大海洋内部在密度分层不稳定的时候垂直混合的强度。
+这应该对对CESM-POP的结果造成很大的影响，因为对应的混合特性上的改变。
+第二个，我们将POP中示踪物的平流方案(\textit{t\_advect\_ctype}) 的默认配置三阶迎风格式(\textit{upwind3})替换成带有一维通量限制的Lax-Wendroff格式 (\textit{lw\_lim})。
+这种改变对于模拟结果同样显著，并且能够导致一个完全不同的气候状态，因为相应的扩散和弥散误差变得不同。
+ 
+图 \ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param} 的左下方的子图中分别给出了温度和海表高度在将\textit{convect\_diff}增加十倍之后得到的反应曲面。 这种改变对气候状态造成的影响是很明显的，尤其是和右上角的将CESM-POP所运行的核心数改变为384后得到的反应曲面相比。
+实际上，图  \ref{fig:RSM-TEMP-param} 中增加\textit{convect\_diff}得到的效果几乎和图\ref{fig:RSM-TEMP-tol}中将求解器的收敛条件放松至$10^{-9}$得到的效果一样强。
+改变平流方案同样会得到不同的气候态， 图 \ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param} 的右下图中有明显的表现，可以看出几乎所有的点都没有通过 标准分检测。 
 
 
-%In particular, in cases which should pass (such as changing the core counts), more than 90\% of the points have Z-scores smaller than 3.0 at all monthly time slices.  While for cases which use different physical schemes (Section \ref{sec:pp}), the percentage of points which have Z-scores smaller than 3.0 is significantly lower than 90 \%.
 
- Our experiments in Fig. \ref{fig:PRZ-temp-param} indicate that the percentage of grid points with failing Z-scores differs little from month to month after the first 12 months for both TEMP和SSH.  This conclusion can also be reached from Fig. \ref{fig:RSM-TEMP-param}和Fig. \ref{fig:RSM-SSH-param} for TEMP和SSH, respectively.  In particular, the response of SSH to the initial temperature perturbation is largely stabilized after 12 months. The SSH may be affected through the circulation change resulting from the change of density stratification.  Based on our experimental results, evaluating the output at a single well-chosen checkpoint time $t_C$ appears reasonable.
+   
+图 \ref{fig:PRZ-temp-param} 中给出了改变平流方案和示踪物垂直混合的对流不稳定性系数所得到的结果中，在$tol_{Z} \; = \; 3.0$ 时标准分的不通过率。
+如果我们选择$min_{ZPR} \; = \; 0.9$作为ZPR的阈值，也就是对应了允许的最大不通过率为10\% ， 将垂直混合系数增大一倍(\textit{convect\_diff}*2) 所得到的结果介于通过临界线上。
+剩下的例子中，如我们所料，温度和海表高度都没有通过测试。 
+基于以上的实验，我们选择$tol_{Z} \; = \; 3.0$作为标准分阈值，$min_{ZPR} \; = \; 0.9$作为ZPR阈值，就可以得到我们想要的结果。
+这两个配置被当做pyCECT工具的默认配置。 
 
- We generally choose $t_C \;=\; 12$ to minimize the computational requirements of creating the ensemble for each candidate CESM tag. (The ensemble simulations runs can be length $t_C$.)  Consider the surface plots for month $t_C \;=\; 12$ in Fig. \ref{fig:zscore-combine} that illustrate the Z-score values for SST as compared to the ensemble for four different model configurations.  The top subplot is the original case.  The second plot from the top is the result of changing the number of CESM-POP processor cores to 384, which resembles the topmost plot as expected.  While the patterns are not identical for the upper two plots, the Z-score magnitudes和distributions are similar, indicating a degree of statistical consistency when changing the number of processors.  In contrast, increasing the tracer mixing coefficient for convective instability by a factor of 10 was shown to change the climate state in Sect. \ref{sec:pp},和this result is clearly evident in the Z-score at month 12 in the third plot from the top of Fig. \ref{fig:zscore-combine}.  Finally, the bottom subplot in Fig. \ref{fig:zscore-combine} indicates a largely altered climate state due to the use of a different advection scheme, which corroborates the substantial effects seen in Fig. \ref{fig:RSM-TEMP-param}和Fig. \ref{fig:RSM-SSH-param}.  Using a different advection scheme significantly changes the numerical dissipation和diffusion associated with the scheme \citep{tseng2008}和effectively influences the circulation pattern和structure in the ocean model \citep[e.g.,][]{tseng2006}. 
-In particular, the Lax-Wendroff scheme with flux limiters can introduce excessive numerical mixing which may interact with the physical mixing of temperature和salinity, though it can result in a much smoother solution in general.
+
+ \subsection{模拟时间}
+ 
+图\ref{fig:PRZ-temp-param}可以看出来，对于温度和海表高度这两个变量， 我们的实验中不通过标准分测试的点所占的百分比在12个模拟月之后变化很小
+这个结论也可以从图 \ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param}中的温度和海表高度的结果中的出来。 
+特别的，海表高度对于初始温度场的扰动的相应在12个月份后被很大的稳固了下来。 
+海表高度会受到由于密度分成所导致的环流的改变所带来的影响。
+给予我们的实验结果可以看出，在某一个精心挑选的时间点$t_C$上对输出结果做评估是比较合理。 
+
+  
+通常我们选择$t_C \;=\; 12$作为评估的时间点，也就是说集合模拟只需要运行长度为$t_C$的时间， 这样可以减少为可能的CESM版本生成集合模拟的计算开销。
+ 图 \ref{fig:zscore-combine}中描述的是在$t_C \;=\; 12$时刻，四种不同的模式配置得到的结果中的海表温度相对于数据集合的标准分的二维平面图。
+ 最上面的是原始配置得到的结果。第二幅是改变CESM-POP的处理器核数到384后的结果，它和第一幅的结果相似。
+ 尽管前面两张图中的分布模式并不是完全相同，但是标准分的量级和分布都很相似的。这表明改变计算所使用的处理器核心数，得到的结果在一定程度上是统计学一致的。
+ 相反的，增大示踪物的对流不稳定新的混合系数道原来的10倍，就会得到与节\ref{sec:pp}中不同的气候状态。
+ 这个结论在图 \ref{fig:zscore-combine}第三幅图中，第12个月个标准分布可以很明显的看出来。 
+ 最后，图中底部的子图可以看出来使用一个新的平流格式会导致得到的气候状态完全不同，这也证实了图 \ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param}中所展示的明显的影响。 
+ 采用一个新的平流格式会极大的改变数值格式相应的弥散和扩散过程\cite{tseng2008}，同时也会影响到海洋模式中海流的特征和结构\cite{tseng2006}。
+ 另外，使用通量限制的Lax-Wendroff会引入额外的数值混合，进而与温度和盐度的物理混合产生相会作用，导致最终的结果通常会更加的光滑一些。
+
 
 
 % %-----------------------------------------------------------------------------
@@ -231,28 +267,53 @@ In particular, the Lax-Wendroff scheme with flux limiters can introduce excessiv
 % %----------------------------------------------------------------------------
 \section{Ensemble size } \label{sec:ens}
 
-The size (i.e., number of members) of the ensemble must be large enough to sufficiently capture ocean model variability, but as small as possible for computational efficiency.  In this section, we discuss the sensitivity of POP-ECT to ensemble size.  We setup experiments to determine the false positive rate associated with multiple ensembles sizes as follows.
-First, we generate a total of 80 ensemble members that differ by an $\mathcal{O}(10^{-14})$ perturbation to the initial ocean temperature field.  Second, from the 80 members, we remove 10 to use as our test set. Next, from the remaining 70 members, we create ensembles of sizes 10, 20, 30, 40, 50,和60.  In particular, for each ensemble size, we do 100 random draws for each ensemble size from the set of 70 members, resulting in 100 distinct ensembles corresponding to each ensemble size. Then for each ensemble size, we run POP-ECT at $t_c = 12$ months for each of the 10 members of the test set with all 100 ensembles of that size, resulting in 1000 tests per ensemble size.   We consider the measured experimental failure rate to be the type I error, or ``false positive'' rate.  Because the test set和the ensemble members are all drawn from the larger 80 member collection that represents a statistically consistent climate, the Z-score failure rate would ideally be as low as possible. 
+ 
+数据集合的规模（也就是模拟成员的个数）必须要足够的大才能够捕捉到海洋模式自身的不确定性，但是从计算效率的角度来说又必须尽可能的小。
+这一节中，我们将会讨论一下POP-ECT对于数据结合规模的敏感性。
+我们通过以下的实验手段，来观察误判率与数据集合的规模之间的关系。 
+首先，我们产生了总共80个的集合模拟的成员，这些模拟只是在初始的海洋温度场中加入$\mathcal{O}(10^{-14})$量级的随机扰动。 
+然后，在这80个成员中，我们随机的拿出其中的10个作为我们的测试样例。 
+下一步，从剩下的70个模拟结果中，我们分别构造出包含有10, 20, 30, 40, 50,和60个成员的数据集合。 
+这里，对于给定的数据集合的大小，我们从那70个模拟结果中随机的抽取100次给定数目的结果作为数据集合的成员。
+这样对于每一个给定的集合大小，我们就有100个互不相同的数据集合。 
+然后，对于每一个数据集合大小，我们使用POP-ECT在第$t_c = 12$月份对拿出来的10个测试样例分别基于这个集合大小的所有的100数据结合做评估。
+这样我们得到了每个集合大小的1000个测试结果。
+我们利用第一类误差，也就是“假阳性”率来衡量实验的错误率。 
+由于测试集和数据集合的成员都是从那80个有着统计学上一致的气候状态的模拟结果集中抽取出来的，标准分不通过率在理想情况下越低越好。 
 
-Figure \ref{fig:temp_ens_80} shows the results of performing these experiments for variables TEMP和SSH. The x-axis indicates the ensemble size,和the y-axis indicates the Z-score failure rate.  For each ensemble size, the squares denote the mean和the error bars indicate one standard deviation of uncertainty.  As expected,  as the ensemble size increases, the false positive rate decreases和the range of uncertainty shrinks.  However,  increasing the ensemble size has diminishing returns; the improvement in false positive rate when using 20 instead of 10 members is much greater than the improvement gained by using 60 instead of 50 members.  We choose an ensemble size of 40 as improvement beyond that is marginal和we balance a low false positive rate with keeping the cost of ensemble generation low.
+图 \ref{fig:temp_ens_80}中给出了这些实验在温度和海表高度这两个变量上的结果。 
+X轴表示的是数据集合的大小，Y轴表示的标准分的不通过率。对于每一个集合大小，中间的方块表示的是平均值，误差条表示的是一个标准差的不确定性。
+正如我们所料，随着数据集合规模的增大，假阳性率减少，不确定性的范围也相应的缩减。 
+但是，一直增加数据集合的规模所带来的效果是不断减少的，数据集合的大小从10增大到20时假阳性率上的改善要比从50增大到60的时候在假阳性率上的改善要大很多。 
+所以我们选择数据集合的大小为40，因为40在比较低的误判率和比较低的生成数据集合的开销之间是一个比较好的平衡。 
+ 
 
-% %-----------------------------------------------------------------------------
-% % -----------------------------------------------------------------------------
-% %----------------------------------------------------------------------------
+ 
  \conclusions[Conclusions和Future Work]\label{sec:concl}
 
+ 
+由于CESM-POP海洋模式被广泛的使用，并且对于很多的气候模拟都有非常重要的作用，
+保证它的代码的正确性是至关重要的。 
+但是，由于海洋动力学本身的不确定性，模拟结果常常由于处理器核数的改变等微小的因素而导致最后的模拟结果并不能做到完全一致。
+因此，对于气候科学家和模式的开发人员来说，能够简单易行的评判模拟结果是否是统计学上一致是极其重要的。
+由于特征不同，已有的评估大气模式数据的基于集合模拟的方法CAM-ECT对于海洋模式的模拟数据并不适用。 
+因此，我们开发了一个新的针对海洋模式的统计学一致性检测工具POP-ECT。
+这个工具能够客观的检测出CESM-POP中的统计学显著的改动。 
+集合模拟的大规模的确定，对于使用这个新的方法也是极其重要的。
+我们的实验证明了这个新方法在检查海洋模式状态中的误差时是非常有效的。 
+POP-ECT 极大地提升了CESM-ECT工具集在确保CESM模拟质量的能力。
 
-Because the CESM-POP ocean model is widely-used和critical to many climate simulations, assuring its quality is critical. However, the chaotic nature of ocean dynamics often leads to simulation results that are not identical in the presence of minor differences, such as a change in processor core count for the simulation.  Therefore, the ability to easily determine whether differences in model results are statistically significant is important to both climate scientists和model developers.  The ensemble methodology developed for evaluating consistency with atmospheric data, CAM-ECT, was not appropriate for ocean simulation data based on its differing characteristics.  Therefore, we developed a new ocean model-specific methodology for statistical consistency testing, POP-ECT, that allows for the subjective detection of statistically significant changes in CESM-POP.  Together with the new methodology, using an appropriately-sized ensemble is critical as well. Our experiments indicate the appropriateness of the new approach for detecting differences in the model ocean state. The addition of POP-ECT to the CESM-ECT suite of tools has greatly enhanced the capability to ensure quality CESM simulations.
-
-We plan to extend this work in a number of ways.  First, the existing spatial approach lends itself to the examination of regional ocean diagnostics.  For example, named oceans could be identified individually as the source of failure if the global test fails.  Enabling the move from coarse- to fine-grain diagnostics would facilitate determining the root cause of an error or difference.  Second, we plan to extend the evaluation of the effects of data compression on climate data in \cite{baker2014} to ocean model data和will use the testing methodology presented here to evaluate the impact. The ability to determine whether changes in the ocean state are statically significant or not due to data loss during compression is critical to the acceptance of compression as a tool to reduce data volumes for ocean simulation data.
+我们计划将这个工作在一下几个方面进行扩展。 首先，我们的方法可以在区域海洋上进行检测。比如说，当一个模拟结果没有通过整体测试时，这个测试工具可以找出是哪个还去造成的测试不能通过。 
+这种从粗粒度到细粒度的诊断使得我们能够找到造成错误或者误差的根源。 
+其次，我们打算想文章 \inlinecite{baker2014}一样，利用这个工具去评估一下数据压缩在海洋模式中的影响。
+这种评估压缩过程中数据精度丢失是否会造成最终的结果在统计学上不一致的能力对于压缩方法能否被接受为减少海洋模拟数据的数据量来说至关重要。 
 
 
 % % -----------------------------------------------------------------------------
 % % ----------------- Section Code--------------------------------------
 % % -----------------------------------------------------------------------------
 
-  \section{Code availability}\label{sec:code}
+  \section{代码可用性}\label{sec:code}
 
-The CESM-ECT Python tools (pyCECT v2.0) can be obtained independently of CESM from NCAR's public git repository (\url{https://github.com/NCAR/PyCECT/releases}).  The version of CESM used for our experiments, CESM 1.2.2, is available at \url{http://www.cesm.ucar.edu/models/cesm1.2}. The CESM-ECT software tools are also included in the CESM public releases, with the POP-ECT addition available starting with the CESM 2.0 release series. 
-%Alternatively, the tool can also be obtained as a subset of the CIME tools (statistical\_ensemble\_test), which are available at {\url{https://github.com/CESM-Development/cime}.  
-CESM-POP simulation data is available from the corresponding author upon request.
+  CESM-ECT Python工具集 (pyCECT v2.0)可以从与美国国家大气研究中心的CESM独立的开源git仓库得到。 (\url{https://github.com/NCAR/PyCECT/releases}).  试验中用的 CESM 1.2.2版本可以参见\url{http://www.cesm.ucar.edu/models/cesm1.2}. The CESM-ECT在CESM的代码中也可以找到，但是本文中提到的POP-ECT工具将在下一个版本的CESM 2.0中才会被加进来。 
+  , with the POP-ECT addition available starting with the CESM 2.0 release series. 
