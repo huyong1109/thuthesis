@@ -203,12 +203,12 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$, $\textbf{s}_0 =0$, $\textbf{p}_0 =0$;\quad $\rho_0=1$,$\sigma_0=0$, $k=0$;
 \WHILE{$k \leq k_{max}$ }
 \STATE $k=k+1$;
-\STATE $\textbf{r}'_{k} =\textbf{M}^{-1}\textbf{r}_{k-1}$; \label{pcg_scale0} \COMMENT{preconditioning}
-\STATE $\textbf{z}_k = \textbf{B}\textbf{r}'_{k}$; \label{pcg_mat}\COMMENT {matrix-vector multiplication}
-\STATE $update\_halo(\textbf{z}_{k})$; \COMMENT{boundary communication} \label{pcg_bc1}
+\STATE $\textbf{r}'_{k} =\textbf{M}^{-1}\textbf{r}_{k-1}$; \label{pcg_scale0} \COMMENT{预处理}
+\STATE $\textbf{z}_k = \textbf{B}\textbf{r}'_{k}$; \label{pcg_mat}\COMMENT {矩阵向量乘}
+\STATE $update\_halo(\textbf{z}_{k})$; \COMMENT{边界通信} \label{pcg_bc1}
 \STATE $\tilde{\rho_k} = \textbf{r}_{k-1}^T\textbf{r}'_{k}$;\label{pcg_dot1}
 \STATE $\tilde{\delta_k} = \textbf{z}_k^T\textbf{r}'_k$;\label{pcg_dot2}
-\STATE $(\rho_k,\delta_k) = global\_sum(\tilde{\rho_k},\tilde{\delta_k})$;\label{pcg_global1} \COMMENT{global reduction}
+\STATE $(\rho_k,\delta_k) = global\_sum(\tilde{\rho_k},\tilde{\delta_k})$;\label{pcg_global1} \COMMENT{全局规约操作}
 \STATE $\beta_k = \rho_k / \rho_{k-1}$;\label{pcg_beta}
 \STATE $\sigma_k = \delta_k - \beta_k^2\sigma_{k-1}$;\label{pcg_sigma}
 \STATE $\alpha_k = \rho_k /\sigma_{k}$;\label{pcg_alpha}
@@ -216,7 +216,6 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \STATE $\textbf{p}_k = \textbf{z}_{k} +\beta_k\textbf{p}_{k-1}$;\label{pcg_scale2}
 \STATE $\textbf{x}_k =\textbf{x}_{k-1} +\alpha_k \textbf{s}_k$;\label{pcg_scale3}
 \STATE $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{p}_k$;\label{pcg_scale4}
-\STATE $convergence\_check(\textbf{r}_{k})$;  \COMMENT{check convergence}
 \IF{ $k \% n_{c} == 0$}
 \STATE \textbf{if} $||\textbf{r}_k|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $n_c$ 检查一次是否收敛}
 \ENDIF
@@ -452,15 +451,18 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 \subsection{高分辨率模拟}
 \label{precond:exp:high}
 
-\begin {figure*}
-\begin{center}
+\begin {figure}
+\centering
 \includegraphics[height =8cm]{NEW01deg_solverruntime}
-\hspace{10pt}
+\caption []{ 在美国黄石超级计算机上0.1度 POP中正压模态模拟一天的的执行时间。\label {fig:runtime01_time}}
+\end {figure}
+
+\begin {figure}
+\centering
 \includegraphics[height =8cm]{NEW01deg_speedup_ys}
-\end{center}
 \caption []{ 在美国黄石超级计算机上0.1度 POP中正压模态模拟一天的的执行时间（左）， 
-在美国黄石超级计算机上0.1度 POP核心部分的模拟速率（右）。\label {fig:runtime01}}
-\end {figure*}
+在美国黄石超级计算机上0.1度 POP核心部分的模拟速率（右）。\label {fig:runtime01_rate}}
+\end {figure}
 
 
 现在我们测试在黄石超级计算机上，高分辨率0.1度的海洋模式POP的新的正压求解的可扩展性。 
@@ -471,7 +473,7 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 这里值得一提的是，由于P-CSI的迭代过程的开销相对比较小（相比于海洋模式POP中的收敛性判断）， 因此，如果将收敛性判断的频率进一步降低的话， P-CSI的性能可能能够进一步的提高。 
  
 
-如图\ref{fig:runtime01}左边所示，ChronGear的性能在所使用的处理器核心数大于2700时反而会有所下降，
+如图\ref{fig:runtime01_time}所示，ChronGear的性能在所使用的处理器核心数大于2700时反而会有所下降，
 而P-CSI的运行时间在这之后相对比较平缓。 
 采用对角预处理的前提下， P-CSI方法在16，875核上将0.1度的海洋模式POP的正压模态的性能提高了4.3倍（从19.0秒下降到4.4秒每模拟天）。 
 使用EVP预处理能够进一步的改进ChronGear和P-CSI的性能， 使得这两个算法分别相对于原始的正压模态求解器加速了1.4倍和5.2倍。
@@ -482,13 +484,13 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
  
 正压求解器性能上的改进有助于提高海洋模式POP的总体性能， 尤其是在大规模并行环境中。
 模拟速率（模拟年每天）是一个被广泛采用的评估模式性能的指标， 我们这里采用不考虑模式初始化和I/O开销的 核心模拟速率。这是由于模式初始化只是在模式运行开始的时候执行一次，而模式的I/O开销是随着用户设置的频率的变化而改变的。 
-通常专家们认为，如果想要进行长期的气候模拟，那么模拟速度最小要达到五个模式年每天\cite{dennis2012computational}， 图\ref{fig:runtime01} 右边可以看出，模式采用新的P-CSI求解器能够达到比采用ChronGear求解器更高的模拟速率。 
+通常专家们认为，如果想要进行长期的气候模拟，那么模拟速度最小要达到五个模式年每天\cite{dennis2012computational}， 图\ref{fig:runtime01_rate} 可以看出，模式采用新的P-CSI求解器能够达到比采用ChronGear求解器更高的模拟速率。 
 结合EVP预处理的P-CSI求解器在16,875核心上使得核心模拟速率提高了1.7倍，从原来的6.2模拟年年每天到10.5模拟年每天。 
  
 
 \begin {figure}
 \centering
-\includegraphics[height=6.5cm]{NEWPOPStepComp_pcsi}
+\includegraphics[height=8cm]{NEWPOPStepComp_pcsi}
 \caption[] { 0.1度海洋模式 POP采用EVP块预处理的P-CSI后的各部分的时间分析。 \label{fig:StepComp_pcsi}}
 \end{figure}
 
@@ -511,26 +513,26 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 Aries高速网络以蜻蜓拓扑的结构连接起来。  
 \begin {figure} 
 \begin{center}
-\includegraphics[height =7cm]{01deg_comp_all_gs}
+\includegraphics[height =8cm]{01deg_comp_all_gs}
 \hspace{10pt}
-\includegraphics[height =7cm]{01deg_comp_all_halo}
+\includegraphics[height =8cm]{01deg_comp_all_halo}
 \end{center}
-\caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中主要的耗时成分的分析：全局归约（左）和边界通信（右)。}
+\caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中主要的耗时成分的分析：全局归约（上）和边界通信（下)。}
 \label{fig:component}
 \end {figure}
 \begin {figure}
-\begin{center}
+\centering
 \includegraphics[height=6.5cm]{01deg_solverruntime_edison}
-\hspace{10pt}
-\includegraphics[height=6.5cm]{01deg_speedup_edison}
-\end{center}
- 
-\caption []{在美国Edison超级计算机上0.1度 POP中正压模态模拟一天的的执行时间（左）， 
-在美国黄石超级计算机上0.1度 POP核心部分的模拟速率（右）。\label {fig:runtime01_edison}}
- 
+\caption []{在美国Edison超级计算机上0.1度 POP中正压模态模拟一天的的执行时间。\label {fig:runtime01_edison_time}}
 \end {figure}
 
-图\ref{fig:runtime01_edison}可以看出，四种配置的正压求解器在Edison超级计算机上的模拟性能与在黄石超级计算机上的模拟性能有相近的特点。 
+\begin {figure}
+\centering
+\includegraphics[height=6.5cm]{01deg_speedup_edison}
+\caption []{在美国黄石超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_edison_rate}}
+\end {figure}
+
+图\ref{fig:runtime01_edison_time}和图\ref{fig:runtime01_edison_rate}可以看出，四种配置的正压求解器在Edison超级计算机上的模拟性能与在黄石超级计算机上的模拟性能有相近的特点。 
 我们注意到在Edison超级计算机上模拟时，全局通信的时间开销要比在黄石超级计算机上的开销更不稳定一些，主要可能是因为网络资源的竞争造成的\cite{wang2014}。 
 这最终导致了ChronGear求解器（不管采用什么预处理子）的运行时间在多次模拟中相差很大，因此我们将这些实验中最好的三个结果取平均值作为它的运行时间。 
 由于P-CSI几乎没有全局归约操作（只发生在检查收敛性的时候）， 这种多次运行中的差别很小。 

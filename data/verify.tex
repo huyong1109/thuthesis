@@ -56,6 +56,12 @@ POP-ECT的统计过程中考虑到了海洋中不确定性的空间分布特点�
 \label{verify:ocean}
 \subsection{传统正确性方法}
 \label{verify:premethod}
+\begin{figure}%[!htbp]
+\centering
+\includegraphics[ height=10cm]{EvpBug_fix_gmd_new}
+\caption[] {0.1度海洋模式POP的海表盐度。 \label{fig:sst}}
+\end{figure}
+
 目前海洋模式POP中可用的正确性测试工具（我们称之为POP-RMSE），是一个比较简单的评估CESM-POP程序是否成功的移植到了一个新的机器上。 
 这个工具的主要目标是发现与新机器上硬件或软件层的问题。 
 这个测试中，首先将特定设置的实验在新的机器上运行五个模拟天，然后将其输出结果和美国国家大气研究中所提供 的标准的数据集相比较。
@@ -66,6 +72,15 @@ POP-ECT的统计过程中考虑到了海洋中不确定性的空间分布特点�
 然后，拿得到的均方根误差的增长曲线与给定的两个样例所得到的曲线相比较。 
 这两个样例中，一个是原始的配置，另一个是在求解器中采用比默认收敛条件要高一个量级的收敛条件。 
 
+
+\begin{figure}%[!t]
+\begin{center}
+\includegraphics[height=8cm]{temp_rmse.eps}
+\end{center}
+\caption[] {采用不同收敛条件的1度海洋模式POP模拟结果中的温度场的每个月的均方根误差（RMSE）。}
+\label{fig:ssh_rmse_t}
+\end{figure}
+
 POP-RMSE中这个简单的方法对于评估CESM在新的机器上的输出结果是很方便的， 但是它比为大气模拟数据设计的CAM-ECT的表达能力要弱得多。 
 比如说，POP-RMSE无法评判CESM-POP中最新的线性求解中的改动所带的微小的气候状态的改变 \cite{yong2015}。 
 在文章\cite{yong2015}中，作者将默认的预处理共轭梯度法求解器替换成预处理的Chebyshev迭代算法， 以此来提高CESM-POP的计算性能。
@@ -73,6 +88,13 @@ POP-RMSE中这个简单的方法对于评估CESM在新的机器上的输出结�
 因此，在 \cite{yong2015}中， 为了验证POP-RMSE是否能够检测出求解器在不同时间所引入的误差， 我们搜集了1度分辨率的CESM-POP在不同的收敛条件（$10^{-10}$ 到$10^{-16}$）下36个月的运行结果。  图   \ref{fig:rmse_temp} 给出的是最紧的收敛条件的实例  ($10^{-16}$) 和其他收敛条件的实例的结果的温度场之间的均方根误差。 
 尽管这些例子采用不同的收敛条件，图\ref{fig:rmse_temp} 中很难体现出来这些由于求解器误差所带来的影响  \cite{yong2015}。 
 
+\begin{figure}%[!t]
+\begin{center}
+\includegraphics[height=8cm]{temp_rmsz.eps}
+\end{center}
+\caption[] {采用不同收敛条件的1度海洋模式POP模拟结果中的温度场的每个月的均方根标准分（RMSZ）。黄色的区域表示集合模拟中40个实例结果的均方根标准分的分布。 }
+\label{fig:ssh_rmsz_t}
+\end{figure}
  
 由于海洋动力过程本身具有混沌性，即使在正压求解中引入一个浮点数舍入误差精度级别的扰动，也可能使得最终的模式结果与原始结果截然不同。 
 因此，既然我们不能保证引入新的求解器之后所得到的结果与原始结果是二进制一致的，那么我们在将新的P-CSI求解器和EVP预处理正式的加入到海洋模式POP的版本中之前，需要证明加入它们之后不会造成模拟结果的不正确性，更不能改变所得到的气候的状态。 
@@ -98,11 +120,7 @@ POP-RMSE中这个简单的方法对于评估CESM在新的机器上的输出结�
 值得一提的是，我们最终决定选择三维的温度场作为评估对象（而不是像现有的评估方式那样选择二维的海表高度），因为我们发现温度场是找到不同例子之间差异的最好的诊断变量。 
  
 
-\begin{figure}%[!htbp]
-\centering
-\includegraphics[ height=10cm]{EvpBug_fix_gmd_new}
-\caption[] {0.1度海洋模式POP的海表盐度。 \label{fig:sst}}
-\end{figure}
+
 
 
  
@@ -110,11 +128,10 @@ POP-RMSE中这个简单的方法对于评估CESM在新的机器上的输出结�
 设集合模拟在某个时间$T$的关于变量$X$的输出结果集合为 $\mathcal{E}=\{X_1,X_2,...,X_m\}$, 这里
 $m$ 表示集合模拟的大小。 
 在某个给定点$j$, 我们就可以从集合模拟中得到关于变量$X$的一个集合
-  $\{X_1(j),X_2(j),...,X_m(j)\}$.
+$\{X_1(j),X_2(j),...,X_m(j)\}$.
 随着集合模拟的规模的增加，这个数列就能够更加准确的反应出来给定点的状态的分布。 
 我们假设在点$j$上这个数列的平均值和方案为别为$\mu (j) $和$\delta (j)$。 
 然后假设新的实例的模拟结果为 $\tilde{X}$， 那么以下定义的这个均方根标准分就可以表示这个新的实例和集合模拟结果之间的平均误差：
-
 $$ RMSZ(\tilde{X}, \mathcal{E}) =  \sqrt{\frac{1}{n}\sum_{j=1}^n(\frac{\tilde{X}(j) -\mu (j)}{\delta (j)})^2}$$
 
 我们使用这个基于集合的均方根标准分的指标来重新评估以下不同的求解器收敛条件的影响。 
@@ -124,20 +141,6 @@ $$ RMSZ(\tilde{X}, \mathcal{E}) =  \sqrt{\frac{1}{n}\sum_{j=1}^n(\frac{\tilde{X}
 因此，我们确信我们的新的求解器并没有在模式中引入气候模式意义上不可接受的误差。 
 
 
-\begin{figure}%[!t]
-\begin{center}
-\includegraphics[height=6.5cm]{temp_rmse.eps}
-\end{center}
-\caption[] {采用不同收敛条件的1度海洋模式POP模拟结果中的温度场的每个月的均方根误差（RMSE）。}
-\label{fig:ssh_rmse_t}
-\end{figure}
-\begin{figure}%[!t]
-\begin{center}
-\includegraphics[height=6.5cm]{temp_rmsz.eps}
-\end{center}
-\caption[] {采用不同收敛条件的1度海洋模式POP模拟结果中的温度场的每个月的均方根标准分（RMSZ）。黄色的区域表示集合模拟中40个实例结果的均方根标准分的分布。 }
-\label{fig:ssh_rmsz_t}
-\end{figure}
 
 
 \section{基于集合模拟的统计方法}\label{verify:statistic}
@@ -189,6 +192,15 @@ X_F(t) = X_0e^{\alpha } -\frac{G+F}{\alpha},
 X_F(t)-X(t) = \frac{F}{\alpha}. 
 \label{e:Ferr}
 \end{equation}
+
+\begin {figure} 
+\centering
+\includegraphics[height =8cm]{pert-force.png}
+\caption{ 图的上面部分给出的是方程(\ref{e:2}) 在给定的初值场扰动(P)和给定的强迫场扰动(F)下对应的解析解。
+注意到所有的四个扰动在原始的（也就是没有加入任何扰动）结果上取得的效果是相似的。 图的下面部分给出的是加入这四种扰动之后得到的结果与原始结果的差。这个实验中，由于强迫场上的扰动(F)所导致的误差是固定的，并且比初值场上的扰动(P)带来的误差小很多一个量级。}
+\label {fig:1Danalytical}
+\end {figure}
+
 方程 (\ref{e:Ferr}) 表明强迫场中加入干扰项后对结果产生的固定的。
 因此，我们可以用方程(\ref{e:Perr})的初始场中引入扰动所带来的误差的量级来衡量在方程(\ref{e:Ferr})的强迫场中引入扰动后对结果的影响。 
 举个例子，在图  \ref{fig:1Danalytical}中我们描述了一个初始扰动和强迫扰动对方程(\ref{e:2})的最终结果的影响相似的例子。在这个例子中，强迫项的扰动所引起的误差比初始条件扰动所赢得误差还小。
@@ -228,108 +240,22 @@ CAM数据很直观的就被当成了验证的首要目标，因为大气中扰�
 这里可以调优那几个关于是否能通过测试的参数，从而达到想要的误报率。
  
 \begin{figure}
-\includegraphics[height=6.5cm]{figures/temp_rmse_GMD.png}
-\caption {Monthly Root Mean Square Error (RMSE) of temperature for experiments with different barotropic solver convergence tolerances. Note that this is a subset of Fig. 12 in \cite{yong2015}.}
+\centering
+\includegraphics[height=6.5cm]{temp_rmse_GMD.png}
+\caption {
+默认正压求解器采用不同的收敛条件下得到的模拟结果的每个月温度的均方根误差（RMSE）。}
 \label{fig:rmse_temp}
 \end{figure} 
 
 
- \begin{figure} 
- \begin{center}
- \includegraphics[height=6.5cm]{figures/temp_rmsz_GMD.png}
- \end{center}
- \caption {Monthly Root Mean Square Z-score (RMSZ) of temperature with respect to an ensemble (denoted by yellow) for experiments with barotropic different convergence tolerances. Note that this is subset of Fig. 13 in \cite{yong2015}. }
- \label{fig:rmsz_temp_ens}
- \end{figure} 
-
-\begin {figure} 
-\centering
-\includegraphics[height =6.5cm]{figures/pert-force.png}
-\caption{The top panel displays four analytic solutions to Eq. (\ref{e:2}) with the indicated perturbations to the initial conditions (P)和perturbation to the forcing term (F).  Note that all four perturbations have similar effect on the ``original'' (unperturbed) solution.  The bottom panel plots the error between the four perturbations和the original solution. In this example, the error due to perturbing the forcing term (F) is constant和smaller in magnitude that the errors caused by the initial condition perturbations.}
-\label {fig:1Danalytical}
-\end {figure}
-
-\begin {figure} 
-\centering
-\includegraphics[height =20cm]{figures/gimp_all_sst_std.png}
-\caption{The ensemble distribution for the standard deviation of sea surface temperature (SST) at months 1, 12, 24,和36.}
-\label{fig:SST_STD_all}
-\end {figure}
-
-\begin {figure} 
-\centering
-\includegraphics[height =12cm]{figures/RSM-TEMP-tol.png}
-\caption {Response surfaces for Z-score of temperature (TEMP) over time (monthly)和 Z-score tolerance.  Each subplot represents a different barotropic
-solver convergence tolerance (labeled above). The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-TEMP-tol}
-\end {figure}
-
-\begin {figure} 
-\centering
-\includegraphics[height =12cm]{figures/RSM-SSH-tol.png}
-\caption {Response surface for Z-score of sea surface height (SSH) over time (monthly)和Z-score tolerance.  Each subplot represents a different barotropic
-solver convergence tolerance (labeled above). The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-SSH-tol}
-\end {figure}
-
-
 \begin{figure} 
-\centering 
-\includegraphics[height=7cm]{figures/prz_tol_combined.png}
-\caption {Percentage of grid points with Z-scores for temperature
-  (TEMP)和sea surface height (SSH) that exceed the 3.0 tolerance for simulations with various barotropic solver convergence tolerances. }
-\label {fig:PRZ-tol}
-\end{figure}
+\begin{center}
+\includegraphics[height=8cm]{temp_rmsz_GMD.png}
+\end{center}
+\caption{默认正压求解器采用不同的收敛条件下得到的模拟结果的每个月温度对应于给定的数据集合（图中黄色区域）的均方根标准分（RMSZ）。}
+\label{fig:rmsz_temp_ens}
+\end{figure} 
 
-\begin{figure}
-\includegraphics[height=7.0cm]{figures/temp_cores_zoom_combine.png}
-\caption{Percentage of grid points with Z-scores for temperature (TEMP) that exceed the 3.0 tolerance for simulations with various numbers of processor cores. (Note that the left和right subplots contain the same information, with different scales for the y-axis.)}
-\label {fig:combine}
-\end{figure}
-
-\begin {figure} 
-\centering
-\includegraphics[height =12cm]{figures/RSM-TEMP-param.png}
-\caption {Response surfaces for Z-score of temperature (TEMP) over time (monthly)和 Z-score threshold.  The top two subplots represent two different processor core layouts.
-The bottom left has a tracer mixing coefficient for convective instability that is 10 times larger than the original,和the bottom right uses a different tracer advection scheme. The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-TEMP-param}
-\end {figure}
-
-\begin {figure} 
-\centering
-\includegraphics[height =12cm]{figures/RSM-SSH-param.png}
-\caption {Response surfaces for Z-score of sea surface height (SSH) over time (monthly)和 Z-score threshold.  The top two subplots represent two different processor core layouts.
-The bottom left has a tracer mixing coefficient for convective instability 10 times larger than the original,和the bottom right uses a different tracer advection scheme. The color bar indicates the percentage of grid points with a Z-score below the Z-score tolerance (on the y-axis).}
-\label{fig:RSM-SSH-param}
-\end {figure}
-
-
-\begin{figure} 
-\centering
-\includegraphics[height=7cm]{figures/prz_param_combined.png}
-\caption{Percentage of grid points with Z-scores for temperature
-  (TEMP)和sea surface height (SSH) that exceed the 3.0 threshold for simulations with an alternative tracer advection scheme (lw\_lim)和several tracer mixing coefficients for convective instability.}
-\label {fig:PRZ-temp-param}
-\end{figure}
-
-
-  
-\begin {figure}
-\centering
-\includegraphics[height =20cm]{figures/zscore_sst_combine_crop.png}
-\caption{Z-score of sea surface temperature (SST) at month 12 for the
-original (default) case, a 384 processor core case, a case with a
-  larger tracer mixing coefficient for convective instability,和a case with an alternate tracer advection scheme.}
-\label {fig:zscore-combine}
-\end {figure}
-
-\begin {figure} 
-\centering
-\includegraphics[height =6.5cm]{figures/ens_size_combined.png}
-\caption{The distributions of experimental failure rates based on 1000 tests for variables temperature (TEMP)和sea surface height (SSH).  For each ensemble size, the green bars indicate the maximum和minimum values obtained,和the red boxes indicate the mean.   }
- \label {fig:temp_ens_80}
-\end {figure}
-\subsection{研究动机}
 
  
 文章 \cite{yong2015} 中给出来的求解器验证性工作很有启发性，而且完全满足目前的需求。 
@@ -388,6 +314,12 @@ CESM-ECT方法的下一步是量化数据集合的分布特征，进而为行的
 然而， 这个方法采用的全面积加权平均不能很好的应用在海洋模式数据中，因为海洋模式的不确定性相比于大气模式数据来说，在网格点上的一致性更差一些。
 因此，我们需要更多的考虑到空间上的分布特诊。 
 
+\begin {figure} 
+\centering
+\includegraphics[height =20cm]{gimp_all_sst_std.png}
+\caption{第1, 12, 24和36个月份上，海表温度在数据集合上的标准方差。}
+\label{fig:SST_STD_all}
+\end {figure}
 
 比如，我们考虑一个由$N_{ens} \;=\; 40$个使用1度分辨的海洋模式POP作为海洋模式分量的CESM模拟$T\;=\;36$个月得到的模拟结果组成的数据集合。 
 图 \ref{fig:SST_STD_all}中给出的是数据集合的1,12,24和36个模拟月份中海表温度（SST）的标准方差的空间分布。
@@ -507,8 +439,21 @@ CESM-POP中正压求解器默认的收敛条件是$10^{-13}$， 我们运行一�
 我们预测采用比默认的收敛条件$10^{-13}$更加严格的条件得到的模拟结果应该是与原结果在气候学上是一致的，但是更送一些的收敛条件将会引入一些误差。
 
 
+\begin {figure} 
+\centering
+\includegraphics[height =12cm]{RSM-TEMP-tol.png}
+\caption {温度（TEMP）的标准分对于时间和标准分阈值的反应曲面。 每个子图代表着采用不同的正压求解器的收敛条件（在子图上有标明）。纵轴上的颜色条表示标准分小于给定的标准分阈值的点所占的比例。}
+\label{fig:RSM-TEMP-tol}
+\end {figure}
  
-图 \ref{fig:RSM-TEMP-tol}和Fig. \ref{fig:RSM-SSH-tol}分别给出了温度和海表高度的反应曲面。 
+\begin {figure} 
+\centering
+\includegraphics[height =12cm]{RSM-SSH-tol.png}
+\caption {海标高度（SSH）的标准分对于时间和标准分阈值的反应曲面。 每个子图代表着采用不同的正压求解器的收敛条件（在子图上有标明）。纵轴上的颜色条表示标准分小于给定的标准分阈值的点所占的比例。}
+\label{fig:RSM-SSH-tol}
+\end {figure}
+
+图 \ref{fig:RSM-TEMP-tol}和图\ref{fig:RSM-SSH-tol}分别给出了温度和海表高度的反应曲面。 
 每张图包含有四个反应曲面：上面两个分别是采用原始默认收敛条件($10^{-13}$)和更严格的收敛条件得到的结果，下面两个是更松的收敛条件（$10^{-10}$和$5.0*10^{-9}$）得到的结果。 
 每一个反应曲面中，X轴表示模拟的月份（从1月到36个月），Y轴表示衡量标准分的分布的阈值$tol_{Z}$。这里阈值就是计算方程中ZPR所用的划定标准分满足某个条件的比例时所用到的阈值。
 颜色刻度中ZPR采用的是以10\%为间隔的百分比。 
@@ -522,6 +467,14 @@ CESM-POP中正压求解器默认的收敛条件是$10^{-13}$， 我们运行一�
 温度和海表高度的反应曲面中有一个明显的不同就是，温度得到的曲线随着时间的变化更加光滑。 这主要是由于温度的计算中有一个很很要的扩散过程。
 
  
+
+\begin{figure} 
+\centering 
+\includegraphics[height=7cm]{prz_tol_combined.png}
+\caption { 
+  在正压模态求解器中采用不同收敛条件得到的模拟结果中，对应变量的标准分超过3.0的点所占的比例。左右两张图分别表示温度和海表高度这两个变量对应的结果。}
+\label {fig:PRZ-tol}
+\end{figure}
 
 如果我们在图\ref{fig:RSM-TEMP-tol}和图\ref{fig:RSM-SSH-tol}中固定标准分的衡量阈值，我们就可以很容易的评估ZPR。 
 假设我们采用一个比较保守的选择$tol_{Z} \; = \; 3.0$。 
@@ -540,6 +493,13 @@ CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数�
 这里，我们并没有使用CESM-POP中的线程并行。 
 
 
+\begin{figure}
+\centering
+\includegraphics[height=7.0cm]{temp_cores_zoom_combine.png}
+\caption{
+在采用不同的处理器核心数得到的模拟结果中，温度变量的标准分超过3.0的点所占的比例。左右两张图分别表示温度和海表高度这两个变量对应的结果。这里左右两张子图表示相同的信息，只是纵轴上的刻度不同}
+\label {fig:combine}
+\end{figure}
  
 图\ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param} 中上面两个子图分别对应的是96核（标记为“original”）和384核上运行结果中温度和海表高度得到的反应曲面图。 
 这些图显示，这两种核数的配置下， 对于几乎所有的月份，90\%以上的点的标准分都要比2.0要小。 
@@ -549,6 +509,19 @@ CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数�
 由于海表高度对应的图片放映出来的很低的不通过率跟这张图很相似，所以我们就不重复给出了。
 
  \subsection{物理参数}\label{verify:pp}
+
+\begin {figure} 
+\centering
+\includegraphics[height =12cm]{RSM-TEMP-param.png}
+\caption {
+温度变量的标准分对于模拟时间（单位为月份）和标准分阈值的反应曲面。
+上面两张图给出的是采用不同的处理器核心数所得到的结果。
+左下方的图表示示踪物混合的对流不稳定性系数采用比默认配置大10倍的值所得到的结果。右下角的实验中采用了与默认配置不一样的示踪物平流方案。
+纵轴上的颜色条表示标准分小于给定的标准分阈值的点所占的比例。}
+\label{fig:RSM-TEMP-param}
+\end {figure}
+
+
  
 接下来我们考察了一下预计能够对海洋气候造成改变的例子。我们改变示踪物的两个物理参数 ：一个是垂直混合中对流不稳定系数，另一个是示踪物的平流方案的系数。
 这样改变物理参数的改动应该是不能通过CESM-ECT的测试。
@@ -557,12 +530,30 @@ CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数�
 这应该对对CESM-POP的结果造成很大的影响，因为对应的混合特性上的改变。
 第二个，我们将POP中示踪物的平流方案(\textit{t\_advect\_ctype}) 的默认配置三阶迎风格式(\textit{upwind3})替换成带有一维通量限制的Lax-Wendroff格式 (\textit{lw\_lim})。
 这种改变对于模拟结果同样显著，并且能够导致一个完全不同的气候状态，因为相应的扩散和弥散误差变得不同。
+
+\begin{figure} 
+\centering
+\includegraphics[height =12cm]{RSM-SSH-param.png}
+\caption {
+海表高度变量的标准分对于模拟时间（单位为月份）和标准分阈值的反应曲面。
+上面两张图给出的是采用不同的处理器核心数所得到的结果。
+左下方的图表示示踪物混合的对流不稳定性系数采用比默认配置大10倍的值所得到的结果。右下角的实验中采用了与默认配置不一样的示踪物平流方案。
+纵轴上的颜色条表示标准分小于给定的标准分阈值的点所占的比例。}
+\label{fig:RSM-SSH-param}
+\end {figure}
  
 图 \ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param} 的左下方的子图中分别给出了温度和海表高度在将\textit{convect\_diff}增加十倍之后得到的反应曲面。 这种改变对气候状态造成的影响是很明显的，尤其是和右上角的将CESM-POP所运行的核心数改变为384后得到的反应曲面相比。
 实际上，图  \ref{fig:RSM-TEMP-param} 中增加\textit{convect\_diff}得到的效果几乎和图\ref{fig:RSM-TEMP-tol}中将求解器的收敛条件放松至$10^{-9}$得到的效果一样强。
 改变平流方案同样会得到不同的气候态， 图 \ref{fig:RSM-TEMP-param}和图 \ref{fig:RSM-SSH-param} 的右下图中有明显的表现，可以看出几乎所有的点都没有通过 标准分检测。 
 
 
+\begin{figure} 
+\centering
+\includegraphics[height=8cm]{prz_param_combined.png}
+\caption{ 
+  采用与默认配置不同的示踪物平流方案 (lw\_lim）以及不同的示踪物混合的对流不稳定性系数的模拟结果中，海表高度变量的标准分超过3.0的点所占的比例。}
+\label {fig:PRZ-temp-param}
+\end{figure}
 
    
 图 \ref{fig:PRZ-temp-param} 中给出了改变平流方案和示踪物垂直混合的对流不稳定性系数所得到的结果中，在$tol_{Z} \; = \; 3.0$ 时标准分的不通过率。
@@ -581,6 +572,13 @@ CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数�
 给予我们的实验结果可以看出，在某一个精心挑选的时间点$t_C$上对输出结果做评估是比较合理。 
 
   
+\begin{figure}
+\centering
+\includegraphics[height =20cm]{zscore_sst_combine_crop.png}
+\caption{四个不同的实验在第12个月时，海表温度（SST）对应于给定数据集合的标准分。这四个实验分别采用原始配置，将处理器核心数从96增大到384， 使用更大示踪物的对流不稳定性混合系数，以及使用不同的示踪物平流方案。}
+\label {fig:zscore-combine}
+\end{figure}
+
 通常我们选择$t_C \;=\; 12$作为评估的时间点，也就是说集合模拟只需要运行长度为$t_C$的时间， 这样可以减少为可能的CESM版本生成集合模拟的计算开销。
  图 \ref{fig:zscore-combine}中描述的是在$t_C \;=\; 12$时刻，四种不同的模式配置得到的结果中的海表温度相对于数据集合的标准分的二维平面图。
  最上面的是原始配置得到的结果。第二幅是改变CESM-POP的处理器核数到384后的结果，它和第一幅的结果相似。
@@ -596,7 +594,7 @@ CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数�
 % %-----------------------------------------------------------------------------
 % % -----------------------------------------------------------------------------
 % %----------------------------------------------------------------------------
-\section{Ensemble size } \label{verify:ens}
+\section{数据集合的规模} \label{verify:ens}
 
  
 数据集合的规模（也就是模拟成员的个数）必须要足够的大才能够捕捉到海洋模式自身的不确定性，但是从计算效率的角度来说又必须尽可能的小。
@@ -612,6 +610,16 @@ CESM模拟中，当采用相同的配置，仅仅改变CESM-POP运行的核数�
 我们利用第一类误差，也就是“假阳性”率来衡量实验的错误率。 
 由于测试集和数据集合的成员都是从那80个有着统计学上一致的气候状态的模拟结果集中抽取出来的，标准分不通过率在理想情况下越低越好。 
 
+
+\begin {figure} 
+\centering
+\includegraphics[height =8cm]{ens_size_combined.png}
+\caption{ 不同的数据集合的规模下，1000个测试中的不通过率的分布。左右两个图分别对应温度和海表高度两个变量。
+对于给定的数据集合的大小，绿色条块表示测试结果中最大和最小的不通过率，红色的方框表示测试结果的平均值。}
+\label {fig:temp_ens_80}
+\end {figure}
+\subsection{研究动机}
+
 图 \ref{fig:temp_ens_80}中给出了这些实验在温度和海表高度这两个变量上的结果。 
 X轴表示的是数据集合的大小，Y轴表示的标准分的不通过率。对于每一个集合大小，中间的方块表示的是平均值，误差条表示的是一个标准差的不确定性。
 正如我们所料，随着数据集合规模的增大，假阳性率减少，不确定性的范围也相应的缩减。 
@@ -623,7 +631,7 @@ X轴表示的是数据集合的大小，Y轴表示的标准分的不通过率。
 % % -----------------------------------------------------------------------------
 \section{代码可用性}\label{verify:code}
 
-  CESM-ECT Python工具集 (pyCECT v2.0)可以从与美国国家大气研究中心的CESM独立的开源git仓库得到。 (\url{https://github.com/NCAR/PyCECT/releases}).  试验中用的 CESM 1.2.2版本可以参见\url{http://www.cesm.ucar.edu/models/cesm1.2}. The CESM-ECT在CESM的代码中也可以找到，但是本文中提到的POP-ECT工具将在下一个版本的CESM 2.0中才会被加进来。 
+CESM-ECT Python工具集 (pyCECT v2.0)可以从与美国国家大气研究中心的CESM独立的开源git仓库得到。 (\url{https://github.com/NCAR/PyCECT/releases}).  试验中用的 CESM 1.2.2版本可以参见\url{http://www.cesm.ucar.edu/models/cesm1.2}. The CESM-ECT在CESM的代码中也可以找到，但是本文中提到的POP-ECT工具将在下一个版本的CESM 2.0中才会被加进来。 
 
 \section{本章小结}
 \label{verify:Conclusion}
