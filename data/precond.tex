@@ -52,7 +52,7 @@ Smith et al. \cite{smith1992parallel}在海洋模式POP 的最原始版本中采
 这使得它反而不如一些预处理得比较好的共轭梯度法
 \cite{muller2014massively}， 尤其是在使用共轭梯度法所需要的迭代步数比较少的时候。 
 地球系统模式CESM中的海洋模式分量POP中的正压模态求解问题就是这样一个例子（参见下一节的图
- \ref{fig:iteration}）。
+ \ref{fig:iter}）。
 更进一步，不管是高分辨率还是低分辨率，海洋模式POP的每一个模拟天内都需要对正压模态中的线性方程求解几十次甚至上百次，
 而通常的一次模拟中往往需要模拟成百上千个模拟年，这就导致代数多重网格方法的启动开销变得无法接受。
 
@@ -68,9 +68,9 @@ Smith et al. \cite{smith1992parallel}在海洋模式POP 的最原始版本中采
 
 \subsection{并行块预处理} \label{precond:EVP:Parallel}
  
-\begin {figure}
+\begin{figure}
 \centering
-\includegraphics[height=0.5\linewidth]{blockpreconditioning}
+\includegraphics[height=8cm]{blockpreconditioning}
 \caption[] {海洋模式POP中采用九点差分格式得到的系数矩阵的系数模式。这个例子中，总个区域被分成了$3\times3$个互不重叠的小块。
 红色正方形中的元素表示块内的点之间的相关系数，而蓝色方块中的点表示第$i$个块中的点与其相邻块内的点之间的相关系数。 \label{fig:blockprecond}}
 \end{figure}
@@ -112,7 +112,7 @@ EVP方法及其变化形式被用在很多个海洋模式中，如Sandia海洋�
 
 \begin {figure}
 \centering
-\includegraphics[height=5.0cm]{evp9pmarch1.png}
+\includegraphics[height=8cm]{evp9pmarch1.png}
 \caption []{针对九点差分的EVP求解方法。 当$(i,j)$周边除了点 $(i+1,j+1)$之外的其他点的值都已知时， 点$(i+1,j+1)$上的值可以利用点$(i,j)$对应的方程求解。 \label {fig:evp9p}}
 \end {figure}
 
@@ -183,7 +183,7 @@ EVP方法主要包括两个步骤： 前处理和求解过程。
 \subsection{ChronGear求解器}
 \begin {figure}
 \centering
-\includegraphics[height=6.5cm]{newPOPStepComp}
+\includegraphics[height=8cm]{newPOPStepComp}
 \caption[] {0.1度POP采用默认的对角预处理的ChronGear求解器时个分量耗时的百分比。\label{fig:StepComp}}
 \end{figure}
 
@@ -198,8 +198,8 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \caption{Chronopoulos-Gear求解器}
 \label{alg:cg}
 \begin{algorithmic}[1]
-\REQUIRE   与网格快$B_{i,j}$相应的系数矩阵$\textbf{B}$, 预处理子 $\textbf{M}$, 初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
-//\qquad    \textit{do in parallel with all processes}
+\REQUIRE   与网格块$B_{i,j}$相应的系数矩阵$\textbf{B}$, 预处理子 $\textbf{M}$, 初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
+//\qquad    \textit{所有进程并行执行}
 \STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$, $\textbf{s}_0 =0$, $\textbf{p}_0 =0$;\quad $\rho_0=1$,$\sigma_0=0$, $k=0$;
 \WHILE{$k \leq k_{max}$ }
 \STATE $k=k+1$;
@@ -277,14 +277,14 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 方程\ref{t_cg}）表明，计算和边界更新所需要的时间开销都会随着进程数的增加而减少。 
 但是，全局归约操作的时间开销则会随着进程数的增多而增加。 
 因此，我们可以预测到，当进程数操作某一个值时， ChronGear求解器的运行时将会增加。 
-图 \ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算（详情见节\ref{se:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
+图 \ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算（详情见节\ref{precond:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
 这里我们可以看到，当使用数千个处理器核心时，全局归约操作的时间变成了整个求解器耗时的主要部分，并且这个时间还在继续增大。 
  
 
 
 \begin{figure}[!t]
 \begin{center}
-	\includegraphics[height=6.5cm]{newChronGear_comp.eps}
+	\includegraphics[height=8cm]{newChronGear_comp.eps}
 \caption[] {在美国黄石超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
 \label{fig:ChronGearCOMP}
 \end{center}
@@ -314,7 +314,7 @@ P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接
 这里$K_{pcsi}$ 表示P-CSI方法收敛到给定条件时所需要的迭代步数。 
 \begin {figure}[!t]
 \begin{center}
-\includegraphics[height=6.5cm]{solver_iteration}
+\includegraphics[height=8cm]{solver_iteration}
 \caption []{1度POP中，Lanczos方法的迭代次数对P-CSI迭代步数的影响。 \label{fig:iter}}
 \end{center}
 \end {figure}
@@ -396,11 +396,9 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 \section{试验方法和结果分析}
 \label{precond:exp}
 
- 
-我们首先利用美国国家大气研究中心NCAR-Wyoming超级计算中心
-（NWSC） \cite{loft:2015}的黄石超级计算机来评测一下采用了我们的新的正压模态求解器的CESM1.2.0的性能。 
+我们首先利用美国国家大气研究中心NCAR-Wyoming超级计算中心(NWSC)\cite{loft:2015}的黄石超级计算机来评测一下采用了我们的新的正压模态求解器的CESM1.2.0的性能。 
 黄石超级计算机由 72,576个
-2.6-Ghz英特尔型号为Xeon E5-2670 的``Sandy Bridge'' 处理器构成。 
+2.6-Ghz英特尔型号为Xeon E5-2670 的“Sandy Bridge“ 处理器构成。 
 这些处理器都是通过13.6 GBps InfiniBand网络连通。   
 黄石超级计算机上50\%以上的计算资源都是在使用地球系统模式CESM来进行气候模拟， 
 因此提高CESM在黄石超级计算机上的效率对于全球气候变化研究来讲十分的有意义\cite{wf2014}。 
@@ -408,7 +406,7 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 
 由于我们只是改动了海洋模式分量POP中的求解器，所以实验中我们将着重测试POP的性能。 
 我们采用的CESM的
-``G\_NORMAL\_YEAR''分量配置集，这个配置中只有海洋和海冰分量模式是真实计算的，而大气等分量模式采用气候数据输入。
+”G\_NORMAL\_YEAR“分量配置集，这个配置中只有海洋和海冰分量模式是真实计算的，而大气等分量模式采用气候数据输入。
 我们针对两种使用频率最高的海洋模式POP水平网格分辨率来进行实验：
 1度 ($320\times 384$) 和0.1度 ($3600\times 2400$).
 值得一提的是，CESM1.2.0的默认配置中将黄石超级计算机上的MPI的环境需求限制（MPIMP\_EAGER\_LIMIT）设置为0， 这个变量主要控制在网络通信约会协议被使用之前的最大的消息量。我们发现使用黄石超级计算机上的默认的环境需求限制配置，也就是MP\_EAGER\_LIMIT = 131072，能够显著的改善CESM的运行性能。 
@@ -425,7 +423,7 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 
 \begin {figure}
 \centering
-\includegraphics[height =6.5cm]{NEW1deg_solverruntime}
+\includegraphics[height = 8cm]{NEW1deg_solverruntime}
 \caption []{1度POP每模拟天中正压模态的运行时间.\label {fig:runtime1}}
 \end {figure}
 
@@ -456,9 +454,9 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 
 \begin {figure*}
 \begin{center}
-\includegraphics[height =6.5cm]{NEW01deg_solverruntime}
+\includegraphics[height =8cm]{NEW01deg_solverruntime}
 \hspace{10pt}
-\includegraphics[height =6.5cm]{NEW01deg_speedup_ys}
+\includegraphics[height =8cm]{NEW01deg_speedup_ys}
 \end{center}
 \caption []{ 在美国黄石超级计算机上0.1度 POP中正压模态模拟一天的的执行时间（左）， 
 在美国黄石超级计算机上0.1度 POP核心部分的模拟速率（右）。\label {fig:runtime01}}
@@ -477,7 +475,7 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 而P-CSI的运行时间在这之后相对比较平缓。 
 采用对角预处理的前提下， P-CSI方法在16，875核上将0.1度的海洋模式POP的正压模态的性能提高了4.3倍（从19.0秒下降到4.4秒每模拟天）。 
 使用EVP预处理能够进一步的改进ChronGear和P-CSI的性能， 使得这两个算法分别相对于原始的正压模态求解器加速了1.4倍和5.2倍。
-在\ref{se:baro}节中，我们证明了原始的正压模态求解器在海洋模式POP的总运行时间所占的比例会随着使用的核心数目的增加而增大。
+在\ref{precond:EVP}节中，我们证明了原始的正压模态求解器在海洋模式POP的总运行时间所占的比例会随着使用的核心数目的增加而增大。
 尤其是在16,875个核上，采用对角预处理的ChronGear求解器占到总运行时间的 50\%以上。 
 相对应的，图\ref{fig:StepComp_pcsi}表明，采用了具有 更高可扩展性的EVP预处理的P-CSI求解器后， 同样是在 16,875 核上运行，正压模态的执行时间仅仅占到总运行时间的16\%。 
 
@@ -509,9 +507,9 @@ P-CSI 结合EVP预处理在768核上取得了  16.7\% 的加速效果。
 \label{precond:exp:Edison}
 
  
-为了证明新的求解器不仅仅在黄石超级计算机上有性能提升，我们还在Edison超级计算机上测试0.1度海洋模式POP的模拟效果。Edison超级计算机是美国能源研究科学计算中心（NERSC）的最新的一台超级计算机，它是由 133,824 个2.4 GHz的英特尔的``Ivy Bridge'' 处理器核心组成，这些处理器核心是通过 8GBps 的Cray
+为了证明新的求解器不仅仅在黄石超级计算机上有性能提升，我们还在Edison超级计算机上测试0.1度海洋模式POP的模拟效果。Edison超级计算机是美国能源研究科学计算中心（NERSC）的最新的一台超级计算机，它是由 133,824 个2.4 GHz的英特尔的”Ivy Bridge“处理器核心组成，这些处理器核心是通过 8GBps 的Cray
 Aries高速网络以蜻蜓拓扑的结构连接起来。  
-\begin {figure*} 
+\begin {figure} 
 \begin{center}
 \includegraphics[height =7cm]{01deg_comp_all_gs}
 \hspace{10pt}
@@ -519,8 +517,8 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 \end{center}
 \caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中主要的耗时成分的分析：全局归约（左）和边界通信（右)。}
 \label{fig:component}
-\end {figure*}
-\begin {figure*}
+\end {figure}
+\begin {figure}
 \begin{center}
 \includegraphics[height=6.5cm]{01deg_solverruntime_edison}
 \hspace{10pt}
@@ -530,7 +528,7 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 \caption []{在美国Edison超级计算机上0.1度 POP中正压模态模拟一天的的执行时间（左）， 
 在美国黄石超级计算机上0.1度 POP核心部分的模拟速率（右）。\label {fig:runtime01_edison}}
  
-\end {figure*}
+\end {figure}
 
 图\ref{fig:runtime01_edison}可以看出，四种配置的正压求解器在Edison超级计算机上的模拟性能与在黄石超级计算机上的模拟性能有相近的特点。 
 我们注意到在Edison超级计算机上模拟时，全局通信的时间开销要比在黄石超级计算机上的开销更不稳定一些，主要可能是因为网络资源的竞争造成的\cite{wang2014}。 

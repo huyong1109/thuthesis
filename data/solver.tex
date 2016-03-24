@@ -129,11 +129,7 @@ w = \left\{ \begin{array}{ll}
 \caption[] {海洋模式分量中网格划分\label{fig:grid1}}
 \end{figure}
 
-\begin{figure}%[!htbp]
-\centering
-\includegraphics[ height=10cm]{EvpBug_fix_gmd_new}
-\caption[] {0.1度海洋模式POP的海表盐度。 \label{fig:sst}}
-\end{figure}
+
 
 如图\ref{fig:grid1}所示， POP采用在水平方向上采用Arakawa B网格\cite{smith2010parallel}，并且采用九点差分格式对方程（\ref{eq:ssh}）进行离散。得到如下离散格式：
 \begin{align}
@@ -154,8 +150,9 @@ w = \left\{ \begin{array}{ll}
 
 表达式\ref{eq:nabla2}此时为
 \begin{align}
- [\nabla\cdot H \nabla \eta]_{i,j}&= -\frac{H}{S_{i,j}}(A_{i,j}^O\eta_{i,j}+A_{i,j}^{NW}\eta_{i-1,j+1}+A_{i,j}^N\eta_{i,j+1} +A_{i,j}^{NE}\eta_{i+1,j+1}+A_{i,j}^W\eta_{i-1,j}  \nonumber\\
-& +A_{i,j}^E\eta_{i+1,j} +A_{i,j}^{SW}\eta_{i-1,j-1} +A_{i,j}^S\eta_{i,j-1}+ A_{i,j}^{SE}\eta_{i+1,j-1})
+ [\nabla\cdot H \nabla \eta]_{i,j}&= -\frac{H}{S_{i,j}}(A_{i,j}^O\eta_{i,j}+A_{i,j}^{NW}\eta_{i-1,j+1}+A_{i,j}^N\eta_{i,j+1} \nonumber\\
+ &+A_{i,j}^{NE}\eta_{i+1,j+1}+A_{i,j}^W\eta_{i-1,j} +A_{i,j}^E\eta_{i+1,j} \nonumber\\
+& +A_{i,j}^{SW}\eta_{i-1,j-1} +A_{i,j}^S\eta_{i,j-1}+ A_{i,j}^{SE}\eta_{i+1,j-1})
 \end{align}
 这里$S_{i,j}  = \Delta x\Delta y$， $A_{i,j}^{\chi } ( \chi \in \mathcal{Q} = \{NW,NE, SW, SE, W, E, N, S\})$ 分别表示网格点 $(i,j)$和它自己、以及它的邻居点之间的在 九点差分格式中的系数（\ref{eq:nabla2}）。 这些系数由$\Delta x$， $\Delta y$， $\tau$和$H$决定。
 \begin{equation} \label{defineA}
@@ -192,7 +189,7 @@ w = \left\{ \begin{array}{ll}
 
 \begin{figure}
 \centering
-\includegraphics[height=6.5cm]{SparsePatternSample}
+\includegraphics[height=8cm]{SparsePatternSample}
 \caption[] {大小为$30\times 15$的网格上所得到的系数矩阵的稀疏模式。 \label{fig:spy}}
 \end{figure}
 因此椭圆方程(\ref{eq:sshdiscret})就变成了关于$\eta$的一个线性方程组，也就是 $Ax= b$。 其中$A$表示由系数 $A^*$构成的快对角矩阵。
@@ -233,23 +230,22 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
 对角预处理的共轭梯度法的过程如下\ref{alg:pcg}： 
 
 \begin{algorithm}[h]
-\caption{Preconditioned Conjugate Gradient solver}
+\caption{共轭梯度法}
 \label{alg:pcg}
 \begin{algorithmic}[1]
-\REQUIRE Coefficient matrix $\tilde{\textbf{A}}$, initial guess $\textbf{x}_0$ and $\textbf{b}$ associated with grid block $B_{i,j}$ \\
-//\qquad    \textit{do in parallel with all processes}
-\STATE $\textbf{r}_0 = \textbf{b}-\tilde{\textbf{A}}\textbf{x}_0$, $\textbf{s}_0 =0$;\quad $\beta_0=1$, $k=0$;
+\REQUIRE  与网格块$B_{i,j}$相应的系数矩阵$\textbf{B}$,  初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
+//\qquad    \textit{所有进程并行执行}
+\STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$, $\textbf{s}_0 =0$;\quad $\beta_0=1$, $k=0$;
 \WHILE{$k \leq k_{max}$ }
-\STATE $k=k+1$;\quad $\textbf{r}'_{k-1} =\textbf{M}^{-1}\textbf{r}_{k-1}$;\quad \COMMENT{diagonal preconditioning}
-\STATE $\tilde{\beta_k} = \textbf{r}_{k-1}^T\textbf{r}'_{k-1}$;\quad $\beta_k = global\_sum(\tilde{\beta_k})$; \COMMENT{ global reduction}
-\STATE $\textbf{s}_k = \textbf{r}'_{k-1} +(\beta_k/\beta_{k-1})\textbf{s}_{k-1}$;\quad $\textbf{s}'_k = \tilde{\textbf{A}}\textbf{s}_k$; \COMMENT {matrix-vector multiplication}
-\STATE $update\_halo(\textbf{s}'_k$); \COMMENT{ boundary communication}
-\STATE $\tilde{\alpha_k} = \textbf{s}_k^T\textbf{s}'_k$;\quad $\alpha_k =\beta_k/ global\_sum(\tilde{\alpha_k})$;\quad \COMMENT{global reduction }
+\STATE $k=k+1$;\quad $\textbf{r}'_{k-1} =\textbf{M}^{-1}\textbf{r}_{k-1}$;\quad \COMMENT{对角预处理}
+\STATE $\tilde{\beta_k} = \textbf{r}_{k-1}^T\textbf{r}'_{k-1}$;\quad $\beta_k = global\_sum(\tilde{\beta_k})$; \COMMENT{全局规约操作}
+\STATE $\textbf{s}_k = \textbf{r}'_{k-1} +(\beta_k/\beta_{k-1})\textbf{s}_{k-1}$;\quad $\textbf{s}'_k = \tilde{\textbf{A}}\textbf{s}_k$; \COMMENT {矩阵向量乘}
+\STATE $update\_halo(\textbf{s}'_k$); \COMMENT{ 边界通信}
+\STATE $\tilde{\alpha_k} = \textbf{s}_k^T\textbf{s}'_k$;\quad $\alpha_k =\beta_k/ global\_sum(\tilde{\alpha_k})$;\quad \COMMENT{全局规约操作}
 \STATE $\textbf{x}_k =\tilde{\textbf{x}}_{k-1} +\alpha_k \textbf{s}_k$;\quad $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{s}'_k$;
-%\IF{$k \% n_{c} == 0$}
-\STATE \textbf{if} $k \% n_{c} == 0$ \textbf{then} check convergence;
-%\STATE \textbf{if} $||\textbf{r}_k|| \le \epsilon$  \textbf{return} ;\COMMENT{check convergence every $n_c$ iterations}
-%\ENDIF
+\IF{ $k \% n_{c} == 0$}
+\STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $n_c$ 检查一次是否收敛}
+\ENDIF
 \ENDWHILE
 \end{algorithmic}
 \end{algorithm}
@@ -298,11 +294,10 @@ T_{pcg} = T_c + T_b + T_g
 但是全局归约操作的时间却会随着进程数的增加而增大。　
 因此，整个预处理共轭梯度法的运行时间在当进程数大于某个数值时，会随之增大而增大。　
 
-\begin {figure}%[htbp]
+\begin{figure}[ht]
 \centering
-\includegraphics[width=240pt,height=180pt]{evaluate_PCG}
-\caption[] {1 度 POP中预处理共轭梯度法的时间成分分析}
-\label{fig:pcg_ratio}
+\includegraphics[height = 8cm]{evaluate_PCG}
+\caption[] {1 度 POP中预处理共轭梯度法的时间成分分析\label{fig:pcg_ratio}}
 \end{figure}
 
  
@@ -335,20 +330,21 @@ P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最�
 海洋模式POP中的系数矩阵$A$ 和它的对角预处理矩阵$M = \Lambda(A)$都是实对称矩阵， 因此预处理后的矩阵的最小最大特征值并不难估计。 
  
 \begin{algorithm}[h]
-\caption{Classical Stiefel Iteration solver}
+\caption{传统Stiefel迭代算法}
 \label{alg:csi}
 \begin{algorithmic}[1]
-\REQUIRE Coefficient matrix $\tilde{\textbf{A}}$, initial guess  $\textbf{x}_0$ and $\textbf{b}$ associated with grid block $B_{i,j}$; Estimated eigenvalue boundary $[\nu,\mu]$;  \\
- // \qquad    \textit{do in parallel with all processes}
+\REQUIRE 与网格块$B_{i,j}$相对应的系数矩阵 $\textbf{B}$, 预处理子$\textbf{M}$, 初始值$\textbf{x}_0$和方程右端向量$\textbf{b}$ ；预估的特征值区间$[\nu,\mu]$;  \\
+ // \qquad    \textit{所有进程并行执行}
 \STATE $\alpha =\frac{2}{\mu -\nu}$, $ \beta = \frac{\mu +\nu}{\mu -\nu}$, $\gamma = \frac{\beta}{\alpha}$, $\omega_0 =\frac{ 2}{\gamma}$;\quad $k = 0$;
 \STATE $\textbf{r}_0 = \textbf{b}-\tilde{\textbf{A}}\textbf{x}_0$; $\textbf{x}_1 =\textbf{x}_0 -\gamma^{-1}\textbf{r}_0$; $\textbf{r}_1 =\textbf{b} -\tilde{\textbf{A}}\textbf{x}_1$;
 \WHILE{$k \leq k_{max}$ }
-\STATE $k=k+1$;\quad $\omega_k = 1/(\gamma - \frac{1}{4\alpha^2}\omega_{k-1})$; \COMMENT{the iterated function}
+\STATE $k=k+1$;\quad $\omega_k = 1/(\gamma - \frac{1}{4\alpha^2}\omega_{k-1})$; \COMMENT{迭代函数}
 \STATE $\Delta \textbf{x}_{k} =\omega_k\textbf{r}_{k-1}+(\gamma \omega_k-1)\Delta \textbf{x}_{k-1}$;
 \STATE $\textbf{x}_{k} =\textbf{x}_{k-1}+\Delta \textbf{x}_{k-1}$; \quad  $\textbf{r}_{k} =b- \tilde{\textbf{A}}\textbf{x}_{k}$;
-\STATE $update\_halo(\textbf{r}_k)$; \COMMENT{boundary communication}
-\STATE \textbf{if} $k \%  n_{c} == 0$ \textbf{then}  check convergence; 
-\ENDWHILE
+\STATE $update\_halo(\textbf{r}_k)$; \COMMENT{边界通信}
+\IF{ $k \% n_{c} == 0$}
+\STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $n_c$ 检查一次是否收敛}
+\ENDIF\ENDWHILE
 \end{algorithmic}
 \end{algorithm}
 
@@ -375,7 +371,7 @@ CSI的收敛速度比预处理共轭梯度法稍慢， 它在小规模并行是�
  
 \begin {figure}%[htbp]
 \centering
-\includegraphics[width=240pt,height=180pt]{evaluate_CSI}
+\includegraphics[height=8cm]{evaluate_CSI}
 \caption[] { 1度 POP中一步CSI求解器的成分分析}
 \label{fig:cst_ratio}
 \end{figure}
@@ -436,17 +432,19 @@ CSI的收敛速度比预处理共轭梯度法稍慢， 它在小规模并行是�
 \mu = \max_{1 \le i \le m}\sum^m_{j=1}|T_{ij}|=\max_{1 \le i \le m}(\beta_{i-1}+\alpha_i +\beta_{i})
 \end{align}
  
-
-在算法\ref{alg:lanczos} 中第\ref{lanczos_tridiag}中，采用了高效的QR算法\cite{ortega1963llt}来估计最小特征值$\nu$， 它的复杂度为$\Theta(m)$ 。 
-如图\ref{fig:lanczos}所示，我们发现合适的选择Lanczos迭代的步数，我们能够得到对最大最小特诊一个比较好的估计，这个估计值能够使得CSI方法与预处理共轭梯度法有相近的收敛速度。  
 \begin {figure}%[htbp]
 \centering
-%\centering
-\includegraphics[width=160pt,height=120pt]{eigen_lanczos}
-\includegraphics[width=160pt,height=120pt]{scan_lanczos}
-\caption[] { Lanczos迭代步数和特征值估计的关系\label{fig:lanczos}}
+\includegraphics[height=6.5cm]{eigen_lanczos}
+\caption[] { Lanczos迭代步数和特征值估计的关系\label{fig:lanczos_eigs}}
 \end{figure}
- 
+\begin {figure}%[htbp]
+\centering
+\includegraphics[height=6.5cm]{scan_lanczos}
+\caption[] { Lanczos迭代步数和求解器迭代步数的关系\label{fig:lanczos_iter}}
+\end{figure}
+在算法\ref{alg:lanczos} 中第\ref{lanczos_tridiag}中，采用了高效的QR算法\cite{ortega1963llt}来估计最小特征值$\nu$， 它的复杂度为$\Theta(m)$ 。 
+如图\ref{fig:lanczos_eigs}和\ref{fig:lanczos_iter}所示，我们发现合适的选择Lanczos迭代的步数，我们能够得到对最大最小特诊一个比较好的估计，这个估计值能够使得CSI方法与预处理共轭梯度法有相近的收敛速度。  
+
 
 \section{算法分析与比较}
 \label{solver:Algorithm}
@@ -458,7 +456,7 @@ CSI的收敛速度比预处理共轭梯度法稍慢， 它在小规模并行是�
 \label{solver:Algorithm:condition}
 
 POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它的特征是都是正实数\cite{stewart1976positive}。
-假设系数举证的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_N\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_i \le \lambda_\mathcal{N} = \lambda_{max}$( $1<i <\mathcal{N}$， $\aleph$ 为 $A$的大小 )表示$A$的特征值.
+假设系数矩阵的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_N\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_i \le \lambda_\mathcal{N} = \lambda_{max}$( $1<i <\mathcal{N}$， $\aleph$ 为 $A$的大小 )表示$A$的特征值.
 
 利用 Gershgorin圆盘定理\cite{bell1965gershgorin}可知，对于任意的 $\lambda \in \mathcal{S}$，都存在一个数对 $(i,j)$ 满足
 \begin{align}
@@ -468,7 +466,52 @@ POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它
 \begin{align} \label{eigsGersh}
 &\lambda_{max} \le  \max (  5\alpha - \frac{1}{\alpha}, \frac{5}{\alpha}- \alpha) +\phi   \\
 &\lambda_{min} \ge 2\min (  \alpha - \frac{1}{\alpha},\frac{1} {\alpha} -  \alpha) + \phi
-\end{align}
+\end{align}\\
+
+ 
+这个结论说明，当网格横纵比例越接近于1时，最大特诊值的上界会随之减少，而最小特征值的下界会随之变大。
+也就是说，系数矩阵特征值谱的半径($[\lambda_{min}, \lambda_{max}]$)随着网格横纵比向着1的接近而变小。 
+当水平网格的横纵比等于1时，即$ \alpha = \frac{ \Delta y}{ \Delta x} = 1$，我们可以得到$\lambda_{max} \le  4 +\phi$,$\lambda_{min} \ge   \phi$。
+这时，系数矩阵的条件数(即 $\kappa=  \lambda_{max}/\lambda_{min}$)，由于是由特征值谱的半径的所决定的，也会随着网格横纵比向1的靠近而变小。 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[height=8cm]{conditionNumberAspectRatio}
+\caption[] {网格横纵比例和系数矩阵条件数之间的关系。 \label{fig:conditionNumberRatio}}
+\end{figure}
+
+
+
+
+图\ref{fig:conditionNumberRatio}所给出的结果验证了我们的这个结论。图\ref{fig:conditionNumberRatio}中给出的是固定的网格点数$\mathcal{N} = 20\times 20$和固定的$\phi = 0$， 在区间$(1, +\infty)$上，系数矩阵的条件数随着网格横纵比例的增加而增加，而在区间$(0,1)$上，系数矩阵的条件数随着横纵比例的增大而变小。
+特征值在当网格横纵比例等于1时取到最小值。
+ 
+\begin{figure}[ht]
+\centering
+\includegraphics[height=8cm]{conditionNumberTimestep}
+\caption[] {时间步长和系数矩阵条件数之间的关系。 \label{fig:conditionNumberDt}}
+\end{figure}
+
+
+
+特征值的下界是$\phi=\frac{S }{g \tau^2 H}$，这个变量是由时间步长以及水平网格的面积和海底深度的比例确定的。
+它表明，特征值的下界会随着时间步长的增大而减小。 
+相应的，系数举证的 条件数也就随之增大。
+图\ref{fig:conditionNumberDt}中证明了我们的这个推论。
+这个图中的实验采用的是固定的网格点数$\mathcal{N} = 20\times 20$，和固定的网格横纵比$\Delta x /{\Delta y} = 1$。 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[height=8cm]{conditionNumberGridSize}
+\caption[] {网格点的数目和系数矩阵条件数之间的关系。 \label{fig:conditionNumbGrid}}
+\end{figure}
+ 
+不考虑时间步长的因素（假设$\phi=0$）时，上面的分析表明，当网格的横纵比等于1时，不论网格点的个数是多少， 系数矩阵的特征值谱半径限制在 $(0,4)$ 区间内。
+但是，系数矩阵的条件数的变化却可能会很大，因为当网格点的数量$\mathcal{N}$ 不断增加时，最小的特征值会组件的逼近零。 
+图\ref{fig:conditionNumbGrid} 中解释了条件数和网格点数目之间的关系。 
+ 
+
+
 
 \subsection{收敛速度} \label{solver:Algorithm:convergence_rate}
 
@@ -566,7 +609,7 @@ Assume that the estimated largest and smallest extreme eigenvalues of coefficien
 \label{solver:exp}
  
 \subsection{理想实验}
-为了验证第\ref{convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
+为了验证第\ref{solver:Algorithm:convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
 这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
 随着维度$\theta$的变化，沿着经度方向的网格大小为 $\Delta x_j  = \pi R \cos (\theta_j)$。
 时间步长设置为$\tau = 10\frac{\Delta y}{c}$， 这里$c = 200m/s$ 表示重力快波的速度\cite{smith2010parallel}。 
@@ -575,9 +618,10 @@ Assume that the estimated largest and smallest extreme eigenvalues of coefficien
 由于ChronGear 和PCG的收敛速度相同，因此这个图中PCG的收敛结果也是ChronGear的结果。
   
 
-\begin {figure} 
+\begin{figure} 
+\vspace{5pt}
 \centering
-\includegraphics[height=6.5cm]{iterationGridSize}
+\includegraphics[height=8cm]{iterationGridSize}
 \caption[] {网格点数目和求解器的迭代步数之间的关系。\label{fig:iterationGridSize}}
 \end{figure}
 
@@ -602,7 +646,9 @@ P-CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的
 
 
 \begin {figure}
-\includegraphics[width=10cm,height=6cm]{Convergence_diag.eps}
+\vspace{10pt}
+\centering
+\includegraphics[height=8cm]{Convergence_diag.eps}
 \caption[] {不同求解器的收敛速度。\label{fig:convergence_diag}}
 \end{figure}
 
@@ -656,7 +702,7 @@ P
 
 \begin {figure}
 \centering
-\includegraphics[width=360pt,height=150pt ]{scale_pcg_csi}
+\includegraphics[height=6.5cm]{scale_pcg_csi}
 \caption []{ 0.1度POP中PCG和CSI方法的可扩展性 \label {fig:scale}}
 \end {figure}
 %Fig.1(b) shows runtime ratio of barotropic 和 baroclinic modes of POP. Baroclinic mode deals with a three dimensional dynamical process which occupies a major proportion of computation of POP. It dominates in POP when process is few 和 computation time is much larger than communication. However, when using thous和s of cores, runtime of baroclinic parts decreases linearly while on the opposite, runtime of barotropic increases because of global reduction.

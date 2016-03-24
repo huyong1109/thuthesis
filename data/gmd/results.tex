@@ -1,31 +1,19 @@
-\subsection{特征值谱和条件数}
-\label{solver:Algorithm:condition}
 
-POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它的特征是都是正实数\cite{stewart1976positive}。
-假设系数举证的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_N\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_i \le \lambda_\mathcal{N} = \lambda_{max}$( $1<i <\mathcal{N}$， $\aleph$ 为 $A$的大小 )表示$A$的特征值.
  
-利用 Gershgorin圆盘定理\cite{bell1965gershgorin}可知，对于任意的 $\lambda \in \mathcal{S}$，都存在一个数对 $(i,j)$ 满足
-\begin{align}
-&|\lambda -  (A_{i,j}^O + \phi ) | \le \sum_{\chi \in \{NW,NE,SW,SE,W,E,N,S\}}|A_{i,j}^\chi|
-\end{align}
-由方程\ref{defineA}给出的系数的定义，我们可以得到如下结论 
-\begin{align} \label{eigsGersh}
-&\lambda_{max} \le  \max (  5\alpha - \frac{1}{\alpha}, \frac{5}{\alpha}- \alpha) +\phi   \\
-&\lambda_{min} \ge 2\min (  \alpha - \frac{1}{\alpha},\frac{1} {\alpha} -  \alpha) + \phi
-\end{align}
 
-\begin {figure} 
+\begin{figure} 
 \centering
 \includegraphics[height=6.5cm]{conditionNumberAspectRatio}
 \caption[] {网格横纵比例和系数矩阵条件数之间的关系。 \label{fig:conditionNumberRatio}}
 \end{figure}
-\begin {figure} 
+
+\begin{figure} 
 \centering
 \includegraphics[height=6.5cm]{conditionNumberTimestep}
 \caption[] {时间步长和系数矩阵条件数之间的关系。 \label{fig:conditionNumberDt}}
 \end{figure}
 
-\begin {figure}
+\begin{figure}
 \centering
 \includegraphics[height=6.5cm]{conditionNumberGridSize}
 \caption[] {网格点的数目和系数矩阵条件数之间的关系。 \label{fig:conditionNumbGrid}}
@@ -53,120 +41,11 @@ POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它
  
 
 
-\subsection{收敛速度} \label{solver:Algorithm:convergence_rate}
-
- PCG和ChronGear方法的收敛速度都依赖于系数矩阵$A$的条件数。  
-论文\inlinecite{dAzevedo1999lapack}证明了 ChronGear  和PCG在理论上收敛速度是相同的。 
-在PCG和ChronGear方法中，每一步迭代的残差都有一个上界\cite{Liesen2004}
-\begin{equation}
-\frac{||\textbf{x}_k-\textbf{x}^*||_A }{||\textbf{x}_0-\textbf{x}^*||_A}  \le \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\lambda \in \mathcal{S}} |p(\lambda)| \label{PcgConvergeRate}
-\end{equation}
-这里$\textbf{x}_k$ 表示第$k$步迭代后得到的解向量， $\textbf{x}^*$ 表示线性方程组的解析解  (即$\textbf{x}^* = A^{-1}b$)，$\lambda$ 表示系数矩阵 $A$的特征值。
-利用 第一类Chebyshev 多项式来估计这个最小最大值，可以得到 
-\begin{align}
-\label{chrongear_convergence}
-||\textbf{x}_k-\textbf{x}^*||_A \le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k ||\textbf{x}_0-\textbf{x}^*||_A
-\end{align}
-这里  $\kappa =  \kappa_2(A)$ 表示系数矩阵 $A$的条件数。
-
-
-方程\ref{chrongear_convergence}表明，PCG方法收敛速度的理论上界取决于系数矩阵的条件数。 
-PCG方法在求解良态的矩阵（特征值的条件数很小）时比求解病态的矩阵（特征值的条件数很大）时收敛速度更快。 
-图\ref{fig:convergence_diag}给出了PCG和ChronGear方法在0.1度海洋模式中的真实的收敛速度。
-如这幅图所示，相对残差随着迭代步数的增加而减少。
-总共需要一百步左右的迭代步才能够得到一个相对残差为$10^{-13}$的解。
- 
-
- 
-除了消除了全局归约操作，P-CSI方法的更一个优点是它有和PCG相同量级的收敛速度。 
-P-CSI方法的收敛速度可以用残差的形式表示为
-\begin{equation}
-\textbf{r}_k = P_k(A)\textbf{r}_0 \label{eq:rPjr0}
-\end{equation}
-这里
-$P_k(\zeta) = \frac{\tau_k(\beta-\alpha \zeta)}{\tau_k(\beta)}$ for $ \zeta \in [\nu, \mu]$ ~\cite{stiefel1958kernel} .
-$\tau_k(\xi)$ 是Chebyshev多项式，它的表达式为  
-\begin{equation}
-\tau_k(\xi) =   \frac{1}{2}[(\xi+\sqrt{\xi^2-1})^k+(\xi+\sqrt{\xi^2-1})^{-k}]
-\end{equation}
-当 $ \xi \in [-1,1]$时， Chebyshev多项式的另一个等价表达式为$\tau_k(\xi) = cos(k\cos^{-1} \xi)$。从这个表达式可以清楚的看出来，当$| \xi | \le 1$时， $|\tau_k(\xi)| \le 1$。$P_k(\zeta)$ 是一个多项式，满足如下形式
-\begin{equation}
-P_k = \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\zeta \in [\nu,\mu]} |p(\zeta)|
-\end{equation}
-%which is the theoretical bound of the convergence rate  in PCG \ref{PcgConvergeRate}.
-
-假设$A= Q^T\Lambda Q$，这里 $\Lambda$ 表示以  $A$的特征值为对角元素的对角矩阵，而 $Q$ 表示以  $A$的特征向量为列的实正交矩阵。于是，我们可以得到
-\begin{equation}
-P_k(A) = Q^T P_k(\Lambda)Q = Q^T \left [\begin{array}{cccc}
-P_k(\lambda_1) & & &\\
-& P_k(\lambda_2) & &\\
-& & \ddots &\\
- & & & P_k(\lambda_N)
-\end{array} \right ] Q \label{eq:PjMA}
-\end{equation}
-Assume that the estimated largest and smallest extreme eigenvalues of coefficient matrix 
-假设所估计的系数矩阵的最大最小特征值$\nu$和 $\mu$ 满足 $0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \mathcal{N}$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$.
-方程 \ref{eq:rPjr0} 和 \ref{eq:PjMA} 可以推出
-\begin{equation}
-\label{pcsi_convergence}
-\frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le  \tau_k^{-1}(\beta) = \frac{2(\beta+\sqrt{\beta^2-1})^k}{1+(\beta+\sqrt{\beta^2-1})^{2k}} \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
-\end{equation}
-这里$\kappa' = \frac{\mu}{\nu}$.
- 这个等式表明，当系数矩阵特征值的估计比较合理的时候（也就是$\kappa' =\kappa$) ， P-CSI的收敛速度和PCG有相同的理论上界。
-
-
- 
-以上分析对于采用了预处理子的情形也同样适用。
-唯一的区别是上面分析中提到的系数矩阵是$M^{-1}A$ 而不是$A$。
-值得一提的是，PCG，ChronGear和P-CSI算法中预处理后的矩阵实际上是$M^{-1/2}A(E^{-1/2})^T$，它是对称的，并且和$M^{-1}A$ 有着相同的特征值\cite{Shewchuk1994}。
-因此，这个预处理后的矩阵的条件数为$\kappa =  \kappa_2(M^{-1/2}A(E^{-1/2})^T)$。这个条件数通常情况下比原始矩阵 $A$的条件数要小。 
- $M$ 与$A$越是相近，$M^{-1}A$的条件数就越小。当$M = A$，$M^{-1}A$的条件数为$\kappa_2(M^{-1 }A ) = 1$。 
-
- 当使用少数几个处理器核心来运行海洋模式分量时，全局通信并不是瓶颈，导致P-CSI方法和ChronGear方法的时间开销比较接近。
-但是当采用很多的处理器核心来计算高分辨的海洋模式分量的时候，P-CSI方法的每一个步迭代就应该会比ChronGear方法快很多，因为ChronGear方法中的全局归约操作就会变成一个明显的瓶颈。
 
 
 
-\subsection{理想实验}
-为了验证第\ref{convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
-这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
-随着维度$\theta$的变化，沿着经度方向的网格大小为 $\Delta x_j  = \pi R \cos (\theta_j)$。
-时间步长设置为$\tau = 10\frac{\Delta y}{c}$， 这里$c = 200m/s$ 表示重力快波的速度\cite{smith2010parallel}。 
-我们用PCG和P-CSI方法分别结合单位阵预处理、对角预处理和EVP预处理来求解得到的这些方程。
-实验中，EVP预处的块的大小为$5\times5$， 收敛条件设为$tol = 10^{-6}$。 
-由于ChronGear 和PCG的收敛速度相同，因此这个图中PCG的收敛结果也是ChronGear的结果。
-  
-
-\begin {figure} 
-\centering
-\includegraphics[height=6.5cm]{iterationGridSize}
-\caption[] {网格点数目和求解器的迭代步数之间的关系。\label{fig:iterationGridSize}}
-\end{figure}
-
-正如图\ref{fig:iterationGridSize}所示，随着问题规模的增加，系数矩阵变得越来越病态。
-所有的求解器都需要更多的迭代步数才能得到相同的相对残差。
-对于PCG和P-CSI，收敛速度会随着预处理方法的变化而变化。 
-指定问题的规模，使用单位矩阵作为预处理的求解器需要的迭代步数最大，而使用EVP预处理的求解器所需要的迭代步数最小。 
-这也说明，使用EVP预处理，矩阵的形态会比使用单位阵预处理或者对角预处理后的形态要好。 
-图中还说明，在预处理方法相同的情况下，P-CSI方法的收敛速度要比PCG的慢一些。 
 
 
-
- 
-\subsection{CSI方法的性能}
- 
-我们先测试一下采用对角预处理子时，PCG，ChronGear和P-CSI三个求解器的性能。
-图\ref{fig:convergence_diag}给出了不同的正压求解器的收敛速度。
-图中横轴表示迭代的步数，垂直轴表示求解器在对应迭代步的残差。 
-尽管ChronGear方法改变了PCG方法的计算顺序，PCG方法和ChronGear在每一步的迭代速度几乎一致。
-P-CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的迭代步骤中收敛速度变快。
-这与系数矩阵的特征值的分布有关系。 
-
-
-\begin {figure}
-\includegraphics[width=10cm,height=6cm]{Convergence_diag.eps}
-\caption[] {不同求解器的收敛速度。\label{fig:convergence_diag}}
-\end{figure}
 
 
 
