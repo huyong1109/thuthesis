@@ -3,11 +3,42 @@
 
 \section{气候变化}
 
-\section{地球气候系统}
-\subsection{地球气候系统模式}
+近年来，气候变化不仅是气候研究领域的热门，也成为新闻媒体和人们日常谈论的热点。
+全球气候的变化，影响着水资源，能源的供应和使用，交通运输，农业，生态系统和人类健康等与人类日常生活息息相关的方方面面\cite{karl2009global}。
+上个世纪以来，科学家们通过观测发现，地球气候发生了很多重大改变。如大气中的二氧化碳的浓度的不断增加，全球生态氮循环改变，以及陆地的分布和使用的改变等\cite{vitousek1994beyond}。
 
 
-近年来，高分辨率全球气候模式已经成为了理解气候现象和预测未来气候变化的一个不可或缺的手段。地球系统
+气候变化同时也给地球上的生态环境造成重大影响。
+已有研究表明，气候变化对全球生态系统造成了重大影响，全球植被的分布和生命周期正在逐年改变\cite{parmesan2003globally}，。
+过去三十年中，气候变对物种的分布和多样性造成了很多重大的影响，甚至导致了很多物种层面的灭绝。据预测，到2050年，当前人类资料库中的15–37\%左右的物种都会面临灭绝 \cite{thomas2004extinction} 。
+海洋温度的升高，极大的改变了海洋生物的分布。研究显示1980年到2005年间，北海中大约有三分之二的种群迁移到了中纬度地区或者更深的海域。
+未来温度的继续升高，可能会导致物种分布上的继续偏移，进而通过种群之间的相互作用，对渔业造成深远影响\cite{perry2005climate} 。
+气候变化已经导致地球上很多区域的物种分布发生变化。 
+有研究预测，2080年，欧洲一半以上的植物物种将会受到威胁\cite{thuiller2005climate} 。
+
+ 
+人类的活动与气候变化之间有着密切的联系和相互作用。
+人类的活动，比如使用氮肥、或者化石燃料的燃烧等对全球氮循环带来的巨大的影响甚至超过了自然过程中的影响，进而极大最生物多样性造成了不可估量的影响。
+过去的60年里，人类对自然生态系统造成的改变要比过去任何时期的都要剧烈和广泛。众多证据表明，人类化石燃料的燃烧，使得大气中的二氧化碳浓度从1800年的280增加到355$\mu L/L$\cite{vitousek1994beyond}. 
+反过来，由于气候变化导致了生态系统的改变，影响着人类的生存环境。生态环境为人类所提供的“服务”中，从空气质量的改善到水的净化，60\%左右要么被破坏，要么无法可持续性的使用\cite{assessment2005ecosystems}。
+
+
+科学研究表明，未来的气候变化更大的可能是继续朝着全球变暖的趋势发展。
+全球气候变暖的最直接的影响是导致海平面的上升，冰川、动土和海冰的消融，以及亚热带地区沙漠地区面积的扩大等，从而影响到这地区人类的生存。
+气候变暖还会导致极端天气，如热潮、干旱、严重暴雨引发的洪水、大雪等发生的频繁的增加。
+全球气候变化 对农业生产活动有着重大的影响。 随着全球气候的不断变暖，农产品收获季节温度的不断升高，玉米和大豆等主要农作物的生长周期变短， 农作物的产量受到很大影响， 进而威胁到农场的收成和全球的粮食安全\cite{battisti2009historical,adams1990global,smith1989potential}。 
+
+
+ 
+\section{气候模式}
+
+为了促进对全球气候现象的理解，增强对未来气候变化的预测能力，科学家们通过数学模型来对地球上的大气和海洋等进行模拟，并逐渐发展成为相应的气候模式。
+借助计算机强大的计算能力， 气候模型能够整合长时间、全球范围内的物理、化学和生态等过程，促进人们对于地球系统期的理解\cite{hurrell2013community}。
+气候模式能够方便地测试和验证人们的气候发现，其模拟结果是公共决策中不可或缺的依据。
+\subsection{公共气候系统模式}
+ 
+ 
+近年来，高分辨率全球气候模式已经成为了理解气候现象和预测未来气候变化的一个不可或缺的手段。 
 目前，以美国国家大气研究中心（the National Center for Atmospheric Research， NCAR) 主导开发的
 公共地球系统模式（the Community Earth System Model， CESM) 是应用最为广泛的全球气候模式之一。
 在政府间气候变化专门委员会（the
@@ -48,7 +79,7 @@ Report， AR5)中，直接或间接使用公共地球系统模式的预测结果
 我们的工作主要集中在提高由美国国家大气研究中心带头发展的地球系统模式CESM中的海洋模式分量POP的模拟速度。 CESM是一个全耦合的气候系统模式，它包括大气模式、海洋模式、海冰模式、和陆面模式等。
 
 
-\section{气候模式在高性能计算中的挑战}
+\subsection{气候模式在高性能计算中的挑战}
  
 正压求解器是高分辨率CESM版本中POP的主要性能瓶颈，因为当在大核数上运行时它的运行时间占了POP总运行时间的一大半。 
 这是由于求解自由海表面的正压求解器中算法所固有的明显的全局通信操作在大核数下的可扩展性比较差所导致的。
@@ -69,7 +100,20 @@ ChronGear继承了预处理共轭梯度法的缺陷--迭代过程中需要全局
 我们的主要贡献如下： 
  
 
-\section{气候模式的不确定性}
+\subsection{气候模式的不确定性}
+
+ Global climate projections\cite{meehl2007global}
+Climate sensitivity has always been a focus in the IPCC assessments, and this chapter assesses more quantitative estimates of equilibrium climate sensitivity and transient climate response (TCR) in terms of not only ranges but also probabilities within these ranges. Some of these probabilities are now derived from ensemble simulations subject to various observational constraints, and no longer rely solely on expert judgement. This permits a much more complete assessment of model response uncertainties from these sources than ever before. These are now standard benchmark calculations with the global coupled climate models, and are useful to assess model response in the subsequent time-evolving climate change scenario experiments.
+
+\cite{stainforth2005uncertainty} Uncertainty in predictions of the climate response to rising levels of greenhouse gases
+
+\cite{allen2002towards} Towards objective probabalistic climate forecasting
+\cite{roe2007climate} Why is climate sensitivity so unpredictable?
+\cite{von2013testing} Testing ensembles of climate change scenarios for “statistical significance”
+\cite{whitner1989guidelines} Guidelines for selecting and using simulation model verification techniques
+\cite{reynolds1994random}  Random error growth in NMC's global forecasts
+\cite{oreskes1994verification} Verification, validation, and confirmation of numerical models in the earth sciences
+\cite{sargent2005verification}  Verification and validation of simulation models
 
 \section{本文主要研究内容和主要贡献}
 \subsection{主要研究内容}
