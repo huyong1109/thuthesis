@@ -32,9 +32,31 @@
  
 \section{气候模式}
 
+
+气候模式主要是用来研究气候系统对各种强迫的响应的基本工具，它被用来进行短的如季节性、长的几十年、未来一个世纪甚至更长的时间的气候预测。 
+因此，评估这些模型的独立的和集成的表现性能是至关重要的。
+最直接的评估方法是利用这些模式的输出结果和观测数据相对比，并且分析相应的差别。 
+这需要我们对模式和观测中的不确定性和误差有所了解。 
+大气海洋环流模式（AOGCMs）在AR4中是比较准的气候模式。
+他们的基本功能是去理解大气、海洋、陆地和海冰等气候系统中动力过程，并且基于未来温室效应和气溶胶强迫进行气候预测。
+
 为了促进对全球气候现象的理解，增强对未来气候变化的预测能力，科学家们通过数学模型来对地球上的大气和海洋等进行模拟，并逐渐发展成为相应的气候模式。
 借助计算机强大的计算能力， 气候模型能够整合长时间、全球范围内的物理、化学和生态等过程，促进人们对于地球系统期的理解\cite{hurrell2013community}。
 气候模式能够方便地测试和验证人们的气候发现，其模拟结果是公共决策中不可或缺的依据。
+
+耦合气候系统模式，是为了更加真实的模拟地球上大气、海洋、陆地等模块之间的相互作用，而将各个分量的气候模式通过耦合器连接起来。 
+ESMs是目前比较前沿的模式，他们在AOGCMs的基础上扩展了模式多个生物地理化学循环圈， 比如碳循环、硫循环和臭氧等。
+这些模型为模拟过去和未来气候系统对于外界强迫的相应提供了一个最为全面的工具。 
+人们对气候变化的关注也促使了全球各个国家积极的发展自己的耦合气候模式。在2013年的IPCC第五次评估报告中，有来自13个国家近四十个模拟结果，
+其中包括中国国家气候中心和北京师范大学各提交一组结果，中科院大气物
+理研究所大气科学和地球流体力学数值模拟国家重点实验室（LASG）提交的两个结果\cite{stocker2013ipcc}。 
+
+
+
+
+\cite{stocker2013ipcc}
+
+
 \subsection{公共气候系统模式}
  
  
@@ -102,18 +124,80 @@ ChronGear继承了预处理共轭梯度法的缺陷--迭代过程中需要全局
 
 \subsection{气候模式的不确定性}
 
- Global climate projections\cite{meehl2007global}
-Climate sensitivity has always been a focus in the IPCC assessments, and this chapter assesses more quantitative estimates of equilibrium climate sensitivity and transient climate response (TCR) in terms of not only ranges but also probabilities within these ranges. Some of these probabilities are now derived from ensemble simulations subject to various observational constraints, and no longer rely solely on expert judgement. This permits a much more complete assessment of model response uncertainties from these sources than ever before. These are now standard benchmark calculations with the global coupled climate models, and are useful to assess model response in the subsequent time-evolving climate change scenario experiments.
+在IPCC的评估报告中，气候的敏感性一直是一个研究的重点\cite{meehl2007global}。
+2007年的报告通过对气候平衡的敏感性和瞬时气候响应进行量化，不仅仅考虑到它的变化范围，而且衡量一下这个范围内的概率。
+这些概率，有一些就是利用不同的观测条件得到的集合模拟的计算得到的，而不仅仅只是利用专家的判断。 
+这使得我们有了一个比以前更加完整的模式相应不确定性的评估。 
+这些现在被当成是全球耦合气候模式的标准测试集，可以用来评估后来的涉及到时间的气候变化情景实验。
 
-\cite{stainforth2005uncertainty} Uncertainty in predictions of the climate response to rising levels of greenhouse gases
+  
+在制定未来气候变化缓解和适应的对应策略时，必须要考虑到未来气候变化的不确定范围。
+这就要求有几十年的集合模拟的结果来评估气候自身的混动性和模式相应的不确定性。 
+基于近代气候变化的观测，对模式相应作出的统计学估计，认为气候的敏感性，也就是全球平均温度对于大气中二氧化碳浓度增加一倍的平衡相应，要大于5摄氏度\cite{stainforth2005uncertainty}。
+但是这么强的响应在未来的气候变化的范围中被没有被采用，因为在环流模式中这并不常见。 
+通过利用常规的环流模式来进行几千次模拟而得到的集合模拟。 发现这些版本跟其他的前沿的模式的模拟结果一样真实，但是气候的敏感性从2K到11K不等。
+这个几段范围的敏感性对于气候系统对于大气中温室气体的升高的相应的研究，以及评估将特定目标稳定在某个层次所带来的风险是非常有意义的。
 
-\cite{allen2002towards} Towards objective probabalistic climate forecasting
-\cite{roe2007climate} Why is climate sensitivity so unpredictable?
-\cite{von2013testing} Testing ensembles of climate change scenarios for “statistical significance”
-\cite{whitner1989guidelines} Guidelines for selecting and using simulation model verification techniques
-\cite{reynolds1994random}  Random error growth in NMC's global forecasts
-\cite{oreskes1994verification} Verification, validation, and confirmation of numerical models in the earth sciences
-\cite{sargent2005verification}  Verification and validation of simulation models
+
+ 
+气候预测本质上有五个维度，空间，时间和概率。 
+主流的气候模式，目前基本上都牺牲掉概率分辨率，而对其它四个分辨率不断地做优化。
+改变这种状况需要一些新的方法。
+迄今为止，已经有一些利用初始条件中的不确定性，以及改变边界条件所带来的影响。
+但是对于大部分的变量，几十年的气候模拟中主要的不确定性并不在初始条件或者外部驱动，而在于气候系统的响应。
+这个问题在大气海洋环流模式（AOGCMs）中得到解决，主要是通过采用非直接指定的观测数据的集合模式的比较，来减少可能性集合的限制\cite{allen2002towards} 。 
+这种方法可能会造成预测的不确定性很小的误解。
+
+ 
+在过去的几十年里，气候变化预测的不确定性并没有减少\cite{roe2007climate}。 
+模式和观测在预测未来全球气候变化对于大气中二氧化碳浓度的长期相应时给出了一个很广的概率分布，同时也指出温度剧烈提升有一个很小的概率发生。
+我们表明，这些概率的分布是气候系统本质所带来的不可逆的结果。 
+
+
+ 
+气候影响和适应研究不断的采用区域的集合模拟\cite{von2013testing}。
+这样做，数据集合可以检查出这些结果是描述当前状态和未来状态的差别。
+这些差别通常被认为是统计学上显著的。
+这个显著，就是统计学上定义一个结果在零假设，应用于从相同的取样策略得到的不同的观测结果。 
+但是，这个统计学上的零假设在评估气候变化的时候可能不是一个很恰当的问题。 
+通过理论的推到得到的物理学结论通常可以增加气候变化解释的健壮性。
+
+
+
+目前，在数值模拟群体中，缺乏对于数值模拟模式正确性验证的重要性的理解和意识\cite{whitner1989guidelines} 。 
+使用计算机可执行程序来表示一个模拟模型的需求正在不断增加。 
+这个软件工程这个领域中，有很多的软件验证继续能够用来对数值模拟程序进行验证。
+但是软件验证和模式验证之间存在巨大的鸿沟。 
+
+
+ 
+美国国家气象中心中范围预测模型的随机增长误差的三维结构，通过确定误差的来源来研究。
+随机误差的增长分为两类： 一类是外部误差增长，主要是由于模式的缺陷导致的；一类是内部误差增长，主要是由于初始条件中的误差的自增长\cite{reynolds1994random} 。 
+通过对预测和验证分析的相关性的参数化，可以确定内外部增长的速率。
+这种参数化假设线性的随机增长主要是由于模式的缺陷引起的。 
+这个结果表明，在热带地区，结合模型和分析的结果，可以显著的改善模拟结果。
+而在中纬度地区，模式的改进很难改善预测的结果，所以减少分析的误差变得尤为重要。 
+参数化能够得到物理上有意义，并且和之前的预测结果相一致的结果。同时也为评估预测误差在空间和时间上的分布提供量化手段。 
+
+
+自然系统的数值模式的验证和确认是不可能做到的。
+这是因为自然系统本身不是封闭的，而且模式的结果也不是唯一确定的\cite{oreskes1994verification}。
+可以做到的是寻求模式预测结果和观测结果的一致性。但是这种验证是片面的。
+由于对于结果的错误确信，以及对于自然现象的不完全的认知，完全的确认模式的正确性在逻辑上是行不通的。
+模式只能在相应的层面上得到评估，他们的预测结果也必然是有问题的。
+模式得到的结果本质上还是经验性的。
+
+
+  
+数值模拟程序在解决实际问题和公共决策中应用得越来越广泛。 
+这些模式的开发者和使用者，以及政策的制定者都会是用这些模式的模拟结果所呈现的信息。
+所有受到模式影响的任梦都会关心这样一个模式，以及它的结果是否正确。
+这种关心是通过模式的验证和确认来解决。
+模式应该是为了某一个特定的目的或者应用而开发的，它的验证也只能是与这个目的相关\cite{sargent2005verification} 。 
+如果模式要回到一个很多样的问题，那么模式的验证就要针对每一个问题进行。
+通常，验证一个模式在给定问题的整个领域内都是正确的是一件非常费时费力的工作。 
+因此，只有当一个模式被认为针对给定问题是有效的时候，才会对其正确性进行验证。 
+
 
 \section{本文主要研究内容和主要贡献}
 \subsection{主要研究内容}
