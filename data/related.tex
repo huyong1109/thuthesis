@@ -1,16 +1,44 @@
-\chapter{海洋模式正压模态}
+\chapter{相关工作}
 \label{cha:related}
-\section{并行海洋模式}
+本章主要介绍本文的正压求解器、迭代算法预处理技术和气候模式正确性验证工具这三个工作目前的背景。第\ref{solver:Backgroud}节介绍了海洋模式正压模态求解器的优化，第\ref{related:precond}节介绍了迭代算法中主要的预处理技术，第\ref{related:verify}节介绍当前气候模式中常见的正确性验证方法。
+
+
+\section{海洋模式正压求解技术}
 \label{solver:Backgroud} 
 
 过去的二十多年中，用来解决科学问题的超级计算机变得越来越强大。 
 很多高性能计算领域的研究都在关注如何使得科学应用能够更加适应大规模的并行环境。 
 没有可扩展的应用， 超级计算机的功能再强大也不能对很多像海洋模拟这样科学领域十分重要的问题起到促进作用。 
-数值海洋模式利用超级计算机的并行环境能够提高我们 模拟和理解海洋运动过程、监视和预报海洋状态的能力。 
-目前的海洋模式为了能够更加准确的模拟海洋过程， 都趋向于采用更细粒度的水平和垂直分辨率，导致海洋模式的规模也变得越来越大。 
-随着海洋模式分辨率的提高， 利用海洋模式来做模拟的计算需求也会变得越来越巨大，这也使得在大规模并行环境中对海洋模式进行优化变得极其重要。 
+数值气候模式利用超级计算机的并行环境能够提高我们 模拟和理解海洋运动过程、监视和预报海洋状态的能力。 
+目前的气候模式为了能够更加准确的模拟大气、海洋和海冰等运动过程， 都趋向于采用更细粒度的水平和垂直分辨率，导致气候模式的规模也变得越来越大。 
+随着气候模式分辨率的提高， 利用气候模式来做模拟的计算需求也会变得越来越巨大，这也使得在大规模并行环境中对海洋模式进行优化变得极其重要。 
 
 
+
+目前有很多研究工作都是在关注气候系统模式的性能，尤其高分辨率气候模式在大规模并行环境中的可扩展性。 
+气候模式，尤其是气候系统模式，由于包含有很多分量模式，结构复杂，代码量巨大，导致气候模式的性能并不乐观。 
+本文主要以目前使用最为广泛的美国国家大气研究中心主要研发的CESM为研究对象。
+在很多真实模拟中，海洋模式POP都是CESM中计算开销最大的一个分量\cite{Worley:2011:PCE:2063384.2063457, dennis2012computational}。 
+因此，本文中，我们专注于提高海洋模式POP的性能优化。 
+POP是一个十分有影响力的海洋模式，它是由美国Los Alamos国家实验室研发，多家研究机构共同发展。
+海洋模式POP被广泛的应用于涡分辨率的海洋模拟\cite{mcclean2002eulerian, stark2004towards}，以及海洋和海冰或者大气和海洋相耦合的耦合模拟  \cite{May2002preliminary}。 
+POP目前被著名的公共地球系统模式CESM采纳为其海洋模式分量。  
+海洋模式POP采用经过静力平衡近似和  Boussinesq近似的三维原始方程。 
+为了避免快波（如重力波等）对时间步长的苛刻的要求， 它将时间积分分成两个部分： 一个是求解三维动力学和热动力学过程的斜压模态，另一个则是求解二维海表高度（SSH）变化的正压模态。\cite{smith2010parallel}.
+
+已有的很多研究都明确的指出，海洋模式POP中，斜压模态的计算量占整个模式的绝大部分，但通信相对较少、可扩展性较好，其计算时间随着计算规模的增大而减少。
+但是正压模态主要由边界更新和全局归约操作等通信开销组成，其计算时间开销占总计算时间开销的比例从几百核上的10\%增大到10,000多核上的50\%\cite{pop05,stone2011cgpop,Worley:2011:PCE:2063384.2063457, dennis2012computational}。
+因此，海洋模式POP的性能主要受到正压模态中通信瓶颈的影响，提高海洋模式正压模态的可扩展性将有助于提高整个公共地球系统模式的性能。。
+
+
+正压模态的可扩展性较差主要原因是由于需要隐式的求解一个椭圆方程。 
+海洋模式POP中的正压模态可以近似为一个线性系统$Ax=b$。 
+国际上很多流行的海洋模式都采用共轭梯度法及其变种求解海洋模式正压模态中的线性系统\citep{adcroft2014mitgcm,lai2010nonhydrostatic,madec1997ocean}。
+但是，共轭梯度法自身有一个不适合大规模并行坏境的缺陷，那就是每一步迭代过程中都涉及到两次求內积操作。 
+当采用成千上百个处理器核心时， 做內积所需要的全局通信和同步操作就会是一个主要的瓶颈。 
+
+\subsection{正压模态通信瓶颈}
+\label{related:bottleneck}
 
 目前有很多研究工作都是在关注海洋模式POP的性能，尤其是它的正压模态的比较差的可扩展性。 
 Jones\cite{pop05}等人在向量架构和常规集群的并行环境中测试了海洋模式POP1.4.3版本的可移植性，并且发现POP中斜压模态主要是由计算组成， 但是正压模态主要由边界更新和全局归约操作等通信开销组成。
@@ -18,232 +46,34 @@ Stone  \cite{stone2011cgpop}等人发现，正压模态的时间开销占总计�
 他们甚至还为此而开发了一个POP的简化版本，称之为CGPOP，专门用来研究海洋模式POP中的正压模态的新算法、数据结构和编程模型等。 
 Worley  \cite{Worley:2011:PCE:2063384.2063457} 和 \cite{dennis2012computational} 等人在近30,000 核上测试了公共地球系统模式CESM的海洋模式分量POP 2.0.1。 
 他们发现，海洋模式POP在很多真实模拟中都是CESM中计算开销最大的一个分量，并且证明了在大规模并行时，海洋模式POP的性能主要受到正压模态中通信瓶颈的影响。 
- 
 
- 
-正压模态的可扩展性较差主要原因是由于需要隐式的求解一个椭圆方程。 
-海洋模式POP中的正压模态可以近似为$Ax=b$，它采用常规的预处理共轭梯度法来求解这个线性系统。 
-预处理共轭梯度法每一步迭代过程中都涉及到两次求內积操作。 
-当采用成千上百个处理器核心时， 做內积所需要的全局通信和同步操作就会是一个主要的瓶颈。 
-目前有很多减少预处理共轭梯度法的负面影响的方法。 
-一些方法尝试减少全局通信的开销\cite{dAzevedo1999lapack}，以及将计算与通信相重叠\cite{beare1997optimisation}。 
-另外一些方案尝试使用陆地点移除和负载均衡\cite{dennis2007inverse, dennis2008scaling} 的方法来减少进程数，进而减少其相应的全局归约操作的开销。 
+公共地球系统模式中的海洋分量模式，并行海洋模式POP（the Parallel Ocean Model) 求解的是采用静力平衡近似和布辛奈斯克（Boussinesq）近似的三维原始方程组。 
+它将时间积分分成两个部分：斜压模态和正压模态。 
+斜压模态描述的是三维的动力学和热动力学过程，而正压模态是求解二维的垂直积分后的动量方程和连续性方程。
+隐士自由面方法在求解海洋模式正压模态中是一个很常见的选择，因为它能够允许较大的时间步长来高效的计算速度很快（约200m/s)的重力波。
+然而，使用这个方法时需要求解大规模椭圆方程组，而这个方程的求解过程在并行海洋模式中可扩展性很差。
+事实上，已有研究表明，并行海洋模式的正压求解的比较差的可扩展性主要是由于通信的开销导致的\cite{Worley:2011:PCE:2063384.2063457}。 
+如果能优化并行海洋模式的正压求解，将会使得整个公共地球系统模式的性能有较大的提升\cite{dennis2012computational}。 
 
+正压求解器是高分辨率CESM版本中POP的主要性能瓶颈，因为当在大核数上运行时它的运行时间占了POP总运行时间的一大半。 
+这是由于求解自由海表面的正压求解器中算法所固有的明显的全局通信操作在大核数下的可扩展性比较差所导致的。
+共轭梯度法（CG）以及它的变换形式是比较常用的求解海洋模式中因隐式计算自由海表面而得到的椭圆方程组的方法。
+比较著名的海洋模式如MITgcm\citep{adcroft2014mitgcm}， FVCOM\citep{lai2010nonhydrostatic}， MOM3\citep{pacanowsky1999mom3}， OPA \citep{madec1997ocean}
+都采用了共轭梯度法或其变种来求解自由海表面方程。
+然而，共轭梯度法在当前的海洋模式分量POP中造成了比较严重的通信瓶颈\citep{Worley:2011:PCE:2063384.2063457}。 
+很多研究工作都尝试去提高共轭梯度法的性能，他们中的大多数要么是减少处理器间的通信次数，要么是加快每个处理器上的计算速度。
+其中最为著名的工作是，修正标准的共轭梯度法，从而减少全局通信的次数。 比如POP中采用的Chronopoulos-Gear (ChronGear, \cite{dAzevedo1999lapack})就是共轭梯度法的一个变种。
+这些方法和最近的一些变形(比如\cite{hoemmen2010})都是尝试去减少全局通信，但是要么效果不太明显，要么变形后的算法很难与复杂一点的预处理子相结合\citep{ghysels2014}。
+另外，还有一些研究是通过将全局通信与矩阵向量乘法利用流水线的方式来重叠，进而提高共轭梯度法的并行效率。关于如何减少共轭梯度法中全局通信的开销，文章\cite{ghysels2014}给出了一个非常详尽的总结。
 
-这些工作会有一定的效果。 
-但是他们并没有从根源上解决这个问题， 也就是没有消除掉全局归约操作的开销。 
-本章中，我们首先给出预处理共轭梯度法的复杂度模型，进而定量的分析正压模态的可扩展性。 
-通过这个模型，我们确信随着进程数的增加而逐渐增大的全局通信开销是正压模态可扩展性的瓶颈。 
-另外，  我们设计一个新的基于传统Stiefel迭代（CSI）的新的可扩展的求解器，以此解决可扩展性瓶颈。 
-CSI方法的迭代参数是用系数矩阵$A$的特征值谱计算得到，而不需要用到迭代过程中通信密集型的残差的內积计算。
-这个不需要全局归约操作的特点， 我们的CSI求解器相比于原始的预处理共轭梯度法在大规模并行环境中有更好的可扩展性。  
-我们利用Lanczos方法来估计系数矩阵$A$的特征值。 
-Lanczos方法可以构造出一个规模小得多的三对角矩阵$T$ ， 这个矩阵的特征值能够逐渐的逼近原系数矩阵 $A$的特征值，从而解决了直接求解系数矩阵特征值的难题。 
-CSI中估计特征值的额外开销比正压模态执行一步的开销还要小。 
-实验表明， 预处理共轭梯度法在小于1,000核上市可扩展性比较好，但是当使用超过5,000核时，预处理共轭梯度法的执行时间反而增加了。 
-与之形成鲜明对比的是，CSI方法在超过10,000核上仍然保持较好的可扩展性， 它使得正压模态在15,000核的执行时间从原来的41.96秒 下降到6.67秒。 
-
-
-为了完整的推导我们的新的P-CSI求解器，这里我们简要的描述一下海洋模式POP中的控制方程。
-海洋模式中的原始动量和连续性方程可以表达如下：
-\begin{align}
-&\frac{\partial }{\partial t} \textbf{u} +\mathcal{L}(\textbf{u}) + f\times \textbf{u} = - \frac{1}{\rho_0}\nabla p +F_H(\textbf{u}) +F_V(\textbf{u}) \label{eq:momen}\\
-&\mathcal{L}(1) = 0 \label{eq:continuous}
-\end{align}
-这里$\mathcal{L}(\alpha ) = \frac{\partial }{\partial x} (u\alpha)  +\frac{\partial }{\partial y} (v\alpha) +\frac{\partial }{\partial z} (w\alpha)$， 它在$\alpha =1$时与平流算子等价， $x，y，z$ 分别是水平和垂直坐标变量， $\textbf{u} = [u，v]^T$ 水平速度向量， $w$ 垂直速度， $f$ 表示科氏力系数，  $p$ 和 $\rho_0$ 分别表示压力和密度， $F_H$ 和 $F_V$分别表示水平和垂直耗散项 \cite{smith2010parallel}。  
-为了求解这个三维的原始方程，海洋模式分量将时间积分分解为两个模态。 一个是求解三维动力学和热动力学过程的斜压模态，另一个则是求解二维海表高度（SSH）的变化。
-
-%----------------------------------------------------------------------------
-\section{正压模态} \label{solver:mode}
-
-
-  
-在静力平衡近似条件下，POP中海底深度为$z$的位置上的压力可以分解为两个部分：  
-\begin{align}
-\displaystyle p = p_h + p_s = \int^0_z g\rho dz +p_s
-\end{align}
-这里$p_h$表示静力平衡压力，$p_s$表示由于海表自由面波动而引起的海表压力。 
-正压模态的控制方程是由原始动量方程和连续性方程(\ref{eq:momen}，\ref{eq:continuous}) 从海洋底部到海洋表面垂直积分而得到的:
-\begin{align}
-&\displaystyle \frac{\partial \textbf{U} }{\partial t}  = -g \nabla \eta + F  \label{eq:baro_mon}\\
-&\displaystyle \frac{\partial \eta }{\partial t} = - \nabla \cdot H\textbf{U} + q_w  \label{eq:baro_con}
-\end{align}
-这里  $\textbf{U} =  \frac{1}{H+\eta}\int_{-H}^\eta dz \textbf{u}(z) \approx \frac{1}{H }\int_{-H}^0 dz \textbf{u}(z)$是正压速度的垂直积分，
-$\eta = p_s/{\rho_0g}$是海表高度，$H$是海洋底部的深度，$q_w$单位海表面积的活水通量，$g$表示由于地球动力引起的加速度而$F$表示对海洋动量方程中除了与时间趋势和海表压力梯度相关的所有项做垂直积分所得到的量（参见方程\ref{eq:momen}）。
- 
-垂直方向上的边界条件是
-\begin{align}
-\label{eq:bound_w}
-w = \left\{ \begin{array}{ll}
-\frac{\partial}{\partial t} \eta  +\textbf{u}\cdot\nabla \eta - q_w, & z = \eta  \\
-0, & z = -H
-\end{array} \right.
-\end{align}
- 
-值得一提的是，为了简化求解过程，正压连续性方程 (\ref{eq:baro_con}) 中忽略掉了边界条件中的小项 $\nabla \eta$\cite{smith2010parallel}。
-为了能够使用更长的时间步长，海洋模式分量的正压模态中采用了隐式格式，并且将椭圆方程简化成一个线性系统。 通过时间差分，方程  (\ref{eq:baro_mon})和(\ref{eq:baro_con}) 可化为
-\begin{align}
-&\displaystyle \frac{ \textbf{U}^{n+1} - \textbf{U}^{n-1}}{\tau}  = -g \nabla \eta + F \label{eq:udt} \\
-&\displaystyle \frac{\eta^{n+1} - \eta^n }{\tau}  = - \nabla \cdot H\textbf{U} + q_w \label{eq:etadt}
-\end{align}
-这里 $\tau$ 与差分格式相关的时间步长。 
-用方程（\ref{eq:udt}）中下一时刻的正压速度来替换方程（\ref{eq:etadt}）中的正压速度， 就得到了一个关于海表高度$\eta$的椭圆系统
-\begin{equation}
-\label{eq:sshdiscret}
-     [-\nabla\cdot H \nabla + \frac{1}{g  \tau^2}]\eta^{n+1}
-           = -\nabla\cdot H[\frac{\textbf{U}^{n-1}}{g \tau} + \frac{F}{g}] + \frac{\eta^n}{g\tau^2} +\frac{q_w}{g\tau}
-\end{equation}
- 
-为了简单，我们将椭圆方程（\ref{eq:sshdiscret}）重新标记为
-\begin{equation}
-\label{eq:ssh}
-[-\nabla \cdot H\nabla +\frac{1}{g  \tau^2}]\eta^{n+1} = \psi(\eta^n,\eta^{n-1},\tau)
-\end{equation}
-这里 $\psi$表示一个关于当前时刻和上一时刻$\eta$状态的函数。
- 
-
-\begin{figure}%[!htbp]
-\centering
-\includegraphics[width=12cm, height=6.5cm]{grid_domain.pdf}
-\caption[] {海洋模式分量中网格划分\label{fig:grid1}}
-\end{figure}
-
-\subsection{正压模态的求解}
-\label{related:barosolver}
- 
-
-\section{正压线性方程组}
-\label{related:baroproperty}
-
-如图\ref{fig:grid1}所示， POP采用在水平方向上采用Arakawa B网格\cite{smith2010parallel}，并且采用九点差分格式对方程（\ref{eq:ssh}）进行离散。得到如下离散格式：
-\begin{align}
-    & \nabla\cdot H \nabla \eta  =\frac{1}{\Delta y}\delta_x \overline{[\Delta y H  \delta_x\overline{\eta}^y]}^y +\frac{1}{\Delta x}\delta_y \overline{[\Delta x H  \delta_y\overline{\eta}^x]}^x \label{eq:nabla2}
-  \end{align}
-
-这里 $\Delta_\xi$和$\delta_\xi$  （$\xi \in \{x， y\} $）分别为有限差分和它们相应的偏导，  $\delta_\xi (\cdot) $和$\overline{(\cdot)}^\xi $ 分别表示有限差分算子和平均算子。  
-\begin{align}
-&\delta_\xi \psi = [\psi (\xi+\Delta_\xi/2) -\psi(\xi-\Delta_\xi/2)]/\Delta_\xi \\
-&\overline{\psi}^\xi  =[\psi (\xi+\Delta_\xi/2) +\psi(\xi-\Delta_\xi/2)]/2
-\end{align}
-%----------------------------------------------------------------------------
-
-
-为了避免极点问题，POP采用偏移的或者三极点的广义正交网格。这使得方程的系数非常的繁杂。
-为了能够简单而不失偏颇，我们将给出系数矩阵在均匀的网格和给定的不变的海底深度$H$的情况下的显式表达式。
- 
-
-表达式\ref{eq:nabla2}此时为
-\begin{align}
- [\nabla\cdot H \nabla \eta]_{i,j}&= -\frac{H}{S_{i,j}}(A_{i,j}^O\eta_{i,j}+A_{i,j}^{NW}\eta_{i-1,j+1}+A_{i,j}^N\eta_{i,j+1} \nonumber\\
- &+A_{i,j}^{NE}\eta_{i+1,j+1}+A_{i,j}^W\eta_{i-1,j} +A_{i,j}^E\eta_{i+1,j} \nonumber\\
-& +A_{i,j}^{SW}\eta_{i-1,j-1} +A_{i,j}^S\eta_{i,j-1}+ A_{i,j}^{SE}\eta_{i+1,j-1})
-\end{align}
-这里$S_{i,j}  = \Delta x\Delta y$， $A_{i,j}^{\chi } ( \chi \in \mathcal{Q} = \{NW,NE, SW, SE, W, E, N, S\})$ 分别表示网格点 $(i,j)$和它自己、以及它的邻居点之间的在 九点差分格式中的系数（\ref{eq:nabla2}）。 这些系数由$\Delta x$， $\Delta y$， $\tau$和$H$决定。
-\begin{equation} \label{defineA}
-\begin{aligned}
-&\alpha  = \frac{ \Delta y}{ \Delta x }, \quad \beta  = 1/\alpha \\
-&A_{i,j}^{NW} = A_{i,j}^{NE} =A_{i,j}^{SW} = A_{i,j}^{SE} = - (\alpha  +  \beta  )/4 \\
-&A_{i,j}^{W} = A_{i,j}^{E} = (  \beta  -\alpha  )/2 \\
-&A_{i,j}^{N} = A_{i,j}^{S} = (\alpha  -\beta )/2 \\
-&A_{i,j}^{O} =   \alpha   +\beta  \\
-\end{aligned}
-\end{equation}
-
-
-%&\alpha_1 = \frac{2\Delta y}{2\Delta x_j +\Delta x_{j+1}2}\\
-%& \alpha_2= \frac{2\Delta y}{ \Delta x_j +\Delta x_{j-1}  } \\
-%&\alpha_3 = \frac{\Delta y(\Delta x_{j-1}+2\Delta x_j +\Delta x_{j+1})}{2 (\Delta x_j +\Delta x_{j-1})(\Delta x_j +\Delta x_{j+1})} \\
-%& \beta_1 = \frac{(\Delta x_j +\Delta x_{j+1})}{8 \Delta y} \\
-%& \beta_2 = \frac{(\Delta x_j +\Delta x_{j-1})}{8 \Delta y} \\
-%& \beta_3 = \frac{(\Delta x_{j-1}+2\Delta x_j +\Delta x_{j+1})}{8 \Delta y} \\
-%&A_{i,j}^{NW} = A_{i,j}^{NE} = \alpha_1 + \beta_1 \\
-%&A_{i,j}^{SW} = A_{i,j}^{SE} = \alpha_2 +  \beta_2 \\
-%&A_{i,j}^{W} = A_{i,j}^{E} = \alpha_3 - 2 \beta_3 \\
-%&A_{i,j}^{N} = -2\alpha_1  + 2 \beta_1 \\
-%&A_{i,j}^{S} = -2\alpha_2  + 2 \beta_2  \\
-%&A_{i,j}^{O} = -2\alpha_3  -4 \beta_3  \\
-%Then， the coefficients between the given point $(i,j)$和its other neighbors can be computed from $A^n$， $A^e$和$A^{ne}$ on its neighbors。
-方程\ref{eq:ssh}在给定点$(i,j)$上的离散格式则可以表示为  
-\begin{align}
-\label{eq:sten}
-&(A_{i,j}^O+\phi ) \eta_{i,j}+A_{i,j}^{NW}\eta_{i-1,j+1}+A_{i,j}^N\eta_{i,j+1} +A_{i,j}^{NE}\eta_{i+1,j+1}+A_{i,j}^W\eta_{i-1,j}  \nonumber\\
-& +A_{i,j}^E\eta_{i+1,j} +A_{i,j}^{SW}\eta_{i-1,j-1} +A_{i,j}^S\eta_{i,j-1}+ A_{i,j }^{SE}\eta_{i+1,j-1}= \frac{S_{i,j}}{H}\psi_{i,j}
-\end{align}
-这里$\phi = \frac{S_{i,j}}{g  \tau^2H}$ 是与单位网格大小、海底深度和时间步长有关的一个变量。
-
-\begin{figure}
-\centering
-\includegraphics[height=8cm]{SparsePatternSample}
-\caption[] {大小为$30\times 15$的网格上所得到的系数矩阵的稀疏模式。 \label{fig:spy}}
-\end{figure}
-因此椭圆方程(\ref{eq:sshdiscret})就变成了关于$\eta$的一个线性方程组，也就是 $Ax= b$。 其中$A$表示由系数 $A^*$构成的快对角矩阵。
-方程 \ref{defineA}和 \ref{eq:sten}表明$A$是有水平网格大小、海底深度和时间步长决定。 
-他们之间具体的关系将在第\textbf{ref}节中深入讨论。
-%In the POP， only the nonzero elements are stored。
-方程(\ref{eq:sten})同时还表明 $A$ 每一行只有九个非零元素， 也就是说$A$是一个系数矩阵。 图\ref{fig:spy}展示了$A$的稀疏模式。
-
-\subsubsection{特征值谱和条件数}
-\label{solver:Algorithm:condition}
-
-POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它的特征是都是正实数\cite{stewart1976positive}。
-假设系数矩阵的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_N\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_i \le \lambda_\mathcal{N} = \lambda_{max}$( $1<i <\mathcal{N}$， $\aleph$ 为 $A$的大小 )表示$A$的特征值.
-
-利用 Gershgorin圆盘定理\cite{bell1965gershgorin}可知，对于任意的 $\lambda \in \mathcal{S}$，都存在一个数对 $(i,j)$ 满足
-\begin{align}
-&|\lambda -  (A_{i,j}^O + \phi ) | \le \sum_{\chi \in \{NW,NE,SW,SE,W,E,N,S\}}|A_{i,j}^\chi|
-\end{align}
-由方程\ref{defineA}给出的系数的定义，我们可以得到如下结论 
-\begin{align} \label{eigsGersh}
-&\lambda_{max} \le  \max (  5\alpha - \frac{1}{\alpha}, \frac{5}{\alpha}- \alpha) +\phi   \\
-&\lambda_{min} \ge 2\min (  \alpha - \frac{1}{\alpha},\frac{1} {\alpha} -  \alpha) + \phi
-\end{align}\\
-
- 
-这个结论说明，当网格横纵比例越接近于1时，最大特诊值的上界会随之减少，而最小特征值的下界会随之变大。
-也就是说，系数矩阵特征值谱的半径($[\lambda_{min}, \lambda_{max}]$)随着网格横纵比向着1的接近而变小。 
-当水平网格的横纵比等于1时，即$ \alpha = \frac{ \Delta y}{ \Delta x} = 1$，我们可以得到$\lambda_{max} \le  4 +\phi$,$\lambda_{min} \ge   \phi$。
-这时，系数矩阵的条件数(即 $\kappa=  \lambda_{max}/\lambda_{min}$)，由于是由特征值谱的半径的所决定的，也会随着网格横纵比向1的靠近而变小。 
-
-\begin{figure}[ht]
-\centering
-\includegraphics[height=8cm]{conditionNumberAspectRatio}
-\caption[] {网格横纵比例和系数矩阵条件数之间的关系。 \label{fig:conditionNumberRatio}}
-\end{figure}
+目前公共地球系统模式中并行海洋模式推荐的线性正压模态求解器是采用对角预处理的Chronopoulos-Gear (ChronGear) 方法
+\cite{dAzevedo1999lapack}。 这是一种修正后的预处理共轭梯度法（Preconditioned Conjugate
+Gradient method，PCG)。 
+ChronGear继承了预处理共轭梯度法的缺陷--迭代过程中需要全局求和，从而使得它不能很好地扩展，并成为了高分辨模拟中的一个性能瓶颈。
+为了提高并行海洋模式，同时也是公共地球系统模式的可扩展性，我们通过消除求解器迭代过程中的全局求和操作以及发展一个更高效的预处理子来提高正压求解器的并行计算效率。
 
 
 
-
-图\ref{fig:conditionNumberRatio}所给出的结果验证了我们的这个结论。图\ref{fig:conditionNumberRatio}中给出的是固定的网格点数$\mathcal{N} = 20\times 20$和固定的$\phi = 0$， 在区间$(1, +\infty)$上，系数矩阵的条件数随着网格横纵比例的增加而增加，而在区间$(0,1)$上，系数矩阵的条件数随着横纵比例的增大而变小。
-特征值在当网格横纵比例等于1时取到最小值。
- 
-\begin{figure}[ht]
-\centering
-\includegraphics[height=8cm]{conditionNumberTimestep}
-\caption[] {时间步长和系数矩阵条件数之间的关系。 \label{fig:conditionNumberDt}}
-\end{figure}
-
-
-
-特征值的下界是$\phi=\frac{S }{g \tau^2 H}$，这个变量是由时间步长以及水平网格的面积和海底深度的比例确定的。
-它表明，特征值的下界会随着时间步长的增大而减小。 
-相应的，系数举证的 条件数也就随之增大。
-图\ref{fig:conditionNumberDt}中证明了我们的这个推论。
-这个图中的实验采用的是固定的网格点数$\mathcal{N} = 20\times 20$，和固定的网格横纵比$\Delta x /{\Delta y} = 1$。 
-
-\begin{figure}[ht]
-\centering
-\includegraphics[height=8cm]{conditionNumberGridSize}
-\caption[] {网格点的数目和系数矩阵条件数之间的关系。 \label{fig:conditionNumbGrid}}
-\end{figure}
- 
-不考虑时间步长的因素（假设$\phi=0$）时，上面的分析表明，当网格的横纵比等于1时，不论网格点的个数是多少， 系数矩阵的特征值谱半径限制在 $(0,4)$ 区间内。
-但是，系数矩阵的条件数的变化却可能会很大，因为当网格点的数量$\mathcal{N}$ 不断增加时，最小的特征值会组件的逼近零。 
-图\ref{fig:conditionNumbGrid} 中解释了条件数和网格点数目之间的关系。 
-
-
-
-\subsection{正压模态通信瓶颈}
-\label{related:bottleneck}
 
 我们这里简单的从两个方面介绍一下相关工作： 一是提高通用的并行环境中共轭梯度法效率的工作，二是针对海洋模式中的共轭梯度法的效率的改进。
 在第一个方面， 减少共轭梯度法的全局通信的开销在这个算法被并行化之后就一直是研究的热点。 
@@ -267,21 +97,28 @@ POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它
 在独立版本的海洋模式POP中取得了很好的效果。 
 
  
-最后，我们放弃了串行效率很高的共轭梯度法，使得我们不得不去寻找正压模态中一个可用的更加高效的预处理子。 
-这里，我们提一下为了减少高分辨率海洋模式中正压模态求解的几个预处理技术。 
-多项式预处理技术和局部逆预处理技术被证明是加速并行大洋环流模式中的共轭梯度法的收敛的比较好的技术\cite{smith1992parallel}。 
-最近，Max Planck研究中心的海洋模式MPIOM采用了一种基于不完全Cholesky分解的预处理子。它能够改善共轭梯度法在大核数上的运行效率 \cite{adamidis2011high}。
+ 目前有很多减少预处理共轭梯度法的负面影响的方法。 
+一些方法尝试减少全局通信的开销\cite{dAzevedo1999lapack}，以及将计算与通信相重叠\cite{beare1997optimisation}。 
+另外一些方案尝试使用陆地点移除和负载均衡\cite{dennis2007inverse, dennis2008scaling} 的方法来减少进程数，进而减少其相应的全局归约操作的开销。 
 
 
-  
-共轭梯度法中的预处理方法自从上世纪90年代以来就一直备受重视。 
-很多的线性系统在采用了适当的预处理子之后，预处理共轭梯度法只需要少数几步迭代就能够收敛。 
-然是，大多数的最有效的预处理技术， 比如说不完全的Cholesky分解和不完全的LU分解，在海洋模式中并不是十分的有效。 
-海洋模式中的椭圆方程组需要为之设计专门的可并行化的预处理子。 
-在1985年，Concus 等人\cite{concus1985block}采用系数矩阵的逆的一个条带状的近似，来对椭圆微分方程上的共轭梯度法进行预处理，结果取得了比其他通用的预处理方法更高的效率。 
-Smith等人\cite{smith1992parallel}采用多项式预处理的方法和一个局部近似逆的预处理方法来加速并行大洋环流模式中的共轭梯度法的收敛。 
-Adamidis等人 \cite{adamidis2011high} 在全球海洋海冰模式MPIOM中采用了一个不完全的Cholesky预处理子，在提高预处理共轭梯度法的性能的同时，也改善了它的可扩展性。 
-Watanabe \cite{Watanabe2006pcg} 设计了一个与重叠区域分解法相结合的预处理共轭梯度法来加速收敛，同时减少了处理单元之间的通信开销。 
+这些工作会有一定的效果。 
+但是他们并没有从根源上解决这个问题， 也就是没有消除掉全局归约操作的开销。 
+本章中，我们首先给出预处理共轭梯度法的复杂度模型，进而定量的分析正压模态的可扩展性。 
+通过这个模型，我们确信随着进程数的增加而逐渐增大的全局通信开销是正压模态可扩展性的瓶颈。 
+另外，  我们设计一个新的基于传统Stiefel迭代（CSI）的新的可扩展的求解器，以此解决可扩展性瓶颈。 
+CSI方法的迭代参数是用系数矩阵$A$的特征值谱计算得到，而不需要用到迭代过程中通信密集型的残差的內积计算。
+这个不需要全局归约操作的特点， 我们的CSI求解器相比于原始的预处理共轭梯度法在大规模并行环境中有更好的可扩展性。  
+我们利用Lanczos方法来估计系数矩阵$A$的特征值。 
+Lanczos方法可以构造出一个规模小得多的三对角矩阵$T$ ， 这个矩阵的特征值能够逐渐的逼近原系数矩阵 $A$的特征值，从而解决了直接求解系数矩阵特征值的难题。 
+CSI中估计特征值的额外开销比正压模态执行一步的开销还要小。 
+实验表明， 预处理共轭梯度法在小于1,000核上市可扩展性比较好，但是当使用超过5,000核时，预处理共轭梯度法的执行时间反而增加了。 
+与之形成鲜明对比的是，CSI方法在超过10,000核上仍然保持较好的可扩展性， 它使得正压模态在15,000核的执行时间从原来的41.96秒 下降到6.67秒。 
+
+
+
+
+
 
 
 
@@ -330,6 +167,119 @@ Cuomo  \cite{cuomo2012pcg} 等人在数值全球大洋环流模式中引入了�
 Shida  \cite{Shida2007}等人将正压模态移植到了 FPGAs, 并且发现100MHz FPGAs 和1GHz CPU处理器有着相同的性能。 
 GPUs 和 FPGAs 对于减少全局通信的开销是非常有帮助的。
 这些加速设备相比于传统的CPU，有着更强的计算能力更大的内存，因此，计算相同的科学任务，只需要更少的加速设备即可。 进而，全局通信的开销也相应的减少。 
+
+\section{预处理技术}
+\label{related:precond}
+
+
+最后，我们放弃了串行效率很高的共轭梯度法，使得我们不得不去寻找正压模态中一个可用的更加高效的预处理子。 
+这里，我们提一下为了减少高分辨率海洋模式中正压模态求解的几个预处理技术。 
+多项式预处理技术和局部逆预处理技术被证明是加速并行大洋环流模式中的共轭梯度法的收敛的比较好的技术\cite{smith1992parallel}。 
+最近，Max Planck研究中心的海洋模式MPIOM采用了一种基于不完全Cholesky分解的预处理子。它能够改善共轭梯度法在大核数上的运行效率 \cite{adamidis2011high}。
+
+
+  
+共轭梯度法中的预处理方法自从上世纪90年代以来就一直备受重视。 
+很多的线性系统在采用了适当的预处理子之后，预处理共轭梯度法只需要少数几步迭代就能够收敛。 
+然是，大多数的最有效的预处理技术， 比如说不完全的Cholesky分解和不完全的LU分解，在海洋模式中并不是十分的有效。 
+海洋模式中的椭圆方程组需要为之设计专门的可并行化的预处理子。 
+在1985年，Concus 等人\cite{concus1985block}采用系数矩阵的逆的一个条带状的近似，来对椭圆微分方程上的共轭梯度法进行预处理，结果取得了比其他通用的预处理方法更高的效率。 
+Smith等人\cite{smith1992parallel}采用多项式预处理的方法和一个局部近似逆的预处理方法来加速并行大洋环流模式中的共轭梯度法的收敛。 
+Adamidis等人 \cite{adamidis2011high} 在全球海洋海冰模式MPIOM中采用了一个不完全的Cholesky预处理子，在提高预处理共轭梯度法的性能的同时，也改善了它的可扩展性。 
+Watanabe \cite{Watanabe2006pcg} 设计了一个与重叠区域分解法相结合的预处理共轭梯度法来加速收敛，同时减少了处理单元之间的通信开销。 
+
+
+正压模态求解器的总时间开销等于求解器达到收敛所需要的迭代步数乘以每一次迭代的时间开销。
+随着计算使用的处理器核心数的增大，每一步迭代中的计算所消耗的时间是逐渐减少的，
+但是通信所需要的时间会逐渐增加。 
+为了减少通信的开销，人们通常采用预处理这一技术来减少收敛所需要的迭代次数。
+附加的前提条件是预处理过程的开销在合理的范围之内。 
+目前海洋模式POP中采用的默认求解器ChronGear通过使用一个简单的对角预处理方法，性能就已经取得了很好的提升\cite{pini1990simple, reddy2013comparison}。 
+如果能够进一步的提高求解器的收敛速度，求解过程中通信的开销将会大大的减少，从而进一步的提高求解器的可扩展性。
+事实上，一个有效的预处理子不仅能够给新的P-CSI求解器带来性能提升，同时也能够改进原有的默认的ChronGear求解器。
+
+\subsection{传统预处理方法}
+\label{related:classical}
+
+由于海洋模式POP中的数据是分布在多个进程上的，而进程之间的通信的开销很大， 如果使用因式分解的预处理方法，通常只能接受比较浅层次的分解，比如说ILU（0）。 
+ILU（0）分解中，L和U分别与原始矩阵A的上三角和下三角矩阵具有相同的非零元结构。
+这导致L和U的乘积只是A的一个非常粗糙的近似，从而使得这种预处理的效果并不是很明显。 
+更为精确的ILU因式分解方法并不太适用于海洋模式，因为它需要更多的额外的通信和计算。 
+同时，计算这些高阶的预处理子的代价也会越高。 
+
+\subsection{误差向量传播方法}
+\label{related:evp}
+
+\subsection{并行预处理方法}
+\label{related:parall}
+
+在1985， Concus等人 \cite{concus1985block} 使用原始矩阵的逆矩阵的条带状近似作为预处理矩阵，在椭圆微分方程问题的求解中取得了比其他预处理子更好的效果。 
+Smith et al. \cite{smith1992parallel}在海洋模式POP 的最原始版本中采用多项式预处理的方法以及一个局部近似逆预处理的方法，将迭代步数缩短为原来的三分之到五分之一。
+但是由于多项式预处理方法中，前期得到多项式预处理子的开销比较大，在后期的版本中这一方法并没有得到继承。  
+
+使用最广的串行预处理技术当属不完全的因式分解方法，比如不完全的LU分解（ILU）和它的变种\cite{benzi2002preconditioning}。 
+但是，这些方法并不适合在并行的环境中使用，因为它们需要对整个矩阵做一个按顺序的逐次的计算。 
+随着并行计算的兴起，一些可以并行化的预处理技术，比如说多项式预处理、近似逆预处理、多重网格预处理和块预处理，逐渐因此了人们的重视。 
+高阶的多项式预处理能够像不完全的LU分解（ILU）以及它的变种在串行的环境中一样高效的减少迭代算法的迭代次数\cite{benzi2002preconditioning} 。 
+但是多项式预处理子巨大的计算开销抵消了它与在减少迭代次数上的优势，因为一个$k$阶的多项式预处理子在每次一次迭代过程中需要进行$k$次矩阵向量乘操作。 
+最终的实际运行中，它的时间开销有时候反而比不上简单的对角预处理\cite{meyer1989numerical,smith1992parallel}。
+近似逆预处理，尽管可并行度很高，但是它需要求解一个比原始方程大很多倍的线性方程组\cite{smith1992parallel,bergamaschi2007numerical}， 这就使得它的魅力相比于简单的预处理方法大打折扣。
+
+ 
+ 
+多重网格是一种针对椭圆微分系统中的线性方程组的高可扩展和十分高效的预处理方法。 
+最近的研究表明几何多重网格（GMG）在使用规则网格和简单地形的大气模式
+ \cite{muller2014massively}
+ 和海洋模式中\cite{matsumura2008non,kanarska2007algorithm}中有很好的效果。 
+ 但是，全球海洋模式通常使用比较复杂的地形(如群岛、海峡、通道和复杂的海岸等)，并结合以非规则或者各向异性的网格， 结果导致简单的几何多重网格并不能取得较好的效果
+\cite{matsumura2008non,fulton1986multigrid,tseng2003ghost,stuben2001review}。 
+在公共地球系统模式CESM的海洋模式分量POP中，为了避开极点奇异性问题，采用的是极点偏移的广义正交网格。 
+海洋模式POP将陆地点掩盖掉，从而只计算地球表面的海洋部分。
+这些选择导致了模式中的椭圆方程所得到的系数是定义在一个不规则的网格上的不规则区域， 进而导致几何多重网格很难取得好的效果。 
+地形的复杂性在高分辨率的海洋网格中会变得更加糟糕，因为成千上万的群岛和海峡通道（比如白令海峡)在稍微粗一点的网格上并不可见。
+对于这些涉及复杂的地形的问题，代数多重网格通常比几何多重网格更加的实用。 
+但是代数多重网格也有一个缺陷，那就是在某些例子里面，代数多重网格的启动开销比它的迭代求解过程还要耗时，
+这使得它反而不如一些预处理得比较好的共轭梯度法
+\cite{muller2014massively}， 尤其是在使用共轭梯度法所需要的迭代步数比较少的时候。 
+地球系统模式CESM中的海洋模式分量POP中的正压模态求解问题就是这样一个例子（参见下一节的图
+ \ref{fig:iter}）。
+更进一步，不管是高分辨率还是低分辨率，海洋模式POP的每一个模拟天内都需要对正压模态中的线性方程求解几十次甚至上百次，
+而通常的一次模拟中往往需要模拟成百上千个模拟年，这就导致代数多重网格方法的启动开销变得无法接受。
+
+
+最后，块预处理技术被证明是一个比较有效的并行预处理技术\cite{concus1985block, white2011block}。
+这个技术对于海洋模式POP尤为有潜力，因为它能够充分地利用POP中由椭圆方程离散化后得到的矩阵的块状结构的性质。 
+
+\section{气候模式的正确性验证}
+\label{related:verify}
+气候预测本质上有五个维度：三维空间，时间和概率。 
+主流的气候模式，目前基本上都牺牲掉概率分辨率，而对其它四个分辨率不断地做优化。
+改变这种状况需要一些新的方法。
+迄今为止，已经有一些利用初始条件中的不确定性，以及改变边界条件所带来的影响。
+但是对于大部分的变量，几十年的气候模拟中主要的不确定性并不在初始条件或者外部驱动，而在于气候系统的响应。
+这个问题在大气海洋环流模式（AOGCMs）中得到解决，主要是通过采用非直接指定的观测数据的集合模式的比较，来减少可能性集合的限制\cite{allen2002towards} 。 
+这种方法可能会造成预测的不确定性很小的误解。
+在制定未来气候变化缓解和适应的对应策略时，必须要考虑到未来气候变化的不确定范围。
+这就要求有几十年的集合模拟的结果来评估气候自身的混动性和模式相应的不确定性。 
+基于近代气候变化的观测，对模式相应作出的统计学估计，认为气候的敏感性，也就是全球平均温度对于大气中二氧化碳浓度增加一倍的平衡相应，要大于5摄氏度\cite{stainforth2005uncertainty}。
+但是这么强的响应在未来的气候变化的范围中被没有被采用，因为在环流模式中这并不常见。 
+通过利用常规的环流模式来进行几千次模拟而得到的集合模拟。 发现这些版本跟其他的前沿的模式的模拟结果一样真实，但是气候的敏感性从2K到11K不等。
+这个几段范围的敏感性对于气候系统对于大气中温室气体的升高的相应的研究，以及评估将特定目标稳定在某个层次所带来的风险是非常有意义的。
+
+
+ 
+美国国家气象中心中范围预测模型的随机增长误差的三维结构，通过确定误差的来源来研究。
+随机误差的增长分为两类： 一类是外部误差增长，主要是由于模式的缺陷导致的；一类是内部误差增长，主要是由于初始条件中的误差的自增长\cite{reynolds1994random} 。 
+通过对预测和验证分析的相关性的参数化，可以确定内外部增长的速率。
+这种参数化假设线性的随机增长主要是由于模式的缺陷引起的。 
+这个结果表明，在热带地区，结合模型和分析的结果，可以显著的改善模拟结果。
+而在中纬度地区，模式的改进很难改善预测的结果，所以减少分析的误差变得尤为重要。 
+参数化能够得到物理上有意义，并且和之前的预测结果相一致的结果。同时也为评估预测误差在空间和时间上的分布提供量化手段。
+
+目前，在数值模拟群体中，缺乏对于数值模拟模式正确性验证的重要性的理解和意识\cite{whitner1989guidelines} 。 
+使用计算机可执行程序来表示一个模拟模型的需求正在不断增加。 
+这个软件工程这个领域中，有很多的软件验证继续能够用来对数值模拟程序进行验证。
+但是软件验证和模式验证之间存在巨大的鸿沟。 
 
 \section{本章小结}
 \label{related:Conclude}
