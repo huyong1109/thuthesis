@@ -93,8 +93,7 @@ w = \left\{ \begin{array}{ll}
 \caption[] {海洋模式分量中网格划分\label{fig:grid1}}
 \end{figure}
 
-\subsection{正压模态的求解}
-\label{solver:barosolver}
+
  
 
 \subsection{正压线性方程组}
@@ -167,7 +166,7 @@ w = \left\{ \begin{array}{ll}
 %In the POP， only the nonzero elements are stored。
 方程(\ref{eq:sten})同时还表明 $A$ 每一行只有九个非零元素， 也就是说$A$是一个系数矩阵。 图\ref{fig:spy}展示了$A$的稀疏模式。
 
-\subsubsection{特征值谱和条件数}
+\subsection{特征值谱和条件数}
 \label{solver:Algorithm:condition}
 
 POP中的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它的特征是都是正实数\cite{stewart1976positive}。
@@ -555,17 +554,6 @@ Assume that the estimated largest and smallest extreme eigenvalues of coefficien
 
 
  
-当使用了EVP预处理时，计算的复杂变成了$\mathcal{T}_c = 37 \frac{\mathcal{N}}{p}$。因此P-CSI方法在使用EVP方法时一次求解过程的复杂度为
-\begin{eqnarray}
-\label{t_pcsiEvp}
-\mathcal{T}_{pcsi-evp}=\mathcal{O}(\mathcal{K}_{pcsi-evp} (37\frac{\mathcal{N}}{p} +8\sqrt{\frac{\mathcal{N} }{p}} + 4\alpha))
-\end{eqnarray}
-
-以上式子可以看出来，使用了EVP预处理后，每一步迭代过程中的计算开销翻了一倍。
-但是，一次求解的总体时间是下降。 
-采用EVP预处理后，迭代步数$\mathcal{K}_{pcsi-evp}$会下降到原来的一半（参见图\ref{fig:convergence_diag}）。
-其结果是，在大核上运行时，计算时间变得非常的少，而最耗时的通信部分的次数也随着迭代步数的减少而减少了一半左右。
-
 
 
 
@@ -574,7 +562,8 @@ Assume that the estimated largest and smallest extreme eigenvalues of coefficien
 \section{实验} 
 \label{solver:exp}
  
-\subsection{理想实验}
+\subsection{理想实验}\label{solver:exp:ideal}
+
 为了验证第\ref{solver:Algorithm:convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
 这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
 随着维度$\theta$的变化，沿着经度方向的网格大小为 $\Delta x_j  = \pi R \cos (\theta_j)$。

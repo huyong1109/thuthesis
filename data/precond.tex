@@ -250,7 +250,8 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 \end{figure}
  
 
-\section{预处理CSI迭代法}
+
+\section{P-CSI迭代法}
 \label{precond:pcsi}
 
 为了提高海洋模式POP的可扩展性，一个好的正压模态求解器应该具备的特点是需要尽可能少的全局归约操作。 
@@ -351,6 +352,22 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 \end{algorithm}
 
 这个算法需要$\textbf{A}$ 是正定对称矩阵。海洋模式POP中直接得到的系数矩阵是负定对称矩阵，此时只需将方程两边同时乘以单位矩阵和-1，即可将系数矩阵转换成正定对称矩阵。 
+
+\subsection{P-CSI方法计算复杂度}  \label{precond:PCSI:complex}
+
+当使用了EVP预处理时，计算的复杂变成了$\mathcal{T}_c = 37 \frac{\mathcal{N}}{p}$。因此P-CSI方法在使用EVP方法时一次求解过程的复杂度为
+\begin{eqnarray}
+\label{t_pcsiEvp}
+\mathcal{T}_{pcsi-evp}=\mathcal{O}(\mathcal{K}_{pcsi-evp} (37\frac{\mathcal{N}}{p} +8\sqrt{\frac{\mathcal{N} }{p}} + 4\alpha))
+\end{eqnarray}
+
+以上式子可以看出来，使用了EVP预处理后，每一步迭代过程中的计算开销翻了一倍。
+但是，一次求解的总体时间是下降。 
+采用EVP预处理后，迭代步数$\mathcal{K}_{pcsi-evp}$会下降到原来的一半（参见图\ref{fig:convergence_diag}）。
+其结果是，在大核上运行时，计算时间变得非常的少，而最耗时的通信部分的次数也随着迭代步数的减少而减少了一半左右。
+
+
+
 
 \section{实验方法和结果分析}
 \label{precond:exp}
@@ -521,3 +538,8 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 
 \section{本章小结}
 \label{precond:Conclusion}
+
+本章主要针对目前正压求解器在大规模并行环境中收敛速度较慢，而导致通信开销过大的情况，提出了专门的基于误差向量传播方法的预处理技术。
+基于出差向量传播方法在直接求解椭圆方程时的效率很高。 
+基于误差向量传播方法的并行预处理技术不仅能够应用在P-CSI方法中，对于原始的ChronGear方法也有类似的加速效果。
+
