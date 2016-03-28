@@ -72,15 +72,17 @@
   尤其是在正压模态中求解椭圆方程所用到的改进后的预处理共轭梯度法（PCG）， 在大核数并行使可扩展很差， 从而成为了高分辨率的模拟中的一个主要瓶颈。 
   此论文中，我们证明了正压求解器中的通信开销在整个海洋模式POP的运行时间中所占的比随着并行核数的增加而增加。 
   为了解决这一问题， 我们在海洋模式POP中实现了一个预处理的Chebyshev迭代方法（称之为P-CSI方法）， 它所需要的全局归约操作要比预处理共轭梯度法少很多。 
-  我们还研发了一个高效的基于误差向量传播方法的块预处子，它是的P-CSI方法能在比较少的迭代步内收敛。 
-  我们还证明了P-CSI由于可扩展性得到改善， 在16,875核上对高分辨海洋模式POP的正压模态加速了5.2倍，并且是的整个POP的模拟速率提高了1.7倍。 
+  我们研发了一个高效的基于误差向量传播方法的并行块预处理子，它使得P-CSI方法能在比较少的迭代步内收敛。 
+  我们证明了P-CSI由于可扩展性得到改善， 在16,875核上对高分辨海洋模式POP的正压模态加速了5.2倍，并且是的整个POP的模拟速率提高了1.7倍。 
   最后，我们还通过一个基于集合模拟的统计学方法来证明使用了我们的新的求解器后产生的模拟结果是与原始结果相容的。
 本论文主要研究提高海洋模式中并行求解正压模态的可扩展性，解决高分辨率下可扩展性差的问题。 
   本文的创新点主要有：
   \begin{itemize}
-    \item 提出了给予Chebyshev的海洋模式正压求解器;
-    \item 基于误差向量传播算法的预处理子；
-    \item 采用了基于统计的模式评估方法。 
+    \item 提出了基于Chebyshev迭代的海洋模式正压求解器。 新的求解器不需要利用每一步的残差来确定迭方向，而是利用系数矩阵的最大最小特征值。
+    从而去掉了时间开销很大的全局通信操作，极大的改善了正压模态的可扩展性。
+    \item 提出了基于误差向量传播算法的预处理子。误差向量传播算法是求解由椭圆偏微分方程十分高效的方法。
+    我们利用海洋模式并行划分的特点，在每一个进程所得到数据块上使用EVP方法求解。这相当于使用原始方程的块对角矩阵的逆作为预处理。这种预处理方法使得正压求解器的迭代步数缩短到了原来的三分之一左右，进一步的提高正压求解器的性能。
+    \item 提出了基于统计的模式评估方法。由于模式本身的不确定性，在模式中加入很小的改动都无法保证模式结果与原来的结果是二进制一致的。这也就使得很难验证模式中的改动是否会对模式造成气候意义上显著的改变。为此，我们提出了使用集合模拟的结果来对新的结果进行评估。 数据集合很好地反应模式结果的不确定性，我们最终得到的一致性检验工具能够很好从结果反推出模拟过程或者初始值所引入的误差。  
   \end{itemize}
 
 \end{cabstract}
@@ -111,6 +113,39 @@
   yields a 1.7x speedup of the overall POP simulation.  Further,
   we ensure that the new solver produces an ocean climate consistent with the original
   one via an ensemble-based statistical method.
+
+  The currently recommended linear solver for the barotropic mode in CESM
+POP is the Chronopoulos-Gear (ChronGear) method
+\cite{dAzevedo1999lapack}, a modified Preconditioned Conjugate
+Gradient method (PCG), combined with a diagonal preconditioner.
+The required global reduction in the ChronGear method does not scale well and
+causes a bottleneck for high-resolution simulations.  To improve the scaling
+of POP, and, therefore CESM, we focus on optimizing the barotropic
+solver by eliminating global reductions and developing a more
+effective preconditioner.  In particular, we make the following
+contributions:
+
+
+ 
+
+\begin{itemize}
+
+\item We add a preconditioning interface to the Classical Stiefel Iteration
+(CSI) solver explored in \cite{hu2013scalable} and
+implement the resulting preconditioned CSI (P-CSI) solver
+and new EVP block preconditioner in CESM1.2.0 POP.
+\item We develop a new block parallel preconditioner based on the
+Error Vector Propagation (EVP) method \cite{roache1995elliptic} designed to
+improve solver convergence in the POP barotropic mode. We demonstrate an improvement in convergence rate for both ChronGear and
+P-CSI when using block EVP.
+\item We obtain a 5.2x speedup of
+  the barotropic mode in high-resolution POP due to the improved scalability
+of P-CSI with block EVP preconditioning, greatly improving the
+scalability of POP (and ultimately CESM) at large core counts.
+\item We develop and apply an ensemble-based statistical method to evaluate the impact
+of changing the linear solver in POP and ensure that a consistent ocean climate is produced.
+\end{itemize}
+
 \end{eabstract}
 
 % \ekeywords{\TeX, \LaTeX, CJK, template, thesis}

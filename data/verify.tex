@@ -338,8 +338,8 @@ CESM-ECT方法的下一步是量化数据集合的分布特征，进而为行的
 综上所述，为了构造出一个在CESM-POP数据上比较健壮的集合统计学一致性检测工具，我们必须得到一个既包含有空间信息，又包含有时间信息的数据集合。
 特别的，POP-ECT构造的集合综述文件中第$T$ 个 月份的时间片CESM-POP数据包含有：
 \begin{itemize}
- \item $N_{var} \times N_X \times T$  monthly mean values across the ensemble at each grid point $i$ ($\mu_i$)
- \item $N_{var} \times N_X \times T$ standard deviations of ensemble monthly mean values at each grid point $i$ ($\sigma_i$),
+ \item $N_{var} \times N_X \times T$ 数据集合在每个点$i$ 上的月平均值 ($\mu_i$)
+ \item $N_{var} \times N_X \times T$ 数据集合在每个点 $i$ 上标准方差($\sigma_i$),
  \end{itemize}
  这也就是说，我们保存了指定个月份$T \;=\; 36$ 在所有$N_x$ 个点上的集合平均值和标准方差值（这里 $N_x$ 是变量是二维还是三维的变量有关系）。
  
