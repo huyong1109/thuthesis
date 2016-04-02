@@ -164,7 +164,7 @@ w = \left\{ \begin{array}{ll}
 \includegraphics[height=7cm]{SparsePatternSample}
 \caption[] {大小为$30\times 15$的网格上所得到的系数矩阵的稀疏模式。 \label{fig:spy}}
 \end{figure}
-因此椭圆方程(\ref{eq:sshdiscret})就变成了关于$\eta$的一个线性方程组。我们记这个方程组为 $Ax= b$，其中$A$表示由系数 $A_{*，*}^{\chi } ( \chi \in \mathcal{Q} )$ 构成的块对角矩阵。
+因此椭圆方程(\ref{eq:sshdiscret})就变成了关于$\eta$的一个线性方程组。我们记这个方程组为 $Ax= b$，其中$A$表示由系数 $A_{i,j}^{\chi } ( \chi \in \mathcal{Q}, i,j \in {1,\cdots, N)}$ 构成的块对角矩阵。
 方程组的规模随着网格分辨率的提高而变大。对于一度的海洋模式，得到方程组包含有$\aleph = 138,240$个未知量，而0.1度分辨率的POP中，方程组中未知量的个数$\aleph$ 为$8,640,000$。这意味着如果用单精度浮点数将0.1度POP正压模态线性方程组的系数矩阵显示的存储起来需要大概300TB的空间。
 值得庆幸的是，海洋模式POP正压模态中得到的线性方程组是稀疏。
 方程(\ref{eq:sten})还表明 $A$ 每一行只有九个非零元素， 也就是说$A$是一个稀疏矩阵。 图\ref{fig:spy}展示了大小为$30\times 15$的网格点上得到的系数矩阵$A$的稀疏模式， 可以看出来$A$具有带状的对角形式，它只有在对角及其附近的条带内有少量的非零元，而其他点的值都是零。
@@ -176,11 +176,11 @@ $A$的元素总个数为202,500，但是只有3870个非零元素。非零元在
 \label{solver:Algorithm:condition}
 
 POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它的特征是都是正实数\cite{stewart1976positive}。
-假设系数矩阵的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_N\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_i \le \lambda_\aleph = \lambda_{max}$( $1<i <\aleph $， $\aleph=N\times N$ 为 $A$的大小，即网格点的总个数 )表示$A$的所有特征值。
+假设系数矩阵的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_\aleph\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_k \le \lambda_\aleph = \lambda_{max}$( $1<k <\aleph $， $\aleph=N\times N$ 为 $A$的大小，即网格点的总数目 )表示$A$的所有特征值。
 
 利用 Gershgorin圆盘定理\cite{bell1965gershgorin}可知，对于任意的 $\lambda \in \mathcal{S}$，都存在一个数对 $(i,j)$ 满足
 \begin{align}
-&|\lambda -  (A_{i,j}^O + \phi ) | \le \sum_{\chi \in \{NW,NE,SW,SE,W,E,N,S\}}|A_{i,j}^\chi|
+&|\lambda -  (A_{i,j}^O + \phi ) | \le \sum_{\chi \in \mathcal{Q} = \{NW,NE,SW,SE,W,E,N,S\}}|A_{i,j}^\chi|
 \end{align}
 由方程（\ref{defineA}）给出的系数的定义，我们可以得到如下结论 
 \begin{align} \label{eigsGersh}
@@ -190,7 +190,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 
 以上结论说明，当网格横纵比例（$\alpha  = \frac{ \Delta y}{ \Delta x }$）越接近于1时，最大特征值的上界会随之减少，而最小特征值的下界会随之变大。
 也就是说，系数矩阵特征值谱的半径($[\lambda_{min}, \lambda_{max}]$)随着网格横纵比向着1的接近而变小。 
-当水平网格的横纵比等于1时，即$ \alpha = \frac{ \Delta y}{ \Delta x} = 1$，我们可以得到$\lambda_{max} \le  4 +\phi$,$\lambda_{min} \ge   \phi$。
+当水平网格的横纵比等于1时，即$ \alpha = \frac{ \Delta y}{ \Delta x} = 1$，我们可以得到$\lambda_{max} \le  4 +\phi$，$\lambda_{min} \ge   \phi$。
 这时，系数矩阵的条件数(即 $\kappa=  \lambda_{max}/\lambda_{min}$)，由于是由特征值谱的半径的所决定的，也会随着网格横纵比向1的靠近而变小。 
 
 \begin{figure}[ht]
@@ -198,7 +198,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 \includegraphics[height=7cm]{conditionNumberAspectRatio}
 \caption[] {系数矩阵条件数与网格横纵比例的关系。 \label{fig:conditionNumberRatio}}
 \end{figure}
-图\ref{fig:conditionNumberRatio}所给出的结果验证了我们的这个结论。图\ref{fig:conditionNumberRatio}的横坐标表示网格的横纵比例，纵坐标表示当使用固定的网格点数$\mathcal{N} = 20\times 20$和固定的$\phi = 0$时，对应的系数矩阵的条件数。 
+图\ref{fig:conditionNumberRatio}所给出的结果验证了我们的这个结论。图\ref{fig:conditionNumberRatio}的横坐标表示网格的横纵比例，纵坐标表示当使用固定的网格点数$\aleph = 20\times 20$和固定的$\phi = 0$时，对应的系数矩阵的条件数。 
 可以看出，在区间$(1, +\infty)$上，系数矩阵的条件数随着网格横纵比例的增加而增加，而在区间$(0,1)$上，系数矩阵的条件数随着网格横纵比例的增大而变小。
 系数矩阵的条件数在当网格横纵比例等于1时取到最小值。
  
@@ -236,8 +236,8 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 POP将全球区域划分为若干个小块，并将这些块分发给每一个进程。
 每个进程只负责计算它所分得的块内网格点上的迭代过程，并且维护一个与周围进程进行数据交换的边界区域。 
 为了简洁， 在本文中，我们假设整个区域的网格大小为$N\times N$，它被划分为$m\times m$个大小为$n\times n$ ($n=N/m$)的小块。 
-假使块$BLOCK(k,l)$上对应的系数矩阵和解分别为$\textbf{B}$和$\tilde{x}$， 那么$\textbf{B}$就是系数矩阵$A$的一个大小为$n^2\times n^2$的对角子矩阵，并且每一行最多只有九个非零元\cite{hu2013scalable}。 
-于是，矩阵向量乘积操作 $\textbf{B}\tilde{x}$只包含有$9n^2$次浮点数乘法操作，而不是$n^2\times n^2$次操作。 
+假使块$B(k,l)$上对应的系数矩阵和解分别为$\textbf{B}$和$\tilde{\textbf{x}}$， 那么$\textbf{B}$就是系数矩阵$A$的一个大小为$n^2\times n^2$的对角子矩阵，并且每一行最多只有九个非零元\cite{hu2013scalable}。 
+于是，矩阵向量乘积操作 $\textbf{B}\tilde{\textbf{x}}$只包含有$9n^2$次浮点数乘法操作，而不是$n^2\times n^2$次操作。 
  
 %----------------------------------------------------------------------------
 \subsection{PCG求解器} 
@@ -245,24 +245,29 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
  
 海洋模式POP的正压模态中使用传统的共轭梯度法结合一个对角预处理子$M = \Lambda(A)$ 作为它的默认求解器。 
 这个默认求解器在小规模并行时效率很高。 
-对角预处理的共轭梯度法的过程如下\ref{alg:pcg}： 
+对角预处理的共轭梯度法的过程如下： 
 
 \begin{algorithm}[h]
 \caption{共轭梯度法}
 \label{alg:pcg}
 \begin{algorithmic}[1]
-\REQUIRE  与网格块$B_{i,j}$相应的系数矩阵$\textbf{B}$,  初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
+\REQUIRE  与网格块$B_{i,j}$相应的系数矩阵$\textbf{B}$,  初始解 $\tilde{\textbf{x}}_0$ 和 $\textbf{b}$  \\
 //\qquad    \textit{所有进程并行执行}
-\STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$, $\textbf{s}_0 =0$;\quad $\beta_0=1$, $k=0$;
+\STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\tilde{\textbf{x}}_0$, $\textbf{s}_0 =0$;\quad $\beta_0=1$, $k=0$;
 \WHILE{$k \leq k_{max}$ }
-\STATE $k=k+1$;\quad $\textbf{r}'_{k-1} =\textbf{M}^{-1}\textbf{r}_{k-1}$;\quad \COMMENT{对角预处理}
-\STATE $\tilde{\beta_k} = \textbf{r}_{k-1}^T\textbf{r}'_{k-1}$;\quad $\beta_k = global\_sum(\tilde{\beta_k})$; \COMMENT{全局规约操作}
-\STATE $\textbf{s}_k = \textbf{r}'_{k-1} +(\beta_k/\beta_{k-1})\textbf{s}_{k-1}$;\quad $\textbf{s}'_k = \tilde{\textbf{A}}\textbf{s}_k$; \COMMENT {矩阵向量乘}
-\STATE $update\_halo(\textbf{s}'_k$); \COMMENT{ 边界通信}
-\STATE $\tilde{\alpha_k} = \textbf{s}_k^T\textbf{s}'_k$;\quad $\alpha_k =\beta_k/ global\_sum(\tilde{\alpha_k})$;\quad \COMMENT{全局规约操作}
-\STATE $\textbf{x}_k =\tilde{\textbf{x}}_{k-1} +\alpha_k \textbf{s}_k$;\quad $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{s}'_k$;
-\IF{ $k \% n_{c} == 0$}
-\STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $n_c$ 检查一次是否收敛}
+\STATE $k=k+1$; 
+\STATE $\textbf{r}'_{k-1} =\textbf{M}^{-1}\textbf{r}_{k-1}$; \COMMENT{对角预处理} \label{AlgPcgPrecond}
+\STATE $\tilde{\beta}_k = \textbf{r}_{k-1}^T\textbf{r}'_{k-1}$;\COMMENT{局部內积} \label{AlgPcgInner1}
+\STATE $\beta_k = global\_sum(\tilde{\beta}_k)$; \COMMENT{全局规约操作} \label{AlgPcgGlobal1}
+\STATE $\textbf{s}_k = \textbf{r}'_{k-1} +(\beta_k/\beta_{k-1})\textbf{s}_{k-1}$;\label{AlgPcgVec1}
+\STATE $\textbf{s}'_k = \tilde{\textbf{A}}\textbf{s}_k$; \COMMENT {矩阵向量乘}\label{AlgPcgAx}
+\STATE $update\_halo(\textbf{s}'_k$); \COMMENT{ 边界通信}\label{AlgPcgBound}
+\STATE $\tilde{\alpha}_k = \textbf{s}_k^T\textbf{s}'_k$;\COMMENT{局部內积} \label{AlgPcgInner2}
+\STATE $\alpha_k =\beta_k/ global\_sum(\tilde{\alpha}_k)$;\quad \COMMENT{全局规约操作}\label{AlgPcgGlobal2}
+\STATE $\textbf{x}_k =\tilde{\textbf{x}}_{k-1} +\alpha_k \textbf{s}_k$;\label{AlgPcgVec2}
+\STATE $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{s}'_k$;\label{AlgPcgVec3}
+\IF{ $k \% K_{c} == 0$}
+\STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $K_c$ 检查一次是否收敛}
 \ENDIF
 \ENDWHILE
 \end{algorithmic}
@@ -281,7 +286,7 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
 正压模态的运行时间与预处理共轭梯度法梯度法在每个进程上的执行时间。 
 假设 $T_c$, $T_b$ 和 $T_g$分别表示每个迭代步中计算，边界交换和全局归约操作的时间。 
 
-算法\ref{alg:pcg}中，计算主要涉及到步骤3, 5和 8中的四个向量伸缩操作，步骤4和7中的两个向量向量乘积操作，和步骤5中的矩阵向量乘积。 
+算法\ref{alg:pcg}中，计算主要涉及到步骤\ref{AlgPcgPrecond}、\ref{AlgPcgVec1}、\ref{AlgPcgVec2}和 \ref{AlgPcgVec3}中的四个向量伸缩操作，步骤\ref{AlgPcgInner1}和\ref{AlgPcgInner2}中的两个向量向量乘积操作，和步骤\ref{AlgPcgAx}中的矩阵向量乘积。 
 因此 $T_c= \Theta (4 n^2 +2n^2+ 9n^2) = \Theta (15n^2) =\Theta(15\frac{N^2}{P})$。 
 很明显 $T_c$ 会随着进程数的减少而减少， 同时以0位下界。 
 
@@ -317,7 +322,7 @@ T_{pcg} = T_c + T_b + T_g
 
 \begin{figure}[ht]
 \centering
-\includegraphics[height = 8cm]{evaluate_PCG}
+\includegraphics[height = 7cm]{evaluate_PCG}
 \caption[] {1 度 POP中预处理共轭梯度法的时间成分分析\label{fig:pcg_ratio}}
 \end{figure}
 
@@ -392,7 +397,7 @@ CSI的收敛速度比预处理共轭梯度法稍慢， 它在小规模并行是�
  
 \begin {figure}%[htbp]
 \centering
-\includegraphics[height=8cm]{evaluate_CSI}
+\includegraphics[height=7cm]{evaluate_CSI}
 \caption[] { 1度 POP中一步CSI求解器的成分分析}
 \label{fig:cst_ratio}
 \end{figure}
@@ -413,8 +418,6 @@ CSI的收敛速度比预处理共轭梯度法稍慢， 它在小规模并行是�
  //\qquad    \textit{所有进行并行执行}
 \STATE $\textbf{q}_1 = \textbf{r}_0/||\textbf{r}_0||$;\quad $\textbf{q}_0=\textbf{0}$;\quad $T_0=\emptyset$;\quad $\beta_0 =0$;\quad  $\mu_0 =0$;\quad $j=1$;
 \WHILE{$j<k_{max}$} 
-%\STATE $\textbf{q}_1 = \textbf{r}_0/||\textbf{r}_0||$; \quad $\beta_0\textbf{q}_0=0$;\quad  $\tilde{\mu}_k =0$; \quad $j=0$;
-%\FOR{$j = 1, 2,...,k$}
 \STATE $\textbf{r}_j=\tilde{\textbf{A}}\textbf{q}_j-\beta_{j-1}\textbf{q}_{j-1}$;\quad $update\_halo(\textbf{r}_j)$;
 \STATE $\tilde{\alpha}_j =\textbf{q}_j^T\textbf{r}_j$;\quad $\alpha_j=global\_sum(\tilde{\alpha}_j)$; 
 \STATE $\textbf{r}_j=\textbf{r}_j-\alpha_{j}\textbf{q}_{j}$;
