@@ -162,7 +162,7 @@ w = \left\{ \begin{array}{ll}
 \begin{figure}
 \centering
 \includegraphics[height=7cm]{SparsePatternSample}
-\caption[] {大小为$30\times 15$的网格上所得到的系数矩阵的稀疏模式。 \label{fig:spy}}
+\caption[] {大小为$30\times 15$的网格上椭圆微分方程采用九点差分格式所得到的线性方程组的系数矩阵的稀疏模式。 \label{fig:spy}}
 \end{figure}
 因此椭圆方程(\ref{eq:sshdiscret})就变成了关于$\eta$的一个线性方程组。我们记这个方程组为 $Ax= b$，其中$A$表示由系数 $A_{i,j}^{\chi } ( \chi \in \mathcal{Q}, i,j \in {1,\cdots, N)}$ 构成的块对角矩阵。
 方程组的规模随着网格分辨率的提高而变大。对于一度的海洋模式，得到方程组包含有$\aleph = 138,240$个未知量，而0.1度分辨率的POP中，方程组中未知量的个数$\aleph$ 为$8,640,000$。这意味着如果用单精度浮点数将0.1度POP正压模态线性方程组的系数矩阵显示的存储起来需要大概300TB的空间。
@@ -196,7 +196,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 \begin{figure}[ht]
 \centering
 \includegraphics[height=7cm]{conditionNumberAspectRatio}
-\caption[] {系数矩阵条件数与网格横纵比例的关系。 \label{fig:conditionNumberRatio}}
+\caption[] {固定网格点数$\aleph = 20\times 20$和$\phi = 0$时，正压线性方程组的系数矩阵的条件数与网格横纵比例的关系。 \label{fig:conditionNumberRatio}}
 \end{figure}
 图\ref{fig:conditionNumberRatio}所给出的结果验证了我们的这个结论。图\ref{fig:conditionNumberRatio}的横坐标表示网格的横纵比例，纵坐标表示当使用固定的网格点数$\aleph = 20\times 20$和固定的$\phi = 0$时，对应的系数矩阵的条件数。 
 可以看出，在区间$(1, +\infty)$上，系数矩阵的条件数随着网格横纵比例的增加而增加，而在区间$(0,1)$上，系数矩阵的条件数随着网格横纵比例的增大而变小。
@@ -205,7 +205,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 \begin{figure}[ht]
 \centering
 \includegraphics[height=7cm]{conditionNumberTimestep}
-\caption[] {系数矩阵条件数与时间步长的关系。 \label{fig:conditionNumberDt}}
+\caption[] {固定网格点数$\aleph= 20\times 20$和网格横纵比$\Delta x /{\Delta y} = 1$时，正压线性方程组的系数矩阵条件数与时间步长的关系。 \label{fig:conditionNumberDt}}
 \end{figure}
 特征值的下界是$\phi=\frac{S }{g \tau^2 H}$，这个变量是由时间步长以及水平网格的面积和海底深度的比例所确定的。
 它表明，特征值的下界会随着时间步长的增大而减小。 
@@ -217,7 +217,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 \begin{figure}[ht]
 \centering
 \includegraphics[height=7cm]{conditionNumberGridSize}
-\caption[] {系数矩阵条件数与网格点的数目的关系。 \label{fig:conditionNumbGrid}}
+\caption[] {固定$\phi=0$且网格的横纵比等于1时，正压线性方程组的系数矩阵条件数与网格点的数目的关系。 \label{fig:conditionNumbGrid}}
 \end{figure}
  
 不考虑时间步长的因素（假设$\phi=0$）时，上面的分析表明，当网格的横纵比等于1时，不论网格点的个数是多少，系数矩阵的特征值谱半径限制在 $(0,4)$ 区间内。
@@ -229,7 +229,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smi
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{正压模态正压求解器}
+\section{海洋模式正压求解器}
 \label{solver:bottleneck}
 %----------------------------------------------------------------------------
 
@@ -262,11 +262,11 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
 \STATE $\tilde{\beta}_k = \textbf{r}_{k-1}^T\textbf{r}'_{k-1}$;\COMMENT{局部內积} \label{AlgPcgInner1}
 \STATE $\beta_k = global\_sum(\tilde{\beta}_k)$; \COMMENT{全局规约操作} \label{AlgPcgGlobal1}
 \STATE $\textbf{s}_k = \textbf{r}'_{k-1} +(\beta_k/\beta_{k-1})\textbf{s}_{k-1}$;\label{AlgPcgVec1}
-\STATE $\textbf{s}'_k = \tilde{\textbf{A}}\textbf{s}_k$; \COMMENT {矩阵向量乘}\label{AlgPcgAx}
+\STATE $\textbf{s}'_k = \textbf{B}\textbf{s}_k$; \COMMENT {矩阵向量乘}\label{AlgPcgAx}
 \STATE $update\_halo(\textbf{s}'_k$); \COMMENT{ 边界通信}\label{AlgPcgBound}
 \STATE $\tilde{\alpha}_k = \textbf{s}_k^T\textbf{s}'_k$;\COMMENT{局部內积} \label{AlgPcgInner2}
 \STATE $\alpha_k =\beta_k/ global\_sum(\tilde{\alpha}_k)$;\quad \COMMENT{全局规约操作}\label{AlgPcgGlobal2}
-\STATE $\textbf{x}_k =\tilde{\textbf{x}}_{k-1} +\alpha_k \textbf{s}_k$;\label{AlgPcgVec2}
+\STATE $\textbf{x}_k =\textbf{x}_{k-1} +\alpha_k \textbf{s}_k$;\label{AlgPcgVec2}
 \STATE $\textbf{r}_k =\textbf{r}_{k-1} -\alpha_k\textbf{s}'_k$;\label{AlgPcgVec3}
 \IF{ $k \% K_{c} == 0$}
 \STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $K_c$ 检查一次是否收敛}
@@ -276,13 +276,14 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
 \end{algorithm}
 
  
-正如算法\ref{alg:pcg}所示，共轭梯度法主要包含有以下下个部分： 计算，边界通信，全局通信。
+正如算法\ref{alg:pcg}所示，共轭梯度法主要包含有以下三个部分： 计算，边界通信，全局通信。
 计算部分主要包括矩阵向量乘操作，向量向量乘操作以及向量的伸缩操作（向量与常数相乘）等具有很好的可扩展性的操作。 
 边界通信会在每次矩阵向量乘操作之后被调用，其开销随着计算使用的处理器核心数的增加和减少，但是有一个下界。 
 每一步迭代过程中的內积操作之后需要调用的全局通信。后面的章节将会说明，当使用很大的核心数时，全局通信将会成为可扩展性的瓶颈。
  
 %----------------------------------------------------------------------------
-\subsection{CG复杂度模型}
+
+\subsection{CG算法复杂度及评估}
 \label{solver:pcgComplex}
 假使使用$p=m^2$个进程来计算正压模态，也就是每个进程正好计算一个子块。 
 正压模态的运行时间与共轭梯度法梯度法在每个进程上的执行时间。 
@@ -297,9 +298,9 @@ $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\thet
 
 
 每个进程都需要与其相邻点进行边界交换，这个过程时间开销主要取决于网络延迟和边界缓存区域的大小。 
-边界缓存区域的带宽默认设置为2，因此一次边界通信的数据量大小为 $2n$。 
+在海洋模式POP中，边界缓存区域的带宽默认设置为2，因此一次边界通信的数据量大小为 $2n$。 
 很明显，这个数据量会随着进程数的增加而减少。 
-每个进程需要与其周围的四个进程进行数据交换，因此一次边界更新所需要的时间为$\mathcal{T}_b =4\varpi + (2\times4\times 2n)\vartheta=4\varpi + \frac{16N}{\sqrt{P}}\vartheta$，这里$\varpi$表示单条点对点通信消息的延迟，$\vartheta$ 表示从网络中传输单位比特需要的时间 (也就是网络带宽的倒数)。 
+每个进程需要与其周围的四个进程进行数据交换，因此一次边界更新所需要的时间为$\mathcal{T}_b =4\varpi + (4\times 2n)\vartheta=4\varpi + \frac{8N}{\sqrt{p}}\vartheta$，这里$\varpi$表示单条点对点通信消息的延迟，$\vartheta$ 表示从网络中传输单位比特需要的时间 (也就是网络带宽的倒数)。 
 可以看出来，这个更新时间是随着进程数的增加而减少的，并且它有一个由网络延迟决定的下界 $2\varpi$。
 
 
@@ -307,19 +308,25 @@ $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\thet
 每次內积操作之后需要调用一次全局归约操作，归约操作实质上就是把每个进程上所计算得到的局部的內积值收集起来，
 因此归约操作的数据传输的时间相比收集操作的时间是可以忽略的。 
 全局规约操作主要由一次MPI\_allreduce和一个去除路地网格点的掩盖操作，因此全局归约操作的开销满足$\mathcal{T}_g= 2\frac{\mathcal{N}^2}{p}\theta + \mathcal{G}(p)\varpi$  
-这里$c_g$ 表示并行环境中的常量，而$\mathcal{G}(\cdot)$是一个与指定架构中网络拓扑结构相关的函数。 
+这里$\mathcal{G}(\cdot)$是一个与指定架构中网络拓扑结构相关的函数。 
 在最优的情况下，采用理想立方体或者树状网络中的$\mathcal{G}(\cdot)$是一个对数函数。 
-因此，不论什么情况$T_g$ 会随着进程数$p$的增加而单调的变大。 
+因此，不管在什么情况下，$\mathcal{G}(p)\varpi$会随着进程数$p$的增加而单调的变大。 
  
 一次共轭梯度法的执行时间可以表示为：
 \begin{equation}
 \label{t_pcg}
 \mathcal{T}_{CG} = \mathcal{T}_c + \mathcal{T}_b + \mathcal{T}_g
-= 15\frac{N^2}{p}\theta + 4\varpi + \frac{16N}{\sqrt{p}}\vartheta+2\frac{N^2}{p}\theta + \mathcal{G}(p)\varpi
+= 15\frac{N^2}{p}\theta + 4\varpi + \frac{8N}{\sqrt{p}}\vartheta+2\frac{N^2}{p}\theta + \mathcal{G}(p)\varpi
 \end{equation}
-总个共轭梯度法的求解过程的执行时间可以表示为$t_{CG} = K_{CG}\cdot \mathcal{T}_{CG}$，　这里$K_{CG}$表示共轭梯度法达到收敛所需要的迭代步数，它不会随着进程数的增加而改变。　
-方程\ref{t_pcg}可以出来，计算和边界更新所需要的时间会随着进程数的增大而减少，但是全局归约操作的时间却会随着进程数的增加而增大。　
-因此，整个共轭梯度法的运行时间在当进程数大于某个数值时，会随之增大而增大。　
+总个共轭梯度法的求解过程的执行时间可以表示为
+\begin{equation}
+\label{t_pcg_all}
+t_{CG} = K_{CG}\cdot \mathcal{T}_{CG}
+\end{equation}
+这里$K_{CG}$表示共轭梯度法达到收敛所需要的迭代步数，它不会随着进程数的增加而改变。
+我们将在第\ref{solver:CG:convergence_rate}节中详细分析共轭梯度法的收敛速度。
+方程\ref{t_pcg}可以出来，计算和边界更新所需要的时间会随着进程数的增大而减少，但是全局归约操作的时间却会随着进程数的增加而增大。
+因此，整个共轭梯度法的运行时间在当进程数大于某个数值时，会随之增大而增大。
 
 
  
@@ -341,6 +348,25 @@ $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\thet
 全局归约操作的时间随着进程数的增加而成比例的变大，并且当使用的进程数大于100时，全局归约操作的时间变成正压模态中的主要开销。 
 这个结果和我们方程(\ref{t_pcg})给出的理论分析的结果是一致的，即全局归约操作是共轭梯度法可扩展性差额根本原因。 
 
+\subsection{共轭梯度法收敛速度} \label{solver:CG:convergence_rate}
+
+不同于直接方法，迭代算法的时间开销并不是固定的。
+上一节式\ref{t_pcg_all}指出，CG求解器求解一次的总时间开销等于每步迭代的时间开销与达到收敛所需要的迭代步数的乘积。
+因此，在实际求解过程中，共轭梯度法的迭代步数越多，CG求解器的时间开销越大。 
+迭代法每一次求解所需要的迭代步数并不确定，但是，通常给出迭代算法收敛速度的估计。
+在共轭梯度法中，每一步迭代的残差都有一个上界\cite{Liesen2004}
+\begin{equation}
+\frac{||\textbf{x}_k-\textbf{x}^*||_A }{||\textbf{x}_0-\textbf{x}^*||_A}  \le \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\lambda \in \mathcal{S}} |p(\lambda)| \label{PcgConvergeRate}
+\end{equation}
+这里$\textbf{x}_k$表示第$k$步迭代后得到的解向量，$\textbf{x}^*$表示线性方程组的解析解(即$\textbf{x}^* = A^{-1}b$)，$\lambda$ 表示系数矩阵$A$的特征值。
+
+利用第一类Chebyshev 多项式来估计这个最小最大值，可以得到 
+\begin{align}
+\label{chrongear_convergence}
+||\textbf{x}_k-\textbf{x}^*||_A \le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k ||\textbf{x}_0-\textbf{x}^*||_A
+\end{align}
+这里$\kappa =  \kappa_2(A)$表示系数矩阵$A$的条件数。
+式（\ref{chrongear_convergence}）表明，共轭梯度法的收敛速度依赖于系数矩阵$A$的条件数。
 
  
 \section{CSI迭代法}
@@ -351,6 +377,8 @@ $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\thet
 Gutknecht \cite{gutknecht2002chebyshev} 在2002年有一篇文章专门的重新研究了一下Chebyshev迭代在通信开销较大的大规模并行环境中性能。 
 传统的Stiefel迭代（CSI）就是Chebyshev迭代方法中的一种。 
 
+我们使用CSI方法在海洋模式POP中实现了一个并行正压求解器，称之为CSI求解器。
+我们在算法\ref{alg:csi}中给出了CSI的迭代过程。
 与共轭梯度法不同的是，CSI方法 在每一步迭代过程中不需要做內积操作，因此它即使在大核数上也能够保持较好的可扩展性。
 CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征值$\nu$进行估计。 
 众所周知，计算稀疏矩阵的特征值要比求解线性方程组本身还要难。 
@@ -360,7 +388,7 @@ CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征
 \caption{传统Stiefel迭代算法}
 \label{alg:csi}
 \begin{algorithmic}[1]
-\REQUIRE 与网格块$B_{i,j}$相对应的系数矩阵 $\textbf{B}$，对角预处理子$\textbf{M}$，初始值$\textbf{x}_0$和方程右端向量$\textbf{b}$，预估的特征值区间$[\nu,\mu]$;  \\
+\REQUIRE 与网格块$B_{i,j}$相对应的系数矩阵 $\textbf{B}$，初始值$\textbf{x}_0$和方程右端向量$\textbf{b}$，预估的特征值区间$[\nu,\mu]$;  \\
  // \qquad    \textit{所有进程并行执行}
 \STATE $\alpha =\frac{2}{\mu -\nu}$, $ \beta = \frac{\mu +\nu}{\mu -\nu}$, $\gamma = \frac{\beta}{\alpha}$, $\omega_0 =\frac{ 2}{\gamma}$;\quad $k = 0$;
 \STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$; $\textbf{x}_1 =\textbf{x}_0 -\gamma^{-1}\textbf{r}_0$; $\textbf{r}_1 =\textbf{b} -\textbf{B}\textbf{x}_1$;
@@ -369,7 +397,7 @@ CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征
 \STATE $\omega_k = 1/(\gamma - \frac{1}{4\alpha^2}\omega_{k-1})$; \COMMENT{迭代函数} \label{AlgCsiIter}
 \STATE $\Delta \textbf{x}_{k} =\omega_k\textbf{r}_{k-1}+(\gamma \omega_k-1)\Delta \textbf{x}_{k-1}$; \label{AlgCsiVec1}
 \STATE $\textbf{x}_{k} =\textbf{x}_{k-1}+\Delta \textbf{x}_{k-1}$; \label{AlgCsiVec2}
-\STATE $\textbf{r}_{k} =b- \textbf{B}\textbf{x}_{k}$;\label{AlgCsiVec3}
+\STATE $\textbf{r}_{k} =\textbf{b}- \textbf{B}\textbf{x}_{k}$;\label{AlgCsiVec3}
 \STATE $update\_halo(\textbf{r}_k)$; \COMMENT{边界通信}\label{AlgCsiBound}
 \IF{ $k \% K_{c} == 0$}
 \STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $K_c$ 检查一次是否收敛}
@@ -385,14 +413,21 @@ CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征
 跟第\ref{solver:pcgComplex}节中共轭梯度方法复杂度的分析一样，我们也可以给出CSI求解器的计算和通信时间开销。
 CSI求解器的计算时间可表示为
 $\mathcal{T}_c =  (2 n^2 + 9n^2)\theta = 11n^2\theta =\frac{11N^2}{p}\theta$。 
-由于CSI方法和共轭梯度法求解器所使用的边界区域是一样的，因此边界更新的操作的开销也是 $\mathcal{T}_b =4\varpi + \frac{16N}{\sqrt{P}}\vartheta$。 CSI方法除了收敛性判断之外本身并不包含全局归约操作。 
+由于CSI方法和共轭梯度法求解器所使用的边界区域是一样的，因此边界更新的操作的开销也是 $\mathcal{T}_b =4\varpi + \frac{8N}{\sqrt{P}}\vartheta$。 CSI方法除了收敛性判断之外本身并不包含全局归约操作。 
 因此，每一步CSI迭代的时间开销可表示为： 　
 \begin{equation}
 \label{t_csi}
 \mathcal{T}_{CSI} = \mathcal{T}_c + \mathcal{T}_b
-= 11\frac{N^2}{p}\theta + 4\varpi + \frac{16N}{\sqrt{p}}\vartheta
+= 11\frac{N^2}{p}\theta + 4\varpi + \frac{8N}{\sqrt{p}}\vartheta
 \end{equation}
-不考虑收敛性判断的情况下，整个CSI求解器执行一次的时间开销为$t_{CSI} = K_{CSI}\cdot \mathcal{T}_{CSI}$，这里$K_{CSI}$ 表示CSI求解器达到收敛所需要的迭代步数。 在相同的收敛条件下，它通常比$K_{CG}$稍微大一些。 
+不考虑收敛性判断的情况下，整个CSI求解器执行一次的时间开销为
+\begin{equation}
+\label{t_csi_all}
+t_{CSI} = K_{CSI}\cdot \mathcal{T}_{CSI}
+\end{equation}
+这里$K_{CSI}$表示CSI求解器达到收敛所需要的迭代步数。
+在章\ref{solver:CSI:convergence_rate}节中，我们将会证明在相同的收敛条件下，$K_{CSI}$通常比$K_{CG}$稍微大一些。
+
 
 
 \begin {figure}%[htbp]
@@ -413,10 +448,72 @@ CSI的收敛速度比共轭梯度法稍慢，它在小规模并行是的执行�
 在当进程数超过某一个值时，整个共轭梯度法的求解过程 要比CSI所消耗的时间长。 
 
 
+\subsection{收敛速度} \label{solver:CSI:convergence_rate}
+
+ 
+与共轭梯度法一样，CSI方法的收敛速度也依赖于系数矩阵$A$的条件数。  
+除了消除了全局归约操作，P-CSI方法的更一个优点是它有和PCG相同量级的收敛速度。 
+P-CSI方法的收敛速度可以用残差的形式表示为
+\begin{equation}
+\textbf{r}_k = P_k(A)\textbf{r}_0 \label{eq:rPjr0}
+\end{equation}
+这里
+$P_k(\zeta) = \frac{\tau_k(\beta-\alpha \zeta)}{\tau_k(\beta)}$($ \zeta \in [\nu, \mu]$)~\cite{stiefel1958kernel}。
+$\tau_k(\xi)$ 是Chebyshev多项式，它的表达式为  
+\begin{equation*}
+\tau_k(\xi) =   \frac{1}{2}[(\xi+\sqrt{\xi^2-1})^k+(\xi+\sqrt{\xi^2-1})^{-k}]
+\end{equation*}
+当 $ \xi \in [-1,1]$时，Chebyshev多项式的另一个等价表达式为$\tau_k(\xi) = cos(k\cos^{-1} \xi)$。从这个表达式可以清楚的看出来，当$| \xi | \le 1$时，$|\tau_k(\xi)| \le 1$。
+多项式$P_k(\zeta)$满足如下条件
+\begin{equation}
+P_k = \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\zeta \in [\nu,\mu]} |p(\zeta)|
+\end{equation}
+%which is the theoretical bound of the convergence rate  in PCG \ref{PcgConvergeRate}.
+
+假设$A= Q^T\Lambda Q$，这里 $\Lambda$ 表示以$A$的特征值为对角元素的对角矩阵，而 $Q$ 表示以  $A$的特征向量为列的实正交矩阵。于是，我们可以得到
+\begin{equation}
+P_k(A) = Q^T P_k(\Lambda)Q = Q^T \left [\begin{array}{cccc}
+P_k(\lambda_1) & & &\\
+& P_k(\lambda_2) & &\\
+& & \ddots &\\
+ & & & P_k(\lambda_N)
+\end{array} \right ] Q \label{eq:PjMA}
+\end{equation}
+ 
+假设所估计的系数矩阵的最大最小特征值$\nu$和$\mu$满足 $0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$。
+方程 \ref{eq:rPjr0} 和 \ref{eq:PjMA} 可以推出
+\begin{equation}
+\label{pcsi_convergence}
+\frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le  \tau_k^{-1}(\beta) = \frac{2(\beta+\sqrt{\beta^2-1})^k}{1+(\beta+\sqrt{\beta^2-1})^{2k}} \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
+\end{equation}
+这里$\kappa' = \frac{\mu}{\nu}$。
+这个等式表明，当系数矩阵特征值的估计比较合理的时候（也就是$\kappa' =\kappa$)，CSI的收敛速度和CG有相同的理论上界。
+
+\begin {figure}
+\vspace{10pt}
+\centering
+\includegraphics[height=8cm]{Convergence_diag.eps}
+\caption[] {0.1度POP中采用不同求解器时，迭代残差与迭代步数之间的关系。\label{fig:convergence_diag}}
+\end{figure}
+式（\ref{chrongear_convergence}）和（\ref{pcsi_convergence}）表明，共轭梯度法和CSI方法的收敛速度的理论上界取决于系数矩阵的条件数。 
+这两个方法在求解良态的矩阵（特征值的条件数很小）时比求解病态的矩阵（特征值的条件数很大）时收敛速度更快。
+这里，我们通过海洋模式POP中的实际测试来验证一下这个理论结果。 
+在0.1度的海洋模式POP中，我们测试了三个不同的正压求解器在做了简单的对角化预处理之后的收敛情况。
+这三个求解器分别为CG求解器，ChronGear求解器（CG求解器的优化版本，将在第\ref{cha:precond}章进行详细介绍)，和CSI求解器。
+图\ref{fig:convergence_diag}给出了不同的正压求解器0.1度海洋模式中的真实的收敛速度。
+图中横轴表示迭代的步数，垂直轴表示求解器在对应迭代步时的残差。 
+如图中所示，三个求解器的相对残差随着迭代步数的增加而变小。
+总共需要一百多迭代步才能够得到一个相对残差为$10^{-13}$的解。
+其中，CSI求解器的残差下降的速度要比共轭梯度法及其变形ChronGear求解器稍慢。
+尽管ChronGear方法改变了CG方法的计算顺序，CG方法和ChronGear在每一步的迭代速度几乎一致。
+CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的迭代步骤中收敛速度变快。
+这主要与系数矩阵的特征值的分布有关系。 
+
+
 \subsection{特征值估计}
 \label{solver:eigs}
 我们在海洋模式POP中设计了基于Lanczos的特征值估计来估计CSI求解器中需要的最大最小特征值。
-当特征值的估计是准确的时，即$\nu = \lambda_{min}$，$\mu =\lambda_{max}$，CSI方法的收敛速度达到理论上的最优值。 
+由第\ref{solver:CSI:convergence_rate}节的分析可知，当特征值的估计是准确的时，即$\nu = \lambda_{min}$，$\mu =\lambda_{max}$，CSI方法的收敛速度达到理论上的最优值。 
 但是得到最大最小特征值$\lambda_{min}$ 和 $\lambda_{max}$ 的精确值是很困难的。
 另外，由于系数矩阵$A$ 是分布在各个进程上的，因此不建议对它做任何形式的变形。  
 为了能够利用POP的并行特性，我们使用Lanczos方法来构造 出一系列三对角矩阵$T_k(k=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$A$的最大最小特征值逼近。
@@ -493,118 +590,48 @@ Paige\cite{Paige1980235} 给出了以下结论
 在最快的情况下，CSI的迭代数度与共轭梯度法的迭代速度相当。
 
 
-\subsection{收敛速度} \label{solver:Algorithm:convergence_rate}
-
- 
-共轭梯度法和CSI方法的收敛速度都依赖于系数矩阵$A$的条件数。  
-论文\inlinecite{dAzevedo1999lapack}证明了 ChronGear  和PCG在理论上收敛速度是相同的。 
-在PCG和ChronGear方法中，每一步迭代的残差都有一个上界\cite{Liesen2004}
-\begin{equation}
-\frac{||\textbf{x}_k-\textbf{x}^*||_A }{||\textbf{x}_0-\textbf{x}^*||_A}  \le \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\lambda \in \mathcal{S}} |p(\lambda)| \label{PcgConvergeRate}
-\end{equation}
-这里$\textbf{x}_k$ 表示第$k$步迭代后得到的解向量，$\textbf{x}^*$ 表示线性方程组的解析解  (即$\textbf{x}^* = A^{-1}b$)，$\lambda$ 表示系数矩阵 $A$的特征值。
-利用 第一类Chebyshev 多项式来估计这个最小最大值，可以得到 
-\begin{align}
-\label{chrongear_convergence}
-||\textbf{x}_k-\textbf{x}^*||_A \le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k ||\textbf{x}_0-\textbf{x}^*||_A
-\end{align}
-这里  $\kappa =  \kappa_2(A)$ 表示系数矩阵 $A$的条件数。
-
-我们先测试一下采用对角预处理子时，PCG，ChronGear和P-CSI三个求解器的性能。
-图\ref{fig:convergence_diag}给出了不同的正压求解器的收敛速度。
-图中横轴表示迭代的步数，垂直轴表示求解器在对应迭代步的残差。 
-尽管ChronGear方法改变了PCG方法的计算顺序，PCG方法和ChronGear在每一步的迭代速度几乎一致。
-P-CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的迭代步骤中收敛速度变快。
-这与系数矩阵的特征值的分布有关系。 
-\begin {figure}
-\vspace{10pt}
-\centering
-\includegraphics[height=8cm]{Convergence_diag.eps}
-\caption[] {不同求解器的收敛速度。\label{fig:convergence_diag}}
-\end{figure}
-
-方程\ref{chrongear_convergence}表明，PCG方法收敛速度的理论上界取决于系数矩阵的条件数。 
-PCG方法在求解良态的矩阵（特征值的条件数很小）时比求解病态的矩阵（特征值的条件数很大）时收敛速度更快。 
-图\ref{fig:convergence_diag}给出了PCG和ChronGear方法在0.1度海洋模式中的真实的收敛速度。
-如这幅图所示，相对残差随着迭代步数的增加而减少。
-总共需要一百步左右的迭代步才能够得到一个相对残差为$10^{-13}$的解。
- 
-
- 
-除了消除了全局归约操作，P-CSI方法的更一个优点是它有和PCG相同量级的收敛速度。 
-P-CSI方法的收敛速度可以用残差的形式表示为
-\begin{equation}
-\textbf{r}_k = P_k(A)\textbf{r}_0 \label{eq:rPjr0}
-\end{equation}
-这里
-$P_k(\zeta) = \frac{\tau_k(\beta-\alpha \zeta)}{\tau_k(\beta)}$ for $ \zeta \in [\nu, \mu]$ ~\cite{stiefel1958kernel} .
-$\tau_k(\xi)$ 是Chebyshev多项式，它的表达式为  
-\begin{equation}
-\tau_k(\xi) =   \frac{1}{2}[(\xi+\sqrt{\xi^2-1})^k+(\xi+\sqrt{\xi^2-1})^{-k}]
-\end{equation}
-当 $ \xi \in [-1,1]$时，Chebyshev多项式的另一个等价表达式为$\tau_k(\xi) = cos(k\cos^{-1} \xi)$。从这个表达式可以清楚的看出来，当$| \xi | \le 1$时，$|\tau_k(\xi)| \le 1$。$P_k(\zeta)$ 是一个多项式，满足如下形式
-\begin{equation}
-P_k = \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\zeta \in [\nu,\mu]} |p(\zeta)|
-\end{equation}
-%which is the theoretical bound of the convergence rate  in PCG \ref{PcgConvergeRate}.
-
-假设$A= Q^T\Lambda Q$，这里 $\Lambda$ 表示以  $A$的特征值为对角元素的对角矩阵，而 $Q$ 表示以  $A$的特征向量为列的实正交矩阵。于是，我们可以得到
-\begin{equation}
-P_k(A) = Q^T P_k(\Lambda)Q = Q^T \left [\begin{array}{cccc}
-P_k(\lambda_1) & & &\\
-& P_k(\lambda_2) & &\\
-& & \ddots &\\
- & & & P_k(\lambda_N)
-\end{array} \right ] Q \label{eq:PjMA}
-\end{equation}
- 
-假设所估计的系数矩阵的最大最小特征值$\nu$和$\mu$满足 $0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$.
-方程 \ref{eq:rPjr0} 和 \ref{eq:PjMA} 可以推出
-\begin{equation}
-\label{pcsi_convergence}
-\frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le  \tau_k^{-1}(\beta) = \frac{2(\beta+\sqrt{\beta^2-1})^k}{1+(\beta+\sqrt{\beta^2-1})^{2k}} \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
-\end{equation}
-这里$\kappa' = \frac{\mu}{\nu}$.
-这个等式表明，当系数矩阵特征值的估计比较合理的时候（也就是$\kappa' =\kappa$)，P-CSI的收敛速度和PCG有相同的理论上界。
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{实验} 
 \label{solver:exp}
- 
+
+本章第\ref{solver:Algorithm:condition}节，给出了正压模态线性方程组系数矩阵的条件数与网格点总数目、网格横纵比例以及时间步长之间等正压模态的配置的关系。
+第\ref{solver:CG:convergence_rate}节和第\ref{solver:CG:convergence_rate}节的理论结论表明，共轭梯度法和CSI方法的收敛速度的理论上界都是由系数矩阵的条件数决定。
+因此，网格点总数目等因素决定了正压模态求解器的收敛速度。
+第\ref{solver:exp:ideal}节实验中，我们首先通过一组理想实验来说明正压求解器收敛速度与正压模态配置的参数之间的关系。 
+
+本章针对海洋模式正压模态中原有的CG求解器在大规模并行时可扩展性差的问题，提出了新的求解方案--CSI求解器。
+第\ref{solver:exp:csi}节试验中，我们在大规模并行平台上测试了新的CSI求解器相比于原始CG求解器的性能。
+
+
+
 \subsection{理想实验}\label{solver:exp:ideal}
 
-为了验证第\ref{solver:Algorithm:convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
+为了验证第\ref{solver:CG:convergence_rate}节和第\ref{solver:CSI:convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
 这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
 随着维度$\theta$的变化，沿着经度方向的网格大小为 $\Delta x_j  = \pi R \cos (\theta_j)$。
 时间步长设置为$\tau = 10\frac{\Delta y}{c}$，这里$c = 200m/s$ 表示重力快波的速度\cite{smith2010parallel}。 
-我们用PCG和P-CSI方法分别结合单位阵预处理、对角预处理和EVP预处理来求解得到的这些方程。
-实验中，EVP预处的块的大小为$5\times5$，收敛条件设为$tol = 10^{-6}$。 
-由于ChronGear 和PCG的收敛速度相同，因此这个图中PCG的收敛结果也是ChronGear的结果。
+我们用CG和CSI方法分别结合单位阵预处理、对角预处理和EVP预处理来求解得到的这些方程。
+实验中，收敛条件设为$tol = 10^{-6}$。 
   
 
 \begin{figure} 
 \vspace{5pt}
 \centering
-\includegraphics[height=8cm]{iterationGridSize}
+\includegraphics[height=7cm]{iterationGridSize}
 \caption[] {网格点数目和求解器的迭代步数之间的关系。\label{fig:iterationGridSize}}
 \end{figure}
 
 正如图\ref{fig:iterationGridSize}所示，随着问题规模的增加，系数矩阵变得越来越病态。
-所有的求解器都需要更多的迭代步数才能得到相同的相对残差。
-对于PCG和P-CSI，收敛速度会随着预处理方法的变化而变化。 
-指定问题的规模，使用单位矩阵作为预处理的求解器需要的迭代步数最大，而使用EVP预处理的求解器所需要的迭代步数最小。 
-这也说明，使用EVP预处理，矩阵的形态会比使用单位阵预处理或者对角预处理后的形态要好。 
-图中还说明，在预处理方法相同的情况下，P-CSI方法的收敛速度要比PCG的慢一些。 
+所有的求解器都需要更多的迭代步数才能得到相同的相对残差。 
+图中还说明，在预处理方法相同的情况下，CSI方法的收敛速度要比CG的慢一些。 
 
 
 
  
-\subsection{CSI方法的性能}
- 
-
-
+\subsection{CSI方法的性能} \label{solver:exp:csi}
 
 %----------------------------------------------------------------------------
  

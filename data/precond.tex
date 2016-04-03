@@ -239,7 +239,7 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 图 \ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算（详情见节\ref{precond:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
 这里我们可以看到，当使用数千个处理器核心时，全局归约操作的时间变成了整个求解器耗时的主要部分，并且这个时间还在继续增大。 
  
-
+论文\inlinecite{dAzevedo1999lapack}证明了 ChronGear  和PCG在理论上收敛速度是相同的。 
 
 \begin{figure}[!t]
 \begin{center}
@@ -379,6 +379,34 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 
 \section{实验方法和结果分析}
 \label{precond:exp}
+
+\subsection{理想实验}\label{precond:exp:ideal}
+
+为了验证第\ref{solver:CG:convergence_rate}节和第\ref{solver:CSI:convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
+这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
+随着维度$\theta$的变化，沿着经度方向的网格大小为 $\Delta x_j  = \pi R \cos (\theta_j)$。
+时间步长设置为$\tau = 10\frac{\Delta y}{c}$，这里$c = 200m/s$ 表示重力快波的速度\cite{smith2010parallel}。 
+我们用PCG和P-CSI方法分别结合单位阵预处理、对角预处理和EVP预处理来求解得到的这些方程。
+实验中，EVP预处的块的大小为$5\times5$，收敛条件设为$tol = 10^{-6}$。 
+由于ChronGear 和PCG的收敛速度相同，因此这个图中PCG的收敛结果也是ChronGear的结果。
+  
+
+\begin{figure} 
+\vspace{5pt}
+\centering
+\includegraphics[height=7cm]{iterationGridSize}
+\caption[] {网格点数目和求解器的迭代步数之间的关系。\label{fig:iterationGridSizePrecond}}
+\end{figure}
+
+正如图\ref{fig:iterationGridSizePrecond}所示，随着问题规模的增加，系数矩阵变得越来越病态。
+所有的求解器都需要更多的迭代步数才能得到相同的相对残差。
+对于PCG和P-CSI，收敛速度会随着预处理方法的变化而变化。 
+指定问题的规模，使用单位矩阵作为预处理的求解器需要的迭代步数最大，而使用EVP预处理的求解器所需要的迭代步数最小。 
+这也说明，使用EVP预处理，矩阵的形态会比使用单位阵预处理或者对角预处理后的形态要好。 
+图中还说明，在预处理方法相同的情况下，P-CSI方法的收敛速度要比PCG的慢一些。 
+
+
+
 
 我们首先利用美国国家大气研究中心NCAR-Wyoming超级计算中心(NWSC)\cite{loft:2015}的黄石超级计算机来评测一下采用了我们的新的正压模态求解器的CESM1.2.0的性能。 
 黄石超级计算机由 72,576个
