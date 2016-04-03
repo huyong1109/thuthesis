@@ -3,18 +3,43 @@
 
 \section{本章概述}
 
-% \section{背景和动机}
-% \label{precond:precondBackgroud}
+第\ref{cha:precond}章中，我们在海洋模式中放弃了串行效率很高的共轭梯度法，而采用收敛速度不如共轭梯度法的CSI方法。
+CSI方法由于没有时间开销很大的全局通信，使得最终的CSI求解器的可扩展性要比使用共轭梯度法的CG求解器要高很多。
+但是，在当所使用的核心数达到10,000以后，CSI求解的时间开销仍然很难继续减少。 
+为了进一步改进CSI求解器的性能，本章中，我们将探讨海洋模式正压模态中可用的高效的预处理子。
 
-最后，我们放弃了串行效率很高的共轭梯度法，使得我们不得不去寻找正压模态中一个可用的更加高效的预处理子。 
-这里，我们提一下为了减少高分辨率海洋模式中正压模态求解的几个预处理技术。 
-多项式预处理技术和局部逆预处理技术被证明是加速并行大洋环流模式中的共轭梯度法的收敛的比较好的技术\cite{smith1992parallel}。 
-最近，海洋模式MPIOM采用了一种基于不完全Cholesky分解的预处理子。它能够改善共轭梯度法在大核数上的运行效率 \cite{adamidis2011high}。
+第\ref{cha:precond}章中，我们设计的CSI求解器极大的提高了海洋模式正压模态的可扩展性。
+CSI方法的主要特点是每步迭代过程中没有了时间开销很大的全局通信，使得CSI每一步迭代的时间比原始的共轭梯度法的时间要短很多。 
+这样，尽管达到相同的收敛条件，CSI方法需要的迭代步数通常比共轭梯度法要多，但是从总时间来看，CSI方法仍然要比共轭梯度法快。
+如果能够进一步的减少CSI方法的迭代步数，CSI求解器的性能将会进一步的提高。
+
+本章中，我们提出一种基于误差向量传播方法的并行块预处理方法来进一步提高正压求解器的性能。
+然后，将新的预处理方法应用于已有的正压求解器中，评测预处理方法的效果。
+本章中主要比较经过通信优化之后的预处理共轭梯度法（ChronGear）和加了预处理接口的CSI方法（记为P-CSI）。
+这两个方法均为最新的公共地球系统模式的海洋模式分量POP采用正压求解器\cite{yong2015}。 
 
 
-\section{EVP块预处理} 
+\section{EVP并行块预处理} 
 \label{precond:EVP}
- 
+
+已有很多工作研究高分辨率海洋模式中正压模态求解的预处理技术。 
+比如，有研究在并行大洋环流模式采用多项式预处理技术和局部逆预处理技术来加速的共轭梯度法的收敛\cite{smith1992parallel}。 
+最近，海洋模式MPIOM采用了一种基于不完全Cholesky分解的预处理子，一定程度改善了共轭梯度法在并行环境中的运行效率\cite{adamidis2011high}。
+但是这些方法，要么对收敛速度的加速效果不明显，要么前期计算预处理的开销过大。 
+
+最近的一些工作表明，块预处理技术是一个针对海洋模式正压模态比较有效的并行预处理技术\cite{concus1985block, white2011block}。
+块预处理技术，不同于前面介绍的预处理技术，并不考虑对整个系数矩阵进行预处理，而是在不同的分块内进行高效的预处理，然后利用这些预处理块来对整个系数矩阵进行预处理。 
+这个技术能够充分地利用POP中由椭圆方程离散化后得到的矩阵的块状结构的性质。
+在考虑块内预处理技术的时候，既要考虑到预处理的成本，又要考虑到预处理的效果。
+预处理效果最好的是直接计算得到矩阵的逆矩阵，但是由于正压模态中系数矩阵是高度系数的，直接求逆会破坏矩阵的稀疏性。
+比如在一个大小为$n\times n$的网格块内，系数矩阵的大小为$n^2\times n^2$。
+由于稀疏性，一次矩阵向量乘法操作的复杂度为$\Theta(9n^2)$。 
+直接计算出逆矩阵，预处理需要的开销为$\Theta(n^4)$，比原始系数矩阵乘的开销大两个量级，十分不适合作为预处理子。
+
+误差向量传播方法（EVP）给我们提供了一种在块内预处理效果好，并且计算开销小的选。 
+
+
+
 
 \subsection{并行块预处理} 
 \label{precond:EVP:Parallel}
@@ -307,7 +332,7 @@ P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接
 P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最小特征值$\nu$进行估计。 
 海洋模式POP中的系数矩阵$A$ 和它的对角预处理矩阵$M = \Lambda(A)$都是实对称矩阵， 因此预处理后的矩阵的最小最大特征值并不难估计。 
 论文\cite{hu2013scalable} 中给出$A$的特征值的估计，这里我们采用Lanczos方法\cite{Paige1980235}来对$M^{-1}A$的最大最小特征值进行估计。
-实验中，我们发现将Lanczos方法的收敛条件因子$\epsilon$ 设成$0.15$在不同的分辨率（1度或者0.1度）以及不同的预处理子（单位阵预处理、对角预处理和EVP预处理）的情况下都能达到较好的效果。 
+实验中，我们发现将Lanczos方法的收敛条件因子$\varepsilon$ 设成$0.15$在不同的分辨率（1度或者0.1度）以及不同的预处理子（单位阵预处理、对角预处理和EVP预处理）的情况下都能达到较好的效果。 
 图\ref{fig:iter} 可以看出只需要很少的Lanczos步骤就可以估计出比较恰当的$M^{-1}A$的最大最小特征值，从而使得P-CSI方法能够在较短的迭代步数内收敛。
 在实际运行中，我们发现Lanczos方法的开销与调用数次ChronGear求解的开销相当。 
 
@@ -323,7 +348,7 @@ P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最�
 但是$\lambda_{min}$和$\lambda_{max}$是比较难以估计的。
 更重要的是，我们不能对系数矩阵$A$随意的做变换，因为 $A$ 是分布在各个进程上的。
 为了能够利用POP的并行特性，我们使用Lanczos方法来构造 出一系列三对角矩阵$T_m (m=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$M^{-1}A$的最大最小特征值逼近。
-To utilize the parallelism of POP, we employ Lanczos method  to construct
+为了利用海洋模式POP的并行性，我们基于Lanczos方法设计了一个并行的特征值估计方法。
 实际运行中, 我们发现合适的选择Lanczos迭代的步数，我们能够得到对最大最小特诊一个比较好的估计，这个估计值能够使得P-CSI方法与预处理共轭梯度法有相近的收敛速度。  
 
 
@@ -345,7 +370,7 @@ To utilize the parallelism of POP, we employ Lanczos method  to construct
 \STATE $\mu_j = max(\mu_{j-1},\alpha_j+\beta_j+\beta_{j-1})$; \label{lan_gersh}\\
 \STATE $T_j=tri\_diag(T_{j-1},\alpha_j,\beta_j)$; \COMMENT{三对角矩阵}\label{lan_tm}
 \STATE $\nu_j = eigs(T_j,'smallest')$ ; \label{lan_nu}
-\STATE \textbf{if} $|\frac{\mu_j}{\mu_{j-1}} -1 |< \epsilon\quad\textbf{and}\quad|1- \frac{\nu_j}{\nu_{j-1}}|< \epsilon$ \textbf{then} \textbf{return}; \label{lanczos_converge}
+\STATE \textbf{if} $|\frac{\mu_j}{\mu_{j-1}} -1 |< \varepsilon\quad\textbf{and}\quad|1- \frac{\nu_j}{\nu_{j-1}}|< \varepsilon$ \textbf{then} \textbf{return}; \label{lanczos_converge}
 \STATE $\textbf{q}_{j+1}= \textbf{r}_j/\beta_j$;\quad $j=j+1$;
 \ENDWHILE
 \end{algorithmic}

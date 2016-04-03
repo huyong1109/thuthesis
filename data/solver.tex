@@ -283,7 +283,7 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
  
 %----------------------------------------------------------------------------
 
-\subsection{CG算法复杂度及评估}
+\subsection{算法复杂度及评估}
 \label{solver:pcgComplex}
 假使使用$p=m^2$个进程来计算正压模态，也就是每个进程正好计算一个子块。 
 正压模态的运行时间与共轭梯度法梯度法在每个进程上的执行时间。 
@@ -382,7 +382,7 @@ Gutknecht \cite{gutknecht2002chebyshev} 在2002年有一篇文章专门的重新
 与共轭梯度法不同的是，CSI方法 在每一步迭代过程中不需要做內积操作，因此它即使在大核数上也能够保持较好的可扩展性。
 CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征值$\nu$进行估计。 
 众所周知，计算稀疏矩阵的特征值要比求解线性方程组本身还要难。 
-值得庆幸的是，海洋模式POP中的系数矩阵$A$ 和它的对角预处理矩阵$M = \Lambda(A)$都是实对称矩阵，因此预处理后的矩阵的最小最大特征值并不难估计。 
+值得庆幸的是，海洋模式POP中的系数矩阵$A$都是实对称矩阵，因此系数矩阵的最小最大特征值并不难估计。 
  
 \begin{algorithm}[h]
 \caption{传统Stiefel迭代算法}
@@ -468,7 +468,7 @@ $\tau_k(\xi)$ 是Chebyshev多项式，它的表达式为
 \begin{equation}
 P_k = \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\zeta \in [\nu,\mu]} |p(\zeta)|
 \end{equation}
-%which is the theoretical bound of the convergence rate  in PCG \ref{PcgConvergeRate}.
+
 
 假设$A= Q^T\Lambda Q$，这里 $\Lambda$ 表示以$A$的特征值为对角元素的对角矩阵，而 $Q$ 表示以  $A$的特征向量为列的实正交矩阵。于是，我们可以得到
 \begin{equation}
@@ -476,11 +476,11 @@ P_k(A) = Q^T P_k(\Lambda)Q = Q^T \left [\begin{array}{cccc}
 P_k(\lambda_1) & & &\\
 & P_k(\lambda_2) & &\\
 & & \ddots &\\
- & & & P_k(\lambda_N)
+ & & & P_k(\lambda_\aleph)
 \end{array} \right ] Q \label{eq:PjMA}
 \end{equation}
  
-假设所估计的系数矩阵的最大最小特征值$\nu$和$\mu$满足 $0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$。
+假设所估计的系数矩阵的最大最小特征值$\nu$和$\mu$满足$0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$。
 方程 \ref{eq:rPjr0} 和 \ref{eq:PjMA} 可以推出
 \begin{equation}
 \label{pcsi_convergence}
@@ -537,7 +537,7 @@ CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的�
 %\ENDFOR \\
 %//\qquad    \textit{do on master node}
 \STATE $T_k=tri\_diag(T_{k-1},\alpha_j,\beta_j)$; \quad $\nu_k = eigs(T_k,'smallest')$ ; \label{lanczos_tridiag} \COMMENT{三对角矩阵}
-\STATE \textbf{if} $|\frac{\mu_k}{\mu_{k-1}} -1 |< \epsilon\quad\textbf{and}\quad|1- \frac{\nu_k}{\nu_{k-1}}|< \epsilon$ \textbf{then} \textbf{return}
+\STATE \textbf{if} $|\frac{\mu_k}{\mu_{k-1}} -1 |< \varepsilon\quad\textbf{and}\quad|1- \frac{\nu_k}{\nu_{k-1}}|< \varepsilon$ \textbf{then} \textbf{return}
 \STATE $\textbf{q}_{j+1}= \textbf{r}_j/\beta_j$;\quad $j=j+1$;
 \ENDWHILE
 \end{algorithmic}
@@ -594,7 +594,7 @@ Paige\cite{Paige1980235} 给出了以下结论
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{实验} 
+\section{结果与分析} 
 \label{solver:exp}
 
 本章第\ref{solver:Algorithm:condition}节，给出了正压模态线性方程组系数矩阵的条件数与网格点总数目、网格横纵比例以及时间步长之间等正压模态的配置的关系。
@@ -603,11 +603,13 @@ Paige\cite{Paige1980235} 给出了以下结论
 第\ref{solver:exp:ideal}节实验中，我们首先通过一组理想实验来说明正压求解器收敛速度与正压模态配置的参数之间的关系。 
 
 本章针对海洋模式正压模态中原有的CG求解器在大规模并行时可扩展性差的问题，提出了新的求解方案--CSI求解器。
-第\ref{solver:exp:csi}节试验中，我们在大规模并行平台上测试了新的CSI求解器相比于原始CG求解器的性能。
+第\ref{solver:exp:csi}节实验中，我们在大规模并行平台上测试了新的CSI求解器相比于原始CG求解器的性能。
+为了验证CSI方法的正确性，我们第\ref{solver:exp:diff}节实验中给出CSI求解过程在海洋模式POP中的误差。
+我们将在第\ref{cha:verify}章中，给出更加严格的正确性验证。 
 
 
 
-\subsection{理想实验}\label{solver:exp:ideal}
+\subsection{求解器的收敛速度}\label{solver:exp:ideal}
 
 为了验证第\ref{solver:CG:convergence_rate}节和第\ref{solver:CSI:convergence_rate}节中所给出的收敛的理论结果，我们在理想的试验设置中构造了一系列条件数不同的矩阵。
 这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
@@ -631,15 +633,33 @@ Paige\cite{Paige1980235} 给出了以下结论
 
 
  
-\subsection{CSI方法的性能} \label{solver:exp:csi}
+\subsection{求解器的可扩展性} \label{solver:exp:csi}
+
+为了测试算法的可扩展性，我们在中国的国家超算中心的神威蓝光超级计算机上测试了0.1度的海洋模式POP（3600 $\times$ 2400个网格点）。
+神威蓝光是由8,704个SW1600处理器由40Gb 无限带宽网络连接组成。
+每一个处理器包含16个1.1GHz的处理器核心以及16GB的内存。 
+
+\begin {figure}
+\centering
+\includegraphics[height=6.5cm]{scale_pcg_csi}
+\caption []{ 0.1度POP中CG和CSI求解器的可扩展性 \label {fig:scale}}
+\end {figure}
+我们分别测试了CG和CSI两个版本的求解器在不同的处理器核数(100到 15,000)和不同的收敛条件（$\epsilon = 10^{-8}$ 到 $\epsilon = 10^{-16}$）时的性能。
+海洋模式POP中的收敛准则是 $||r||_2<\epsilon \bar{a}$，这里 $\bar{a}$ 表示总面积的均方根。 
+在单独版本的POP中，默认设置为 $\epsilon = 10^{-12}$。 
+如图\ref{fig:scale}所示，PCG 和 CSI 在小于  1,000核时可扩展性都很好。但是当使用超过1,000 核时，CSI相对于PCG的优势就很明显了。 
+当收敛条件为 $10^{-12}$时，在100核上CSI的执行时间只有PCG的87\%，这个比例在15,000核上下降到了 21\% 。
+但是PCG方法对于收敛条件没有CSI方法敏感。 
+当时收敛条件从$10^{-8}$变化到$10^{-16}$ 时，PCG方法的迭代步数从原来的20步增长到281步，但是CSI方法的迭代步数从33步增长到了1,434步。 
+但是，PCG方法在收敛速度上的优势并没有使得PCG方法完全的比CSI方法快。 
+只有当收敛条件是最为严格的$\epsilon = 10^{-16}$并且当使用的核心数少于1000核时，PCG的执行时间才会比CSI的短。
+其他情况下，PCG方法中的全局归约操作的开销并不能被迭代步数的减少给抵消掉。
+在1,500核上，当收敛条件$10^{-8}$ 和 $10^{-12}$时，PCG的执行时间是CSI的4.7倍，而当收敛条件为$10^{-16}$时，这个倍数仍然高达3.3. 
+由于全局归约操作的瓶颈，当使用的核心数大于1,000时，PCG求解器的执行时间随着所使用的核数的增加而增加。 
+相对应的，CSI算法一直到10,000核以上都能保持比较好的可扩展性。
 
 %----------------------------------------------------------------------------
- 
-为了证明CSI方法并没有在海洋模式POP中引入误差，我们在清华大学的探索100集群（具体描述请参见第\ref{solver:pcgComplex}节）上对1度POP做了一组实验，分别使用PCG和CSI方法作为正压模态的求解器运行一段时间。 
-表格\ref{tab:err}给出的是这两个版本得到的结果的海表高度的差别。
-采用CSI和PCG的两个版本之间的平均误差相对于海表高度的绝对值非常的小。
-有意思的是，我们注意到，两者之间最大的误差主要出现在海岸线上。 这些地方比较尖锐的边界很容易造成差分格式的不稳定性。
-随着实验时间的延长，两个版本之间的误差也随着增大。 这并不是说求解器之间的误差在变大，而是由于海洋模式中湍流的累积效应将最初的小误差逐渐积累放大。 
+\subsection{CSI求解器误差分析} \label{solver:exp:diff}
 
 \begin{table}
 \centering
@@ -656,44 +676,13 @@ Paige\cite{Paige1980235} 给出了以下结论
 \bottomrule
 \end{tabular}
 \end{table}
+为了证明CSI方法并没有在海洋模式POP中引入误差，我们在清华大学的探索100集群（具体描述请参见第\ref{solver:pcgComplex}节）上对1度POP做了一组实验，分别使用PCG和CSI方法作为正压模态的求解器运行一段时间。 
+表格\ref{tab:err}给出的是这两个版本得到的结果的海表高度的差别。
+采用CSI和PCG的两个版本之间的平均误差相对于海表高度的绝对值非常的小。
+有意思的是，我们注意到，两者之间最大的误差主要出现在海岸线上。 这些地方比较尖锐的边界很容易造成差分格式的不稳定性。
+随着实验时间的延长，两个版本之间的误差也随着增大。 这并不是说求解器之间的误差在变大，而是由于海洋模式中湍流的累积效应将最初的小误差逐渐积累放大。 
 
 
- 
-为了测试算法的可扩展性，我们在中国的国家超算中心的神威蓝光超级计算机上测试了0.1度的海洋模式POP（3600 $\times$ 2400个网格点）。
-神威蓝光是由8,704个SW1600处理器由40Gb 无限带宽网络连接组成。
-每一个处理器包含16个1.1GHz的处理器核心以及16GB的内存。 
-
-
-我们分别测试了PCG 和 CSI两个版本的求解器在不同的处理器核数（100到 15,000 ）和不同的收敛条件（ $\epsilon = 10^{-8}$ 到 $\epsilon = 10^{-16}$）时的性能。
-海洋模式 POP 中的收敛准则是 $||r||_2<\epsilon \bar{a}$，这里 $\bar{a}$ 表示总面积的均方根。 
-在单独版本的POP中，默认设置为 $\epsilon = 10^{-12}$。 
-如图\ref{fig:scale}所示，PCG 和 CSI 在小于  1,000核时可扩展性都很好。但是当使用超过1,000 核时，CSI相对于PCG的优势就很明显了。 
-当收敛条件为 $10^{-12}$时，在100核上CSI的执行时间只有PCG的87\%，这个比例在15,000核上下降到了 21\% 。
-但是PCG方法对于收敛条件没有CSI方法敏感。 
-当时收敛条件从$10^{-8}$变化到$10^{-16}$ 时，PCG方法的迭代步数从原来的20步增长到281步，但是CSI方法的迭代步数从33步增长到了1,434步。 
-但是，PCG方法在收敛速度上的优势并没有使得PCG方法完全的比CSI方法快。 
-只有当收敛条件是最为严格的$\epsilon = 10^{-16}$并且当使用的核心数少于1000核时，PCG的执行时间才会比CSI的短。
-其他情况下，PCG方法中的全局归约操作的开销并不能被迭代步数的减少给抵消掉。
-在1,500核上，当收敛条件$10^{-8}$ 和 $10^{-12}$时，PCG的执行时间是CSI的4.7倍，而当收敛条件为$10^{-16}$时，这个倍数仍然高达3.3. 
-由于全局归约操作的瓶颈，当使用的核心数大于1,000时，PCG求解器的执行时间随着所使用的核数的增加而增加。 
-相对应的，CSI算法一直到10,000核以上都能保持比较好的可扩展性。 
-P 
-
-\begin {figure}
-\centering
-\includegraphics[height=6.5cm]{scale_pcg_csi}
-\caption []{ 0.1度POP中PCG和CSI方法的可扩展性 \label {fig:scale}}
-\end {figure}
-%Fig.1(b) shows runtime ratio of barotropic 和 baroclinic modes of POP. Baroclinic mode deals with a three dimensional dynamical process which occupies a major proportion of computation of POP. It dominates in POP when process is few 和 computation time is much larger than communication. However, when using thous和s of cores, runtime of baroclinic parts decreases linearly while on the opposite, runtime of barotropic increases because of global reduction.
-
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \section{相关工作} 
-% \label{solver:rel}
-% %----------------------------------------------------------------------------
- 
-
- 
 
 \section{本章小结}
 \label{solver:Conclusion}
@@ -701,19 +690,18 @@ P
 目前已经有很多的工作在研究如何提高海洋模式POP中正压模态的性能。 
 但是他们的大部分都没有从根本上解决POP正压模态中的可扩展性瓶颈。 
 本章首先从海洋模式的原始方程组出发，建立了正压模态中海表高度的椭圆偏微分方程，
-然后经过一定的简化得到了对应的离散后的线性方程组。
+然后经过离散化之后得到了对应的离散后的线性方程组。
 通过理论分析和实验验证，我们得到了影响这个线性方程组性质的关键因素是网格横纵比例，时间步长以及分辨率等。
 
 共轭梯度法是求解海洋模式正压模态的常见方法，本章针对POP中的预处理共轭梯度发，提出了一个评估海洋模式POP正压模态的模型，通过这个模型，我们对共轭梯度法的可扩展性进行量化，并且发现，正压模态中全局通信是其可扩展性的瓶颈。
-这个模型从理论上证明了CSI的优越性。 
+这个模型从理论上为我们提出CSI求解器做好了铺垫。 
 
 CSI方法没有耗时的全局通信操作，但是需要预估系数矩阵的最大最小特征值。
 我们利用Lanczos方法，可以高效地对系数矩阵两个极端的特征值进行估计。
 通过对收敛速度的证明，我们发现新的CSI方法和原始的共轭梯度法有相同量级的收敛速度。
-进一步分析两个算法的复杂度，我们预测，CSI方法由于没有可扩展性差的全局通信操作，在大规模并行是应该会比ChronGear方法的速度快。
+进一步分析两个算法的复杂度，我们预测，CSI求解器由于没有可扩展性差的全局通信操作，在大规模并行是应该会比CG求解器的速度快。
 
-最后，我们将CSI方法实现在海洋模式POP中并进行测试。实验结果表明，CSI方法比原始的共轭梯度法有更好的可扩展性。 
+最后，我们将CSI方法实现在海洋模式POP中并进行测试。实验结果表明，CSI方法比原始的共轭梯度法有更好的可扩展性。
+同时，我们通过比较新的求解器与原始求解器所得到的结果，证明了新的求解器不会在海洋模式中引入显著的误差。
 总之，这篇文章提出了一个比传统的共轭梯度法更有前景的求解椭圆方程的方法。 
 
-除了CSI，PCG和ChronGear方法的收敛性也同样依赖于系数矩阵的最大最小特征值。
-这里，我们首先来挖掘一下影响求解器收敛的特征值的特征，然后给出ChronGear和P-CSI求解器的计算复杂度和收敛速度的理论结果。
