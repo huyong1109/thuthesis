@@ -33,10 +33,11 @@ CSI方法的主要特点是每步迭代过程中没有了时间开销很大的�
 在考虑块内预处理技术的时候，既要考虑到预处理的成本，又要考虑到预处理的效果。
 预处理效果最好的是直接计算得到矩阵的逆矩阵，但是由于正压模态中系数矩阵是高度系数的，直接求逆会破坏矩阵的稀疏性。
 比如在一个大小为$n\times n$的网格块内，系数矩阵的大小为$n^2\times n^2$。
-由于稀疏性，一次矩阵向量乘法操作的复杂度为$\Theta(9n^2)$。 
-直接计算出逆矩阵，预处理需要的开销为$\Theta(n^4)$，比原始系数矩阵乘的开销大两个量级，十分不适合作为预处理子。
+由于稀疏性，一次矩阵向量乘法操作的复杂度为$\mathcal{O}(9n^2)$。 
+直接计算出逆矩阵，预处理需要的开销为$\mathcal{O}(n^4)$，比原始系数矩阵乘的开销大两个量级，十分不适合作为预处理子。
 
-误差向量传播方法（EVP）给我们提供了一种在块内预处理效果好，并且计算开销小的选。 
+海洋模式POP的正压模态是求解由椭圆方程离散后得到的线性方程组。我们目前所知道的求解椭圆方程最快的直接方法是误差向量传播方法（EVP）\cite{roache1995elliptic}。 
+EVP给我们提供了一种在块内预处理效果好，并且计算开销小的选择。
 
 
 
@@ -46,13 +47,13 @@ CSI方法的主要特点是每步迭代过程中没有了时间开销很大的�
  
 \begin{figure}
 \centering
-\includegraphics[height=8cm]{blockpreconditioning}
+\includegraphics[height=7cm]{blockpreconditioning}
 \caption[] {海洋模式POP中采用九点差分格式得到的系数矩阵的系数模式。这个例子中，总个区域被分成了$3\times3$个互不重叠的小块。
 红色正方形中的元素表示块内的点之间的相关系数，而蓝色方块中的点表示第$i$个块中的点与其相邻块内的点之间的相关系数。 \label{fig:blockprecond}}
 \end{figure}
  
 为了能够更好的描述我们的新的EVP块预处理子，我们先以图\ref{fig:blockprecond}为例，简单的回顾一下常规的块预处理子。 
-假使我们将一个在$\mathcal{N} \times \mathcal{N}$个点的网格上的线性系统以大小为$n\times n$的块为单位（图\ref{fig:blockprecond}中块的大小为$\mathcal{N}/3\times \mathcal{N}/3$）进行重排，这样得到的系数矩阵$A$就变成了一个就九对角块状矩阵。
+假使我们将一个在$N \times N$个点的网格上的线性系统以大小为$n\times n$的块为单位（图\ref{fig:blockprecond}中块的大小为$N/3\times N/3$）进行重排，这样得到的系数矩阵$A$就变成了一个就九对角块状矩阵。
 这个块状矩阵每一排都包含九个子矩阵。 
 $B_i$（图中的红色方块）表示由第$i$个块内的点之间的相关系数组成的块矩阵，它与$A$有相同的结构，只是大小要小一些 （$n^2\times n^2$）。 
 $B_i^e$, $B_i^w$, $B_i^n$ 和$B_i^s$分别表示由第$i$个块内的点与东西南北四个方向上相邻的块内的点之间的关系系数组成的矩阵块，每个块只有分散在$n$行上的$3n$个非零元。
@@ -70,9 +71,9 @@ M^{-1}=    \left [
     \right ]
 \end{eqnarray*}
 使用 $M$作为预处理子，每个块上的预处理过过程$\textbf{x}
-= M^{-1}\textbf{y}$ 通常可以转化成求解稀疏矩阵线性方程组 $B_i \textbf{x}_i = \textbf{y}_i$，
-（而不是显式的构造出矩阵$B_i^{-1}$）并且采用LU分解的方法来求解。  
-在LU分解已经被初始过的前提下， 用LU分解的方法求解这些线性方程组的复杂度为 $\mathcal{O}(n^4)$,
+= M^{-1}\textbf{y}$ 通常可以转化成求解稀疏矩阵线性方程组 $B_i \textbf{x}_i = \textbf{y}_i$
+（而不是显式的构造出矩阵$B_i^{-1}$），并且采用LU分解的方法来求解。  
+即使在LU分解已经被初始过的前提下，用LU分解的方法求解这些线性方程组的复杂度为$\mathcal{O}(n^4)$,
  
 
 
@@ -83,13 +84,12 @@ M^{-1}=    \left [
 
 相比于LU分解，使用误差向量传播方法（EVP）求解线性方程$B_i \textbf{x}_i =\textbf{y}_i$ 的计算复杂度是 $\mathcal{O}(n^2)$， 这里$B_i$ 的大小为$n^2\times n^2$。 
 据我们所知，EVP方法的计算复杂度是串行求解椭圆方程的算法中最低的一个 \cite{roache1995elliptic}。 
-EVP方法及其变化形式被用在很多个海洋模式中，如Sandia海洋模拟系统\cite{dietrich1987ocean}和加拿大版本的DIEcast模式\cite{tseng2011parallel}。 
-同时，Tseng和Chien等人还将改进过的基于区域分解的并行EVP方法作为求解器应用在全球海洋模拟中。
+EVP方法及其变化形式被很多工业和科学应用所采用， 比如海洋模式中\cite{dietrich1987ocean,tseng2011parallel}等。 
 
 
 \begin {figure}
 \centering
-\includegraphics[height=8cm]{evp9pmarch1.png}
+\includegraphics[height=7cm]{evp9pmarch1.png}
 \caption []{针对九点差分的EVP求解方法。 当$(i,j)$周边除了点 $(i+1,j+1)$之外的其他点的值都已知时， 点$(i+1,j+1)$上的值可以利用点$(i,j)$对应的方程求解。 \label {fig:evp9p}}
 \end {figure}
 
@@ -104,31 +104,31 @@ EVP方法的计算流程如下. 我们将隐式求解海表高度的椭圆系统
 
 
 图 \ref{fig:evp9p} 所示的是在一个小区域上采用Dirichlet边界条件的椭圆方程
- $\mathcal{B}\textbf{x} = \psi$。  We
-我们定义紧挨南面和西面的边界的那一层内部的点集为初始猜测层$\textbf{e}$ 
-而紧挨着北面和东面的边界的那一层内部的点集定义为目标边界层$\textbf{f}$ (对应到图\ref{fig:evp9p}中有
-$\textbf{e}= \{E_1, \dots, E_7\}$, $\textbf{f}= \{F_1, \dots, F_7\}$
-）。 
+ $\textbf{B}\textbf{x} = \psi$。
+我们定义紧挨南面和西面的边界的那一层内部的点集为初始猜测层（记为$\textbf{e}$） 
+而紧挨着北面和东面的边界的那一层内部的点集定义为目标边界层（记为$\textbf{f}$）。 
+对应到图\ref{fig:evp9p}中有
+$\textbf{e}= \{E_1, \dots, E_7\}$, $\textbf{f}= \{F_1, \dots, F_7\}$。 
 假设我们知道了初始猜测层 $\textbf{e}$上的真解，  
-那么总个区域上的真解也就可以通过等式\ref{eq:evp9p}来从西南角向东北角逐次的计算出来。 
+那么总个区域上的真解也就可以通过式（\ref{eq:evp9p}）来从西南角向东北角逐次的计算出来。 
 这个过程我们称之为行进方法。
 比较麻烦的是， 初始猜测层 $\textbf{e}$ 上的真解往往是直到整个椭圆方程都被解出来了以后才能知道。
-但是，我们可以得到一组解
+但是，我们很容易可以利用行进法得到一组解
 $\textbf{x}$在除了边界以外的整个区域上都满足椭圆方程的定义。 
-具体做法是通过先在初始猜测层$\textbf{e}$上随机赋予初始值
-$\textbf{x}|_\textbf{e}$ 然后通过行进方法得到整个区域上的值。 
+具体做法是通过先在初始猜测层$\textbf{e}$上赋予随机初始值
+$\textbf{x}|_\textbf{e}$，然后通过行进方法得到整个区域上的值。 
 这时$E=(\textbf{x} -\eta)|_\textbf{e}$
 和$F=(\textbf{x} -\eta)|_\textbf{f}$ 分别表示在
 初始猜测层$\textbf{e}$ 和目标边界层$\textbf{f}$上的误差向量。
-误差向量$F$ 是可以直接由 目标边界层$\textbf{f}$ 上的边界条件计算得到（这里我们采用的是Dirichlet边界条件）。 
+误差向量$F$可以直接由目标边界层$\textbf{f}$上的边界条件计算得到（这里我们采用的是Dirichlet边界条件）。 
 初始猜测层上的误差向量与目标边界层上的误差向量之间的关系可以表示为$F=W*E$.  
-这里的关系矩阵$W$可以通过在初始猜测层上依次赋予不同的单位向量（初始猜测层上某一个点赋值为1，其它点赋值均为0）而区域内其它的点都赋予零值后使用行进方法得到。 
+这里的关系矩阵$W$可以通过在初始猜测层上依次赋予不同的单位向量（初始猜测层上某一个点上赋值为1，其它点上赋值均为0）而区域内其它的点都赋予零值后使用行进方法得到。 
 这里我们提供一个在零边界条件的椭圆方程中的EVP算法\ref{alg:evp}。 
 
 
  
 EVP方法主要包括两个步骤： 前处理和求解过程。 
-在前处理步中， 主要计算关系矩阵和它的逆。 其计算复杂度为$\mathcal{C}_{pre}=
+在前处理步中， 主要计算关系矩阵$W$和它的逆。 其计算复杂度为$\mathcal{C}_{pre}=
 (2n-5)* 9n^2 + (2n-5)^3 = \mathcal {O} (26n^3)$。 
 求解过程的复杂度为$\mathcal{C}_{evp}= 2* 9n^2 + (2n-5)^2 = \mathcal{O} (22n^2)$。 
 从这个复杂度的表示可以看出来，EVP方法的计算开销要比LU分解等其它的直接法低很多。 
@@ -142,28 +142,41 @@ EVP方法主要包括两个步骤： 前处理和求解过程。
 //\qquad \textit{前处理}
 \STATE  $\textbf{x} = \textbf{0}$
 \FOR {i = 1, k}
-\STATE $\textbf{x}|_\textbf{e}(i) = 1$
-\STATE $\textbf{x} = marching(\textbf{x},\textbf{0})$
-\STATE $W(i,:) = \textbf{x}|_\textbf{f}$
+\STATE $\textbf{x}|_\textbf{e}(i) = 1$\COMMENT {构造初始单位向量}
+\STATE $\textbf{x} = marching(\textbf{x},\textbf{0})$\COMMENT {行进}
+\STATE $W(i,:) = \textbf{x}|_\textbf{f}$\COMMENT {构造关系矩阵}
 \STATE $\textbf{x}|_\textbf{e}(i) = 0$
 \ENDFOR
-\STATE $R = inverse(W)$ \\
+\STATE $R = inverse(W)$ \COMMENT {计算关系矩阵的逆}\\
 //\qquad \textit{求解 }
-\STATE $\textbf{x}= marching(\textbf{x},\psi)$
-\STATE $F = (\textbf{x} - \eta)|_\textbf{f}$
-\STATE $\textbf{x}|_\textbf{e} =\textbf{x}|_\textbf{e} - R*F$
-\STATE $\textbf{x} = marching(\textbf{x},\psi)$
+\STATE $\textbf{x}= marching(\textbf{x},\psi)$\COMMENT {行进}
+\STATE $F = (\textbf{x} - \eta)|_\textbf{f}$ \COMMENT {计算目标边界层误差}
+\STATE $\textbf{x}|_\textbf{e} =\textbf{x}|_\textbf{e} - R*F$ \COMMENT {计算初始边界层误差}
+\STATE $\textbf{x} = marching(\textbf{x},\psi)$\COMMENT {行进}
 \end{algorithmic}
 \end{algorithm}
 
-%----------------------------------------------------------------------------
-\section{ChronGear求解器}
+算法\ref{alg:evp}中，主要的过程是行进（marching）。
+行进函数有两个输入变量，第一个是初始猜测层$\textbf{e}$ 上的值，第二个整个区域上的残差。 
+在行进过程中，除了初始猜测层上的值，其它所有值均被赋零值，然后利用初始猜测层上的值行进得到。
+在前处理阶段，残差值均设为零，而在求解阶段，残差值均设为需要求解的方程的右端项的值。
 
-目前公共地球系统模式中并行海洋模式推荐的线性正压模态求解器是采用对角预处理的Chronopoulos-Gear (ChronGear) 方法
+%----------------------------------------------------------------------------
+\section{正压预处理求解器}
+第\ref{cha:barosSolver}章中针对共轭梯度法的全局通信瓶颈，我们提出了可扩展性更好的CSI求解器。 
+本章中，我们将在上一章的求解器的基础上，加入预处理接口。
+我们使用经过通信优化之后的预处理共轭梯度法（ChronGear）作为共轭梯度法加入预处理之后的版本。
+我们将加了预处理接口的CSI方法记为P-CSI。
+ChronGear方法对传统的PCG方法中的计算过程进行调整，从而达到减少全局通信的目的。
+ChronGear方法与PCG方法在数学性质上是一致的。
+这两个方法均为最新的公共地球系统模式的海洋模式分量POP采用正压求解器\cite{yong2015}。 
+
+\subsection{ChronGear求解器}
+目前公共地球系统模式中海洋分量模式POP推荐的线性正压模态求解器是采用对角预处理的Chronopoulos-Gear (ChronGear) 方法
 \cite{dAzevedo1999lapack}。 这是一种修正后的预处理共轭梯度法（Preconditioned Conjugate
 Gradient method, PCG)。 
-ChronGear继承了预处理共轭梯度法的缺陷--迭代过程中需要全局求和，从而使得它不能很好地扩展，并成为了高分辨模拟中的一个性能瓶颈。
-为了提高并行海洋模式，同时也是公共地球系统模式的可扩展性，我们通过消除求解器迭代过程中的全局求和操作以及发展一个更高效的预处理子来提高正压求解器的并行计算效率。
+ChronGear将预处理共轭梯度法的每一步迭代过程中的两次全局通信组合成一次。
+然而，当成千上万个处理器核心被用来计算高分辨（比如0.1度）的POP时，ChronGear算法中计算內积所需要的全局通信操作仍然是一个严重的瓶颈。
 
 
 \begin {figure}
@@ -172,9 +185,9 @@ ChronGear继承了预处理共轭梯度法的缺陷--迭代过程中需要全局
 \caption[] {0.1度POP采用默认的对角预处理的ChronGear求解器时个分量耗时的百分比。\label{fig:StepComp}}
 \end{figure}
 
-ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它将每一步迭代过程中的两次全局通信组合成一次。
-然而，如前面提到的，当成千上万个处理器核心被用来计算高分辨（比如0.1度）的POP时，ChronGear算法中计算內积所需要的全局通信操作仍然是一个严重的瓶颈。
-这个瓶颈对0.1度POP的影响可以通过图\ref{fig:StepComp} 看出来。线性求解器的计算时间占总时间的比例随着所使用的处理器核心数的增大而增加。
+
+这个瓶颈对0.1度POP的影响可以通过图\ref{fig:StepComp} 看出来。
+正压求解器的计算时间占总时间的比例随着所使用的处理器核心数的增大而增加。
 当只使用470个处理器核心时，正压求解器的执行时间只占到整个POP的运行时间的5\% （这里不考虑初始化和 I/O时间），而此时斜压模态的运行时间却占总运行时间的90\%左右。
 然而，当使用数千个处理器核心时，斜压模态所消耗的计算时间占总时间的比例会逐渐下降，而正压求解器所占的比例却在不断增加。
 当使用1万6千多处理器核心时，正压求解的计算时间占中运行时间的比例高达50\%。 
@@ -183,12 +196,12 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \caption{Chronopoulos-Gear求解器}
 \label{alg:cg}
 \begin{algorithmic}[1]
-\REQUIRE   与网格块$B_{i,j}$相应的系数矩阵$\textbf{B}$, 预处理子 $\textbf{M}$, 初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
+\REQUIRE   与网格块$B_{i,j}$相应的系数矩阵$\textbf{B}$, 预处理子 $\tilde{\textbf{M}}$, 初始解 $\textbf{x}_0$ 和 $\textbf{b}$  \\
 //\qquad    \textit{所有进程并行执行}
 \STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$, $\textbf{s}_0 =0$, $\textbf{p}_0 =0$;\quad $\rho_0=1$,$\sigma_0=0$, $k=0$;
 \WHILE{$k \leq k_{max}$ }
 \STATE $k=k+1$;
-\STATE $\textbf{r}'_{k} =\textbf{M}^{-1}\textbf{r}_{k-1}$; \label{pcg_scale0} \COMMENT{预处理}
+\STATE $\textbf{r}'_{k} =\tilde{\textbf{M}}^{-1}\textbf{r}_{k-1}$; \label{pcg_scale0} \COMMENT{预处理}
 \STATE $\textbf{z}_k = \textbf{B}\textbf{r}'_{k}$; \label{pcg_mat}\COMMENT {矩阵向量乘}
 \STATE $update\_halo(\textbf{z}_{k})$; \COMMENT{边界通信} \label{pcg_bc1}
 \STATE $\tilde{\rho_k} = \textbf{r}_{k-1}^T\textbf{r}'_{k}$;\label{pcg_dot1}
@@ -208,114 +221,43 @@ ChronGear \cite{dAzevedo1999lapack} 是一种修正过的共轭梯度法，它�
 \end{algorithmic}
 \end{algorithm}
 
-我们给出ChronGear方法的具体算法
-\ref{alg:cg}， 以供参考.  ChronGear主要包括三个部分：计算部分，边界通信部分和全局通信部分。
-计算部分主要包括矩阵向量乘操作，向量向量乘操作以及向量的伸缩操作（向量与常数相乘）等具有很好的可扩展性的操作。 
-边界通信会在每次矩阵向量乘操作之后被调用，其开销随着计算使用的处理器核心数的增加和减少，但是有一个下界。 
-但是，我们后面的章节将会证明，每一步迭代过程中的內积操作\ref{pcg_global1}之后需要调用的全局通信，当使用很大的核心数时，将会成为可扩展性的瓶颈。
- 
+我们在算法\ref{alg:cg}中给出ChronGear方法的具体实现过程以供参考。
+从算法\ref{alg:cg}可以看出来，ChronGear方法与上一章中的算法\ref{alg:pcg}一样，主要包括计算部分，边界通信部分和全局通信这三个部分。
+ChronGear方法与共轭梯度法的主要区别有两点。
+首先，ChronGear算法的计算顺序与共轭梯度法有所不同。
+ChronGear方法中两次內积操作是紧邻的，这样做的好处是并行实现时，只需要一次全局通信就可以同时收集这两次內积操作的结果。
+其次，ChronGear方法加入了通用的预处理借口，预处理子$\textbf{M}$可以实现复杂的预处理。 
+ChronGear方法中的边界通信和计算的开销与共轭梯度法相当，都会随着使用的处理器核心数的增加而有所减少。 
+尽管ChronGear方法的每一步迭代过程中的全局通信操作比共轭梯度法减少了一般，后面的章节我们将会证明，当使用很大的核心数时，全局通信仍然是ChronGear求解器中可扩展性的瓶颈。
+
 
 %----------------------------------------------------------------------------
-\subsection{通信瓶颈}
-\label{precond:EVP:comm}
-  
-假设使用$p=m^2$个进程，每一个进程恰好分得一个网格块（这在高分辨率POP中是比较常见的配置）。 
-这是正压模态的总运行时间就等于ChronGear求解器在每一个块上的运行时间。 
-我们记求解器的每一次迭代过程中，计算、边界通信和全局通信操作的耗时分别为$\mathcal{T}_c$，$\mathcal{T}_b$ 和$\mathcal{T}_g$。 
-%----------------------------------------------------------------------------
-
-
-从算法\ref{alg:cg}中可以得出, 计算开销
-$\mathcal{T}_c$主要涉及到四个向量伸缩操作 (算法中步骤\ref{pcg_scale1}, \ref{pcg_scale2} ,\ref{pcg_scale3}, 和
-\ref{pcg_scale4}), 两个向量向量乘积操作或內积操作 (算法中步骤\ref{pcg_dot1} 和 \ref{pcg_dot2}), 以及一个矩阵向量乘积操作 (算法步骤\ref{pcg_mat}).  
-因此,$\mathcal{T}_c= (4 n^2 +2n^2+ 9n^2)\theta + \mathcal{T}_{p}=15\frac{\mathcal{N}^2}{p}\theta+\mathcal{T}_{p}$，
-这里$\theta$ 表示单位时间内浮点操作的次数，$\mathcal{T}_{p}$ 表示预处理的开销。
-比如，当采用对角预处理时，$\mathcal{T}_{p} =\frac{\mathcal{N}^2}{p}\theta$。
-上面的定义可以看出，当计算核心数增加时，$\mathcal{T}_c$减少，并且以零为下界。
-
- 
-当调用了像矩阵向量乘和除了对角预处理以外的预处理等需要一层或一层以上的边界区域的操作时，在每个进程的边界区域上需要进行边界更新操作。 
-由于在海洋模式POP中，每个进程都维护着它自己的块以外的两个边界层，因此，即使使用了非对角的预处理，每次迭代过程中仍只需要进行一次边界通信。
-边界通信的实际开销取决于网络延迟和边界区域的大小。 当边界区域的层数为2时（这也是POP中的默认配置）， 边界区域的每个边的大小为$2n$ ，而且这个大小会随着进程数的增大而变小。 
- 
-因此，每一步迭代中，边界通信的时间复杂度为$\mathcal{T}_b =4\alpha +(4\times 2n)\beta=4\alpha +(\frac{8\mathcal{N}}{\sqrt{p}})\beta $这里$\alpha$ 表示单条点对点通信消息的延迟，而
-$\beta$ 表示从网络中传输一比特需要的时间 (也就是网络带宽的倒数).
-边界更新所需要的时间也是随着就算进程的增多而减少，但是有一个下界$4\alpha$。 
-
-
- 
-ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作。全局规约操作主要由一次MPI\_allreduce和一个去除路地网格点的掩盖操作，因此全局归约操作的开销满足$\mathcal{T}_g= 2\frac{\mathcal{N}^2}{p}\theta + \log p \alpha$ （假设网络采用二叉树结构）。 
-路地点的掩盖操作的开销会随着进程数$p$的增大而减小，而MPI\_allreduce的开销将会一直随着进程数的增加而增大。 
-注意到每次全局归约操作实际上近似于没有数据的交换，因为每个进程只传递了两个数值。
-因此，全局通信的开销主要取决于网络的延迟而不是网络的传输速率。
-结合以上三个部分，使用对角预处理的ChronGear求解器求解一次所需要的时间开销为：
-\begin{eqnarray}
-%\begin{tabular}{l}
-\label{t_cg}
-&\mathcal{T}_{cg}=\mathcal{K}_{cg} (\mathcal{T}_c + \mathcal{T}_b+\mathcal{T}_g )\nonumber \\
-&=\mathcal{K}_{cg} [18 \frac{\mathcal{N}^2}{p}\theta + \frac{8\mathcal{N}}{\sqrt{p}}\beta +(4+\log p)\alpha]
-%\end{tabular}
-\end{eqnarray}
-这里 $K_{cg}$ 表示算法达到指定收敛条件所需要的迭代次数。
-这个迭代次数不会随着进程数的增加而改变 \cite{hu2013scalable}。 
-方程\ref{t_cg}）表明，计算和边界更新所需要的时间开销都会随着进程数的增加而减少。 
-但是，全局归约操作的时间开销则会随着进程数的增多而增加。 
-因此，我们可以预测到，当进程数操作某一个值时， ChronGear求解器的运行时将会增加。 
-图 \ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算（详情见节\ref{precond:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
-这里我们可以看到，当使用数千个处理器核心时，全局归约操作的时间变成了整个求解器耗时的主要部分，并且这个时间还在继续增大。 
- 
-论文\inlinecite{dAzevedo1999lapack}证明了 ChronGear  和PCG在理论上收敛速度是相同的。 
-
-\begin{figure}[!t]
-\begin{center}
-	\includegraphics[height=8cm]{newChronGear_comp.eps}
-\caption[] {在美国黄石超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
-\label{fig:ChronGearCOMP}
-\end{center}
-\end{figure}
- 
-
-
-\section{P-CSI迭代法}
+\subsection{P-CSI迭代法}
 \label{precond:pcsi}
-
+ChronGear继承了预处理共轭梯度法的缺陷--迭代过程中需要全局求和，从而使得它不能很好地扩展，并成为了高分辨模拟中的一个性能瓶颈。
+为了提高并行海洋模式，同时也是公共地球系统模式的可扩展性，我们通过消除求解器迭代过程中的全局求和操作以及发展一个更高效的预处理子来提高正压求解器的并行计算效率。
 为了提高海洋模式POP的可扩展性，一个好的正压模态求解器应该具备的特点是需要尽可能少的全局归约操作。 
-在文章\cite{hu2013scalable}中，胡勇等人提出了一个基于Stiefel的CSI方法的求解器。这个求解器被现在了单独版本的POP中。 
-这里，我们将通过添加一个预处理的结构，进一步改进CSI方法。
+在文章\cite{hu2013scalable}中，胡勇等人提出了一个基于Stiefel的CSI方法的求解器。
+本文上一章中，我们已经将这个求解器实现在单独版本的POP中。 
+这里，我们将通过添加一个预处理的接口，进一步改进CSI方法。
 这个改进后的方法我们称之为P-CSI方法。 我们将这个方法实现在地球系统模式CESM框架下的海洋模式分量POP中。 
-早在1985年， Saad 等人\cite{saad1985solving}将传统的CSI的方法应用于向量机上，并且指出当方程中矩阵的特征值已知的条件下， 这种方法比共轭梯度法更适用于某些并行情况。 
 
-
-P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接口（将在下一章详细讨论）。 
+P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接口。 
 值得一提的是，P-CSI方法与CSI方法一样，在每一步迭代过程中不需要做內积操作， 因此它即使在大核数上也能够保持较好的可扩展性。
 为海洋模式POP设计的P-CSI求解器的伪码在算法\ref{alg:ppsi}中。
-使用对角预处理的P-CSI方法的每一步迭代的计算时间为$T_c =\frac{12\mathcal{N}^2}{p}\theta+\mathcal{T}_p =\frac{13\mathcal{N}^2}{p}\theta$， 
-而P-CSI求解器的总运行时间为如下
-\begin{eqnarray}
-\label{t_psi}
-\mathcal{T}_{pcsi} = \mathcal{K}_{pcsi}(\mathcal{T}_c + \mathcal{T}_b ) \nonumber \\
-= \mathcal{K}_{pcsi}[13\frac{\mathcal{N}^2}{p}\theta+ 4\alpha + \frac{8\mathcal{N}}{ \sqrt{p}}\beta]
-\end{eqnarray}
-这里$K_{pcsi}$ 表示P-CSI方法收敛到给定条件时所需要的迭代步数。 
-\begin {figure}[!t]
-\begin{center}
-\includegraphics[height=8cm]{solver_iteration}
-\caption []{1度POP中，Lanczos方法的迭代次数对P-CSI迭代步数的影响。 \label{fig:iter}}
-\end{center}
-\end {figure}
 
 \begin{algorithm}[!t]
 \caption{ 预处理的传统Stiefel迭代算法}
 \label{alg:ppsi}
 \begin{algorithmic}[1]
-\REQUIRE 与网格块$B_{i,j}$相对应的系数矩阵 $\textbf{B}$, 预处理子$\textbf{M}$, 初始值$\textbf{x}_0$和方程右端向量$\textbf{b}$ ；预估的特征值区间$[\nu,\mu]$;  \\
+\REQUIRE 与网格块$B_{i,j}$相对应的系数矩阵 $\textbf{B}$, 预处理子$\tilde{\textbf{M}}$, 初始值$\textbf{x}_0$和方程右端向量$\textbf{b}$ ；预估的预处理后的系数矩阵的特征值区间$[\nu,\mu]$;  \\
  // \qquad    \textit{所有进程并行执行}
 \STATE $\alpha =\frac{2}{\mu -\nu}$, $ \beta = \frac{\mu +\nu}{\mu -\nu}$, $\gamma = \frac{\beta}{\alpha}$, $\omega_0 =\frac{ 2}{\gamma}$;\quad $k = 0$;
-\STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$; $\Delta \textbf{x}_{0} = \gamma^{-1}\textbf{M}^{-1}\textbf{r}_0$; $\textbf{x}_1 =\textbf{x}_0 +\Delta \textbf{x}_{0}$; $\textbf{r}_1 =\textbf{b} -\textbf{B}\textbf{x}_1$;
+\STATE $\textbf{r}_0 = \textbf{b}-\textbf{B}\textbf{x}_0$; $\Delta \textbf{x}_{0} = \gamma^{-1}\tilde{\textbf{M}}^{-1}\textbf{r}_0$; $\textbf{x}_1 =\textbf{x}_0 +\Delta \textbf{x}_{0}$; $\textbf{r}_1 =\textbf{b} -\textbf{B}\textbf{x}_1$;
 \WHILE{$k \leq k_{max}$ }
 \STATE $k=k+1$;
 \STATE $\omega_k = 1/(\gamma - \frac{1}{4\alpha^2}\omega_{k-1})$; \COMMENT{迭代函数}
-\STATE $\textbf{r}'_{k} =\textbf{M}^{-1}\textbf{r}_{k}$; \COMMENT{预处理} \
+\STATE $\textbf{r}'_{k} =\tilde{\textbf{M}}^{-1}\textbf{r}_{k}$; \label{alg:ppsi_pre} \COMMENT{预处理} 
 \STATE $\Delta \textbf{x}_{k} =\omega_k\textbf{r}'_{k}+(\gamma \omega_k-1)\Delta \textbf{x}_{k-1}$;
 \STATE $\textbf{x}_{k+1} =\textbf{x}_{k}+\Delta \textbf{x}_{k}$;
 \STATE $\textbf{r}_{k+1} =\textbf{b}- \textbf{B}\textbf{x}_{k+1}$; \COMMENT{矩阵向量乘}
@@ -327,44 +269,32 @@ P-CSI算法和它的性质与CSI方法相似，只是多加了一个预处理接
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{特征值估计}
+从算法\ref{alg:ppsi}可以看出来，P-CSI算法与上一章中的CSI算法（参见算法\ref{alg:csi})过程非常相似。
+唯一的不同是添加了一个通用的预处理结果，迭代过程中增加了一个预处理步骤（步骤\ref{alg:ppsi_pre})。 
+值得注意的是，正是由于使用了预处理接口，算法中使用的最大最小特征值是与处理之后的系数矩阵而不是原始系数矩阵的。 
+因此，我们需要对第\ref{solver:eigs}节中介绍的特征值估计方法进行改进。
+
+
+\subsubsection{特征值估计}
 \label{precond:pcsi:eigs}
 P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最小特征值$\nu$进行估计。 
-海洋模式POP中的系数矩阵$A$ 和它的对角预处理矩阵$M = \Lambda(A)$都是实对称矩阵， 因此预处理后的矩阵的最小最大特征值并不难估计。 
-论文\cite{hu2013scalable} 中给出$A$的特征值的估计，这里我们采用Lanczos方法\cite{Paige1980235}来对$M^{-1}A$的最大最小特征值进行估计。
-实验中，我们发现将Lanczos方法的收敛条件因子$\varepsilon$ 设成$0.15$在不同的分辨率（1度或者0.1度）以及不同的预处理子（单位阵预处理、对角预处理和EVP预处理）的情况下都能达到较好的效果。 
-图\ref{fig:iter} 可以看出只需要很少的Lanczos步骤就可以估计出比较恰当的$M^{-1}A$的最大最小特征值，从而使得P-CSI方法能够在较短的迭代步数内收敛。
-在实际运行中，我们发现Lanczos方法的开销与调用数次ChronGear求解的开销相当。 
-
-与ChronGear的迭代过程相比，P-CSI除了做收敛性检查之外不需要任何的全局归约操作。 
-我们注意到，为了达到相同的收敛条件，P-CSI算法需要的迭代步骤比ChronGear的略多($K_{pcsi} > K_{cg}$)。 
-以上的两点现象，我们可以解读出来，在当并行使用的处理器核心数比较小的时候，P-CSI应该会比ChronGear的开销更大一些。
-因为处理器核心较少的时候，全局归约操作的开销并不算大。 
-但是，当采用高分辨的网格时，需要用到更多的处理器核心，这是P-CSI的每一步迭代的开销应该会比ChronGear的要明显的快一些（参见公式\ref{t_cg})和
-(\ref{t_psi}）。
-而这将进一步减少P-CSI算法到达收敛的时间。 
-
-当满足条件$\nu = \lambda_{min}$和$\mu =\lambda_{max}$时，P-CSI的收敛速度将达到最优值。 
-但是$\lambda_{min}$和$\lambda_{max}$是比较难以估计的。
-更重要的是，我们不能对系数矩阵$A$随意的做变换，因为 $A$ 是分布在各个进程上的。
-为了能够利用POP的并行特性，我们使用Lanczos方法来构造 出一系列三对角矩阵$T_m (m=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$M^{-1}A$的最大最小特征值逼近。
-为了利用海洋模式POP的并行性，我们基于Lanczos方法设计了一个并行的特征值估计方法。
-实际运行中, 我们发现合适的选择Lanczos迭代的步数，我们能够得到对最大最小特诊一个比较好的估计，这个估计值能够使得P-CSI方法与预处理共轭梯度法有相近的收敛速度。  
+海洋模式POP中的系数矩阵$A$和它的预处理矩阵$M$都是实对称矩阵，因此预处理后的矩阵的最小最大特征值并不难估计。 
+本文第\ref{solver:eigs}节中给出$A$的特征值的估计，这里我们采用Lanczos方法\cite{Paige1980235}来对$M^{-1}A$的最大最小特征值进行估计。
 
 
 \begin{algorithm}[!ht]
 \caption{基于Lanczos方法的针对预处理矩阵的特征值估计方法}
 \label{alg:lanczos_pre}
 \begin{algorithmic}[1]
-\REQUIRE 网格块$B_{i,j}$ 的系数矩阵$\textbf{B}$，预处理子$\textbf{M}$和随机向量$\textbf{r}_0$； \\
+\REQUIRE 网格块$B_{i,j}$ 的系数矩阵$\textbf{B}$，预处理子$\tilde{\textbf{M}}$和随机向量$\textbf{r}_0$； \\
  //\qquad    \textit{所有进行并行执行}
-\STATE $\textbf{s}_0=\textbf{M}^{-1}\textbf{r}_0$;\quad $\textbf{q}_1 = \textbf{r}_0/({\textbf{r}_0^T\textbf{s}_0})$;\quad $\textbf{q}_0=\textbf{0}$;
+\STATE $\textbf{s}_0=\tilde{\textbf{M}}^{-1}\textbf{r}_0$;\quad $\textbf{q}_1 = \textbf{r}_0/({\textbf{r}_0^T\textbf{s}_0})$;\quad $\textbf{q}_0=\textbf{0}$;
 \STATE $T_0=\emptyset$;\quad $\beta_0 =0$;\quad  $\mu_0 =0$;\quad $j=1$;
 \WHILE{$j<k_{max}$}
-\STATE $\textbf{p}_j = \textbf{M}^{-1}\textbf{q}_j$; \quad $\textbf{r}_j=\textbf{B}\textbf{p}_j-\beta_{j-1}\textbf{q}_{j-1}$;
+\STATE $\textbf{p}_j = \tilde{\textbf{M}}^{-1}\textbf{q}_j$; \quad $\textbf{r}_j=\textbf{B}\textbf{p}_j-\beta_{j-1}\textbf{q}_{j-1}$;
 \STATE $update\_halo(\textbf{r}_j)$;
 \STATE $\tilde{\alpha}_j =\textbf{p}_j^T\textbf{r}_j$; \quad $\alpha_j=global\_sum(\tilde{\alpha}_j)$;
-\STATE $\textbf{r}_j=\textbf{r}_j-\alpha_{j}\textbf{q}_{j}$; \quad $\textbf{s}_j = \textbf{M}^{-1}\textbf{r}_j$;
+\STATE $\textbf{r}_j=\textbf{r}_j-\alpha_{j}\textbf{q}_{j}$; \quad $\textbf{s}_j = \tilde{\textbf{M}}^{-1}\textbf{r}_j$;
 \STATE $\tilde{\beta}_j = \textbf{r}_j^T\textbf{s}_j$; \quad $\beta_j=sqrt(global\_sum(\tilde{\beta}_j))$;
 \STATE \textbf{if} $\beta_j == 0$ \textbf{then} \textbf{return}
 \STATE $\mu_j = max(\mu_{j-1},\alpha_j+\beta_j+\beta_{j-1})$; \label{lan_gersh}\\
@@ -376,30 +306,156 @@ P-CSI需要对预处理后的系数矩阵$M^{-1}A$的最大特征值$\mu$和最�
 \end{algorithmic}
 \end{algorithm}
 
-这个算法需要$\textbf{A}$ 是正定对称矩阵。海洋模式POP中直接得到的系数矩阵是负定对称矩阵，此时只需将方程两边同时乘以单位矩阵和-1，即可将系数矩阵转换成正定对称矩阵。 
+与CSI类似，当满足条件$\nu = \lambda_{min}$和$\mu =\lambda_{max}$时（这里$\lambda_{max}$和$\lambda_{min}$分别表示与预处理之后的系数矩阵的最大最小特征值），P-CSI的收敛速度将达到最优值。 
+但是$\lambda_{min}$和$\lambda_{max}$是比较难以估计的。
+更重要的是，我们不能对系数矩阵$A$和预处理子$M$随意的做变换，因为$A$是分布在各个进程上的。
+为了利用海洋模式POP的并行性，我们基于Lanczos方法设计了一个并行的特征值估计方法。
+我们使用Lanczos方法来构造 出一系列三对角矩阵$T_k(k=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$M^{-1}A$的最大最小特征值逼近。
+实际运行中, 我们发现合适的选择Lanczos迭代的步数，我们能够得到对最大最小特诊一个比较好的估计，这个估计值能够使得P-CSI方法与预处理共轭梯度法有相近的收敛速度。  
+  
 
-\subsection{P-CSI方法计算复杂度}  \label{precond:PCSI:complex}
+\begin {figure}[!t]
+\begin{center}
+\includegraphics[height=7cm]{solver_iteration}
+\caption []{1度POP中，Lanczos方法的迭代次数对P-CSI迭代步数的影响。 \label{fig:iter}}
+\end{center}
+\end {figure}
+实验中，我们发现将Lanczos方法的收敛条件因子$\varepsilon$设成$0.15$在不同的分辨率（1度或者0.1度）以及不同的预处理子（单位阵预处理、对角预处理和EVP预处理）的情况下都能达到较好的效果。 
+图\ref{fig:iter} 可以看出只需要很少的Lanczos步骤就可以估计出比较恰当的$M^{-1}A$的最大最小特征值，从而使得P-CSI方法能够在较短的迭代步数内收敛。
+在实际运行中，我们发现Lanczos方法的开销与调用数次ChronGear求解的开销相当。 
 
-当使用了EVP预处理时，计算的复杂变成了$\mathcal{T}_c = 37 \frac{\mathcal{N}}{p}$。因此P-CSI方法在使用EVP方法时一次求解过程的复杂度为
+\subsection{收敛速度分析}
+\label{precond:converge}
+
+第\ref{solver:CSI:convergence_rate}节中收敛速度的理论分析对于采用了预处理子的情形也同样适用。
+唯一的区别是将分析中的系数矩阵$A$换成$M^{-1}A$。
+D'Azevedo\cite{dAzevedo1999lapack}等人证明了ChronGear和PCG在理论上收敛速度是相同的。
+因此，ChronGear方法满足 
+\begin{align}
+\label{chrongear_convergence}
+\frac{||\textbf{x}_k-\textbf{x}^*||_{M^{-1}A}}{||\textbf{x}_0-\textbf{x}^*||_{M^{-1}A}}\le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k 
+\end{align}
+这里$\kappa =  \kappa_2({M^{-1}A})$表示预处理之后的系数矩阵${M^{-1}A}$的条件数，$\textbf{x}_k$表示ChronGear方法第$k$步迭代后得到的解向量，$\textbf{x}^*$表示线性方程组的解析解(即$\textbf{x}^* = A^{-1}b$)。
+式（\ref{chrongear_convergence}）表明，ChronGear的收敛速度依赖于预处理之后的系数矩阵${M^{-1}A}$的条件数。 
+
+
+对于P-CSI方法，与第\ref{solver:CSI:convergence_rate}节的推导类似，可以得到
+\begin{equation}
+\label{pcsi_convergence}
+\frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
+\end{equation}
+这里$\kappa'$为预处理之后的系数矩阵${M^{-1}A}$的条件数的估计值。
+这个等式表明，当系数矩阵特征值的估计比较合理的时候（也就是$\kappa' =\kappa$)，P-CSI的收敛速度和ChronGear有相同的理论上界。
+
+值得一提的是，ChronGear和P-CSI算法中预处理后的矩阵实际上是$M^{-1/2}A(M^{-1/2})^T$，它是对称的，并且和$M^{-1}A$有着相同的特征值\cite{Shewchuk1994}。
+因此，这个预处理后的矩阵的条件数为$\kappa =  \kappa_2(M^{-1/2}A(M^{-1/2})^T)$。
+这个条件数通常情况下比原始矩阵$A$的条件数要小。 
+当预处理子$M$为单位矩阵时，${M^{-1}A}$的条件数等于$A$的条件数，此时ChronGear方法的收敛速度与上一章中的共轭梯度法相同，P-CSI方法的收敛速度与CSI方法相同。
+当$M$采用对角预处理子或者更为复杂的EVP并行块预处理时，预处理之后的系数矩阵${M^{-1}A}$的性状要比原始系数矩阵好，即
+$\kappa_2({M^{-1}A}) < \kappa_2(A)$
+$M$与$A$越是相近，$M^{-1}A$的条件数就越小。当$M = A$，$M^{-1}A$的条件数取到最小值，即$\kappa_2(M^{-1 }A ) = 1$。 
+
+\begin {figure}[!t]
+\begin{center}
+\includegraphics[height=7cm]{iteration}
+\caption []{预处理对于求解器收敛速度的影响。\label{fig:iteration}}
+\end{center}
+\end {figure}
+图\ref{fig:iteration}中，给出了不同的预处理对于求解器收敛速度的影响。 
+图中可以看出来，采用对角预处理，在一定程度上改善了矩阵的性状，使得预处理之后的系数矩阵的条件数小于原始系数矩阵的条件数，导致ChronGear和P-CSI求解器达到给定收敛条件所需要的迭代步数都有一定减少。
+使用EVP并行块预处理进一步的减少了求解器的迭代步数。
+从加速收敛速度的效果可以看出，EVP并行块预处理对于改善系数矩阵的性状最为有效，得到的预处理之后的条件数也最小。
+
+\subsection{算法复杂度比较}
+\label{precond:ChronGear:comm}
+
+
+与ChronGear的迭代过程相比，P-CSI除了做收敛性检查之外不需要任何的全局归约操作。 
+我们注意到，为了达到相同的收敛条件，P-CSI算法需要的迭代步骤比ChronGear的略多($K_{pcsi} > K_{cg}$)。 
+以上的两点现象，我们可以解读出来，
+当使用少数几个处理器核心来运行海洋模式分量时，全局通信开销并不算大、并不是瓶颈，导致P-CSI方法和ChronGear方法的时间开销比较接近。
+但是当当采用高分辨的网格时，需要用到很多的处理器核心来计算高分辨的海洋模式分量，这时P-CSI方法的每一个步迭代就应该会比ChronGear方法快很多。
+这是因为ChronGear方法中的全局归约操作就会变成一个明显的瓶颈（参见公式\ref{t_cg})和
+(\ref{t_psi}））。
+
+为了对ChronGear和P-CSI方法的复杂度进行量化分析，我们采用上一章理论分析的方法。
+假设$p=m^2$个进程，每一个进程恰好分得一个网格块（这在高分辨率POP中是比较常见的配置）。 
+这是正压模态的总运行时间就等于ChronGear求解器在每一个块上的运行时间。 
+我们记求解器的每一次迭代过程中，计算、边界通信和全局通信操作的耗时分别为$\mathcal{T}_c$，$\mathcal{T}_b$和$\mathcal{T}_g$。 
+%----------------------------------------------------------------------------
+
+
+从算法\ref{alg:cg}中可以得出, 计算开销
+$\mathcal{T}_c$主要涉及到四个向量伸缩操作 (算法\ref{alg:cg}中步骤\ref{pcg_scale1}, \ref{pcg_scale2} ,\ref{pcg_scale3}, 和
+\ref{pcg_scale4}), 两个向量向量乘积操作或內积操作 (算法中步骤\ref{pcg_dot1} 和 \ref{pcg_dot2}), 以及一个矩阵向量乘积操作 (算法步骤\ref{pcg_mat}).  
+因此,$\mathcal{T}_c= (4 n^2 +2n^2+ 9n^2)\theta + \mathcal{T}_{p}=15\frac{N^2}{p}\theta+\mathcal{T}_{p}$，
+这里$\theta$表示单个浮点操作的时间开销，$\mathcal{T}_{p}$表示预处理的开销。
+比如，当采用对角预处理时，$\mathcal{T}_{p} =\frac{N^2}{p}\theta$。
+上面的定义可以看出，当计算核心数增加时，$\mathcal{T}_c$减少，并且以零为下界。
+
+ 
+当调用了像矩阵向量乘和除了对角预处理以外的预处理等需要一层或一层以上的边界区域的操作时，在每个进程的边界区域上需要进行边界更新操作。 
+由于在海洋模式POP中，每个进程都维护着它自己的块以外的两个边界层，因此，即使使用了非对角的预处理，每次迭代过程中仍只需要进行一次边界通信。
+边界通信的实际开销取决于网络延迟和边界区域的大小。 当边界区域的层数为2时（这也是POP中的默认配置）， 边界区域的每个边的大小为$2n$ ，而且这个大小会随着进程数的增大而变小。 
+ 
+因此，每一步迭代中，边界通信的时间复杂度为$\mathcal{T}_b =4\alpha +(4\times 2n)\beta=4\varpi +(\frac{8N}{\sqrt{p}})\vartheta $这里$\varpi$ 表示单条点对点通信消息的延迟，而
+$\vartheta$ 表示从网络中传输一比特需要的时间 (也就是网络带宽的倒数).
+边界更新所需要的时间也是随着就算进程的增多而减少，但是有一个下界$4\varpi$。 
+
+ 
+ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作。全局规约操作主要由一次MPI\_allreduce和一个去除路地网格点的掩盖操作，因此全局归约操作的开销满足$\mathcal{T}_g= 2\frac{N^2}{p}\theta + \log p \alpha$ （假设网络采用二叉树结构）。 
+路地点的掩盖操作的开销会随着进程数$p$的增大而减小，而MPI\_allreduce的开销将会一直随着进程数的增加而增大。 
+注意到每次全局归约操作实际上近似于没有数据的交换，因为每个进程只传递了两个数值。
+因此，全局通信的开销主要取决于网络的延迟而不是网络的传输速率。
+结合以上三个部分，ChronGear求解器求解一次所需要的时间开销为：
+\begin{eqnarray}
+%\begin{tabular}{l}
+\label{t_cg}
+&\mathcal{T}_{cg}=\mathcal{K}_{cg} (\mathcal{T}_c + \mathcal{T}_b+\mathcal{T}_g )\nonumber \\
+&=\mathcal{K}_{cg} [17 \frac{N^2}{p}\theta + \mathcal{T}_{p} +\frac{8N}{\sqrt{p}}\vartheta +(4+\log p)\varpi]
+%\end{tabular}
+\end{eqnarray}
+这里 $K_{cg}$ 表示算法达到指定收敛条件所需要的迭代次数。
+这个迭代次数不会随着进程数的增加而改变 \cite{hu2013scalable}。 
+式（\ref{t_cg}）表明，计算和边界更新所需要的时间开销都会随着进程数的增加而减少。 
+但是，全局归约操作的时间开销则会随着进程数的增多而增加。 
+因此，我们可以预测到，当进程数操作某一个值时，ChronGear求解器的运行时将会增加。 
+
+\begin{figure}[!t]
+\begin{center}
+	\includegraphics[height=8cm]{newChronGear_comp.eps}
+\caption[] {在美国黄石超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
+\label{fig:ChronGearCOMP}
+\end{center}
+\end{figure}
+ 
+图\ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算机（详情见节\ref{precond:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
+这里我们可以看到，当使用数千个处理器核心时，全局归约操作的时间变成了整个求解器耗时的主要部分，并且这个时间还在继续增大。
+
+
+
+算法\ref{alg:ppsi}可以看出来，P-CSI方法的每一步迭代的计算时间为$\mathcal{T}_c =\frac{12N^2}{p}\theta+\mathcal{T}_p$， 
+而P-CSI求解器的总运行时间为如下
+\begin{eqnarray}
+\label{t_psi}
+\mathcal{T}_{pcsi} = \mathcal{K}_{pcsi}(\mathcal{T}_c + \mathcal{T}_b ) \nonumber \\
+= \mathcal{K}_{pcsi}[12\frac{N^2}{p}\theta+ \mathcal{T}_p +4\varpi + \frac{8N}{ \sqrt{p}}\vartheta]
+\end{eqnarray}
+这里$K_{pcsi}$ 表示P-CSI方法收敛到给定条件时所需要的迭代步数。 
+
+
+
+当使用了EVP预处理时，计算的复杂变成了$\mathcal{T}_c = 37 \frac{N}{p}$。因此P-CSI方法在使用EVP方法时一次求解过程的复杂度为
 \begin{eqnarray}
 \label{t_pcsiEvp}
-\mathcal{T}_{pcsi-evp}=\mathcal{O}(\mathcal{K}_{pcsi-evp} (37\frac{\mathcal{N}}{p} +8\sqrt{\frac{\mathcal{N} }{p}} + 4\alpha))
+\mathcal{T}_{pcsi-evp}=\mathcal{O}(\mathcal{K}_{pcsi-evp} (37\frac{N}{p} +8\sqrt{\frac{N }{p}} + 4\varpi))
 \end{eqnarray}
 
 以上式子可以看出来，使用了EVP预处理后，每一步迭代过程中的计算开销翻了一倍。
-但是，一次求解的总体时间是下降。 
-采用EVP预处理后，迭代步数$\mathcal{K}_{pcsi-evp}$会下降到原来的一半（参见图\ref{fig:convergence_diag}）。
+但是，一次求解的总体时间会有所下降。 
+采用EVP预处理后，迭代步数$\mathcal{K}_{pcsi-evp}$会下降到原来的一半（参见图\ref{fig:iteration}）。
 其结果是，在大核上运行时，计算时间变得非常的少，而最耗时的通信部分的次数也随着迭代步数的减少而减少了一半左右。
 
-
-以上分析对于采用了预处理子的情形也同样适用。
-唯一的区别是上面分析中提到的系数矩阵是$M^{-1}A$ 而不是$A$。
-值得一提的是，PCG，ChronGear和P-CSI算法中预处理后的矩阵实际上是$M^{-1/2}A(E^{-1/2})^T$，它是对称的，并且和$M^{-1}A$ 有着相同的特征值\cite{Shewchuk1994}。
-因此，这个预处理后的矩阵的条件数为$\kappa =  \kappa_2(M^{-1/2}A(E^{-1/2})^T)$。这个条件数通常情况下比原始矩阵 $A$的条件数要小。 
- $M$ 与$A$越是相近，$M^{-1}A$的条件数就越小。当$M = A$，$M^{-1}A$的条件数为$\kappa_2(M^{-1 }A ) = 1$。 
-
- 当使用少数几个处理器核心来运行海洋模式分量时，全局通信并不是瓶颈，导致P-CSI方法和ChronGear方法的时间开销比较接近。
-但是当采用很多的处理器核心来计算高分辨的海洋模式分量的时候，P-CSI方法的每一个步迭代就应该会比ChronGear方法快很多，因为ChronGear方法中的全局归约操作就会变成一个明显的瓶颈。
 
 
 \section{实验方法和结果分析}

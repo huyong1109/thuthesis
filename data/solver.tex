@@ -278,7 +278,7 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
  
 正如算法\ref{alg:pcg}所示，共轭梯度法主要包含有以下三个部分： 计算，边界通信，全局通信。
 计算部分主要包括矩阵向量乘操作，向量向量乘操作以及向量的伸缩操作（向量与常数相乘）等具有很好的可扩展性的操作。 
-边界通信会在每次矩阵向量乘操作之后被调用，其开销随着计算使用的处理器核心数的增加和减少，但是有一个下界。 
+边界通信会在每次矩阵向量乘操作之后被调用，其开销随着计算使用的处理器核心数的增加而减少，但是有一个下界。 
 每一步迭代过程中的內积操作之后需要调用的全局通信。后面的章节将会说明，当使用很大的核心数时，全局通信将会成为可扩展性的瓶颈。
  
 %----------------------------------------------------------------------------
@@ -291,7 +291,7 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
 
 
 算法\ref{alg:pcg}中，计算主要涉及到步骤\ref{AlgPcgPrecond}、\ref{AlgPcgVec1}、\ref{AlgPcgVec2}和 \ref{AlgPcgVec3}中的四个向量伸缩操作，步骤\ref{AlgPcgInner1}和\ref{AlgPcgInner2}中的两个向量向量乘积操作，和步骤\ref{AlgPcgAx}中的矩阵向量乘积。 
-因此计算的复杂度为 $\Theta (4 n^2 +2n^2+ 9n^2)$。 
+因此计算的复杂度为 $\mathcal{O} (4 n^2 +2n^2+ 9n^2)$。 
 假设处理器处理单位浮点数所需要的时间为$\theta$，则计算的时间开销可以表示为
 $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\theta $。 
 很明显 $\mathcal{T}_c$ 会随着进程数的减少而减少，同时以0位下界。 
@@ -321,9 +321,9 @@ $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\thet
 总个共轭梯度法的求解过程的执行时间可以表示为
 \begin{equation}
 \label{t_pcg_all}
-t_{CG} = K_{CG}\cdot \mathcal{T}_{CG}
+t_{CG} = \mathcal{K}_{CG}\cdot \mathcal{T}_{CG}
 \end{equation}
-这里$K_{CG}$表示共轭梯度法达到收敛所需要的迭代步数，它不会随着进程数的增加而改变。
+这里$\mathcal{K}_{CG}$表示共轭梯度法达到收敛所需要的迭代步数，它不会随着进程数的增加而改变。
 我们将在第\ref{solver:CG:convergence_rate}节中详细分析共轭梯度法的收敛速度。
 方程\ref{t_pcg}可以出来，计算和边界更新所需要的时间会随着进程数的增大而减少，但是全局归约操作的时间却会随着进程数的增加而增大。
 因此，整个共轭梯度法的运行时间在当进程数大于某个数值时，会随之增大而增大。
@@ -362,20 +362,22 @@ t_{CG} = K_{CG}\cdot \mathcal{T}_{CG}
 
 利用第一类Chebyshev 多项式来估计这个最小最大值，可以得到 
 \begin{align}
-\label{chrongear_convergence}
-||\textbf{x}_k-\textbf{x}^*||_A \le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k ||\textbf{x}_0-\textbf{x}^*||_A
+\label{pcg_convergence}
+\frac{||\textbf{x}_k-\textbf{x}^*||_A}{||\textbf{x}_0-\textbf{x}^*||_A}\le  2 (\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1})^k
 \end{align}
 这里$\kappa =  \kappa_2(A)$表示系数矩阵$A$的条件数。
-式（\ref{chrongear_convergence}）表明，共轭梯度法的收敛速度依赖于系数矩阵$A$的条件数。
+式（\ref{pcg_convergence}）表明，共轭梯度法的收敛速度依赖于系数矩阵$A$的条件数。
 
  
-\section{CSI迭代法}
+\section{CSI求解器}
 \label{solver:csi}
 
 为了解决共轭梯度法的可扩展性瓶颈，新的求解器需要的全局归约操作越少越好。 
-我们在海洋模式中重新考虑一些原本被认为是不如共轭梯度法的方法，比如Chebyshev迭代方法。 
+我们在海洋模式中重新考虑一些原本被认为是不如共轭梯度法的方法，比如Chebyshev迭代方法。
+早在1985年，Saad等人\cite{saad1985solving}将传统的CSI的方法应用于向量机上，并且指出当方程中矩阵的特征值已知的条件下，这种方法比共轭梯度法更适用于某些并行情况。  
 Gutknecht \cite{gutknecht2002chebyshev} 在2002年有一篇文章专门的重新研究了一下Chebyshev迭代在通信开销较大的大规模并行环境中性能。 
 传统的Stiefel迭代（CSI）就是Chebyshev迭代方法中的一种。 
+
 
 我们使用CSI方法在海洋模式POP中实现了一个并行正压求解器，称之为CSI求解器。
 我们在算法\ref{alg:csi}中给出了CSI的迭代过程。
@@ -423,10 +425,10 @@ $\mathcal{T}_c =  (2 n^2 + 9n^2)\theta = 11n^2\theta =\frac{11N^2}{p}\theta$。
 不考虑收敛性判断的情况下，整个CSI求解器执行一次的时间开销为
 \begin{equation}
 \label{t_csi_all}
-t_{CSI} = K_{CSI}\cdot \mathcal{T}_{CSI}
+t_{CSI} = \mathcal{K}_{CSI}\cdot \mathcal{T}_{CSI}
 \end{equation}
 这里$K_{CSI}$表示CSI求解器达到收敛所需要的迭代步数。
-在章\ref{solver:CSI:convergence_rate}节中，我们将会证明在相同的收敛条件下，$K_{CSI}$通常比$K_{CG}$稍微大一些。
+在章\ref{solver:CSI:convergence_rate}节中，我们将会证明在相同的收敛条件下，$\mathcal{K}_{CSI}$通常比$\mathcal{K}_{CG}$稍微大一些。
 
 
 
@@ -483,7 +485,7 @@ P_k(\lambda_1) & & &\\
 假设所估计的系数矩阵的最大最小特征值$\nu$和$\mu$满足$0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$。
 方程 \ref{eq:rPjr0} 和 \ref{eq:PjMA} 可以推出
 \begin{equation}
-\label{pcsi_convergence}
+\label{csi_convergence}
 \frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le  \tau_k^{-1}(\beta) = \frac{2(\beta+\sqrt{\beta^2-1})^k}{1+(\beta+\sqrt{\beta^2-1})^{2k}} \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
 \end{equation}
 这里$\kappa' = \frac{\mu}{\nu}$。
@@ -495,7 +497,7 @@ P_k(\lambda_1) & & &\\
 \includegraphics[height=8cm]{Convergence_diag.eps}
 \caption[] {0.1度POP中采用不同求解器时，迭代残差与迭代步数之间的关系。\label{fig:convergence_diag}}
 \end{figure}
-式（\ref{chrongear_convergence}）和（\ref{pcsi_convergence}）表明，共轭梯度法和CSI方法的收敛速度的理论上界取决于系数矩阵的条件数。 
+式（\ref{pcg_convergence}）和（\ref{csi_convergence}）表明，共轭梯度法和CSI方法的收敛速度的理论上界取决于系数矩阵的条件数。 
 这两个方法在求解良态的矩阵（特征值的条件数很小）时比求解病态的矩阵（特征值的条件数很大）时收敛速度更快。
 这里，我们通过海洋模式POP中的实际测试来验证一下这个理论结果。 
 在0.1度的海洋模式POP中，我们测试了三个不同的正压求解器在做了简单的对角化预处理之后的收敛情况。
@@ -516,7 +518,7 @@ CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的�
 由第\ref{solver:CSI:convergence_rate}节的分析可知，当特征值的估计是准确的时，即$\nu = \lambda_{min}$，$\mu =\lambda_{max}$，CSI方法的收敛速度达到理论上的最优值。 
 但是得到最大最小特征值$\lambda_{min}$ 和 $\lambda_{max}$ 的精确值是很困难的。
 另外，由于系数矩阵$A$ 是分布在各个进程上的，因此不建议对它做任何形式的变形。  
-为了能够利用POP的并行特性，我们使用Lanczos方法来构造 出一系列三对角矩阵$T_k(k=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$A$的最大最小特征值逼近。
+为了能够利用POP的并行特性，我们使用Lanczos方法来构造出一系列三对角矩阵$T_k(k=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$A$的最大最小特征值逼近。
 基于Lanczos方法的特征值估计的步骤如算法\ref{alg:lanczos}所示。 
 \begin{algorithm}
 \caption{ 基于Lanczos方法的特征值估计}
@@ -565,7 +567,7 @@ Paige\cite{Paige1980235} 给出了以下结论
 \begin{equation}
 \mu = \max_{1 \le i \le k}\sum^m_{j=1}|T_{ij}|=\max_{1 \le i \le k}(\beta_{i-1}+\alpha_i +\beta_{i})
 \end{equation}
-在算法\ref{alg:lanczos} 中第\ref{lanczos_tridiag}中，采用了高效的QR算法\cite{ortega1963llt}来估计最小特征值$\nu$，它的复杂度为$\Theta(k)$。
+在算法\ref{alg:lanczos} 中第\ref{lanczos_tridiag}中，采用了高效的QR算法\cite{ortega1963llt}来估计最小特征值$\nu$，它的复杂度为$\mathcal{O}(k)$。
  
 \begin {figure}%[htbp]
 \centering
