@@ -561,7 +561,7 @@ P-CSI很好地解决了斜压模态计算量大与正压模态通信瓶颈之间
 最后，为了统一，所有的求解器都是每十个迭代步做一次收敛判断。 
 这里值得一提的是，由于P-CSI的迭代过程的开销相对比较小（相比于海洋模式POP中的收敛性判断）， 因此，如果将收敛性判断的频率进一步降低的话， P-CSI的性能可能能够进一步的提高。 
  
-\begin {figure}
+\begin {figure}[!h]
 \centering
 \includegraphics[height=8cm]{NEWPOPStepComp_pcsi}
 \caption[] { 0.1度海洋模式 POP采用EVP块预处理的P-CSI后的各部分的时间分析。 \label{fig:StepComp_pcsi}}
@@ -576,7 +576,7 @@ P-CSI很好地解决了斜压模态计算量大与正压模态通信瓶颈之间
 相对应的，图\ref{fig:StepComp_pcsi}表明，采用了具有 更高可扩展性的EVP预处理的P-CSI求解器后，同样是在 16,875 核上运行，正压模态的执行时间仅仅占到总运行时间的16\%。 
 
  
-\begin {figure}
+\begin {figure}[!h]
 \centering
 \includegraphics[height =7cm]{NEW01deg_speedup_ys}
 \caption []{在美国黄石超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_rate}}
@@ -607,7 +607,7 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 
 
 
-\begin {figure} 
+\begin {figure}[!h]
 \begin{center}
 \includegraphics[height =7cm]{01deg_comp_all_gs}
 \end{center}
@@ -622,7 +622,7 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 除此之外，EVP并行块预处子还可以进一步减少边界通信，因为它是的达到收敛所需要的迭代次数变少了。 
 在大规模并行环境下，正压求解器的计算开销相比于全局归约操作和边界通信的开销来说基本上可以忽略，因此，EVP预处理子引入的那多出来的一倍的计算量对总体的运行时间影响不大。
 
-\begin {figure} 
+\begin {figure}[!h]
 \begin{center}
 \includegraphics[height =7cm]{01deg_comp_all_halo}
 \end{center}
@@ -644,13 +644,13 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 Aries高速网络以蜻蜓拓扑的结构连接起来。  
 
 
-\begin {figure}
+\begin {figure}[!h]
 \centering
 \includegraphics[height=7cm]{01deg_solverruntime_edison}
 \caption []{在美国Edison超级计算机上0.1度 POP中正压模态模拟一天的的执行时间。\label {fig:runtime01_edison_time}}
 \end {figure}
 
-\begin {figure}
+\begin {figure}[!h]
 \centering
 \includegraphics[height=7cm]{01deg_speedup_edison}
 \caption []{在美国黄石超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_edison_rate}}
