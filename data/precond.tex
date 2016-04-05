@@ -634,8 +634,6 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 对于P-CSI方法，由于其迭代过程中每一步的计算本身就比较小，使用了EVP并行块预处理之后，每一个迭代步中计算量增大了三倍，导致虽然迭代步数有所减少，但是总计算时间仍然是变大的。
 最后我们还要注意到，在处理器核心数小于1,200时，全局归约操作的时间是随着进程数的增加而减少的，这与等式\ref{t_cg}所给出的理论结果是一致的。
 
-
-
 \subsection{Edison超级计算机测试结果}
 \label{precond:exp:Edison}
 
@@ -666,7 +664,18 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 使用EVP预处理，ChronGear和P-CSI方法的性能都得到提升。 
 采用EVP块预处理的P-CSI方法使得正压模态加速了5.6倍。 
  
+\subsection{高分辨率模拟误差分析}
+\label{precond:exp:error}
 
+
+\begin{figure}%[!htbp]
+\centering
+\includegraphics[ height=10cm]{EvpBug_fix_gmd_new}
+\caption[] {0.1度海洋模式POP的海表盐度。 \label{fig:sst}}
+\end{figure}
+
+上一章中，我们比较了1度模拟中，不同求解器得到的结果之间的差别。 
+这里，我们给出高分辨，即0.1度POP模拟中使用不同求解器所得到的结果之间的差别。
 
 \section{本章小结}
 \label{precond:Conclusion}
