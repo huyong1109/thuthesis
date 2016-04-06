@@ -424,12 +424,12 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 \begin{figure}[!t]
 \begin{center}
 	\includegraphics[height=8cm]{newChronGear_comp.eps}
-\caption[] {在美国黄石超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
+\caption[] {在美国Yellowstone超级计算机上，0.1度POP的全局归约操作和边界更新操作占模拟一天总时间开销的比例。}
 \label{fig:ChronGearCOMP}
 \end{center}
 \end{figure}
  
-图\ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的黄石超级计算机（详情见节\ref{precond:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
+图\ref{fig:ChronGearCOMP}给出了在美国国际大气研究中心的Yellowstone超级计算机（详情见节\ref{precond:exp}）上，运行一个模拟天时，ChronGear求解器的全局通信和边界通信两个部分的耗时分析。 
 这里我们可以看到，当使用数千个处理器核心时，全局归约操作的时间变成了整个求解器耗时的主要部分，并且这个时间还在继续增大。
 
 
@@ -464,12 +464,12 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 
 本章我们提出了基于EVP方法的并行块预处理方法，同时将上一章提到的CG和CSI求解器改造成为新的ChronGear和P-CSI求解器，以方便使用新的EVP并行块预处理。
 为了测试EVP并行块预处理在海洋模式POP中的效果，我们首先通过一组理想实验，测试在不同性状的系数矩阵（即矩阵有不同的条件数）中，EVP并行块预处理相比于不做预处理和简单的对角预处理的性能提升。
-然后，我们利用美国国家大气研究中心NCAR-Wyoming超级计算中心(NWSC)\cite{loft:2015}的黄石超级计算机来评测一下采用了我们的新的正压模态求解器的CESM1.2.0的性能。 
-黄石超级计算机由 72,576个
+然后，我们利用美国国家大气研究中心NCAR-Wyoming超级计算中心(NWSC)\cite{loft:2015}的Yellowstone超级计算机来评测一下采用了我们的新的正压模态求解器的CESM1.2.0的性能。 
+Yellowstone超级计算机由 72,576个
 2.6-Ghz英特尔型号为Xeon E5-2670 的“Sandy Bridge”处理器构成。 
 这些处理器都是通过13.6 GBps InfiniBand网络连通。   
-黄石超级计算机上50\%以上的计算资源都是在使用地球系统模式CESM来进行气候模拟， 
-因此提高CESM在黄石超级计算机上的效率对于全球气候变化研究来讲十分的有意义\cite{wf2014}。 
+Yellowstone超级计算机上50\%以上的计算资源都是在使用地球系统模式CESM来进行气候模拟， 
+因此提高CESM在Yellowstone超级计算机上的效率对于全球气候变化研究来讲十分的有意义\cite{wf2014}。 
 
 
 由于我们只是改动了海洋模式分量POP中的求解器，所以实验中我们将着重测试POP的性能。 
@@ -477,7 +477,7 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 “G\_NORMAL\_YEAR”分量配置集，这个配置中只有海洋和海冰分量模式是真实计算的，而大气等分量模式采用气候数据输入。
 我们针对两种使用频率最高的海洋模式POP水平网格分辨率来进行实验：
 1度 ($320\times 384$) 和0.1度 ($3600\times 2400$)。
-值得一提的是，CESM1.2.0的默认配置中将黄石超级计算机上的MPI的环境需求限制（MPIMP\_EAGER\_LIMIT）设置为0， 这个变量主要控制在网络通信约会协议被使用之前的最大的消息量。我们发现使用黄石超级计算机上的默认的环境需求限制配置，也就是MP\_EAGER\_LIMIT = 131072，能够显著的改善CESM的运行性能。 
+值得一提的是，CESM1.2.0的默认配置中将Yellowstone超级计算机上的MPI的环境需求限制（MPIMP\_EAGER\_LIMIT）设置为0， 这个变量主要控制在网络通信约会协议被使用之前的最大的消息量。我们发现使用Yellowstone超级计算机上的默认的环境需求限制配置，也就是MP\_EAGER\_LIMIT = 131072，能够显著的改善CESM的运行性能。 
 
 最后，为了证明我们的加速效果与所使用的机器无关，我们在美国能源研究科学计算中心（NERSC）的最新的一台超级计算机Edison上重复了我们在Yellowstone上的高分辨率模拟实验。
 
@@ -515,7 +515,7 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 \caption []{1度POP每模拟天中正压模态的运行时间。\label {fig:runtime1}}
 \end {figure}
 我们在Yellostone上测试了不同预处理方法以及不同的求解器在1度海洋模式POP的模拟中的性能。
-图\ref{fig:runtime1}给出了几个可用的求解器在黄石超级计算机上模拟1度海洋模式POP时正压模态的运行时间。  
+图\ref{fig:runtime1}给出了几个可用的求解器在Yellowstone超级计算机上模拟1度海洋模式POP时正压模态的运行时间。  
 采用默认的对角预处理子， 在各种并行度下， P-CSI要比ChronGear的性能好。
 在最大的并行度下（768处理器核心），P-CSI将每个模拟天中求解器的的执行时间从0.58s减少到了0.41s，也就是1.4倍的加速比）。 
 另外，使用新的EVP块预处理，默认的ChronGear和P-CSI求解器的收敛性都得到提升。 
@@ -525,7 +525,7 @@ ChronGear求解器的每一步迭代中仅仅包含了一次全局归约操作�
 
 \begin{table}[ht]
 \begin{center}
-\caption{在黄石超级计算机上，1度POP总运行时间相对于原始求解器的优化比例。 \label{tab:improve_1}}
+\caption{在Yellowstone超级计算机上，1度POP总运行时间相对于原始求解器的优化比例。 \label{tab:improve_1}}
 \begin{tabular}{|l||l|l|l|l|l|}
 \hline
 进程数 & 48  & 96  & 192 & 384 & 768\\\hline
@@ -552,9 +552,9 @@ P-CSI很好地解决了斜压模态计算量大与正压模态通信瓶颈之间
 \begin {figure}
 \centering
 \includegraphics[height =7cm]{NEW01deg_solverruntime}
-\caption []{ 在美国黄石超级计算机上0.1度 POP中正压模态模拟一天的的执行时间。\label {fig:runtime01_time}}
+\caption []{ 在美国Yellowstone超级计算机上0.1度 POP中正压模态模拟一天的的执行时间。\label {fig:runtime01_time}}
 \end {figure}
-现在我们测试在黄石超级计算机上，高分辨率0.1度的海洋模式POP的新的正压求解的可扩展性。 
+现在我们测试在Yellowstone超级计算机上，高分辨率0.1度的海洋模式POP的新的正压求解的可扩展性。 
 在这个高分辨下，海洋模式中网格块的大小和分布得选择，会影响到进程上任务的分发，进而对性能造成很大的影响。 
 因此，为了不让这种选择影响到最终的可扩展性结果，我们非常仔细的将每个进程上的网格块的横纵比例统一地设置为3:2，而陆地的比例设置为0.25，同时还利用空间填充曲线的方法来划分网格。 
 我们使用POP中默认的时间步长，也就是500个时间步每天（dt\_count = 500）。 
@@ -579,7 +579,7 @@ P-CSI很好地解决了斜压模态计算量大与正压模态通信瓶颈之间
 \begin {figure}[!h]
 \centering
 \includegraphics[height =7cm]{NEW01deg_speedup_ys}
-\caption []{在美国黄石超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_rate}}
+\caption []{在美国Yellowstone超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_rate}}
 \end {figure}
 正压求解器性能上的改进有助于提高海洋模式POP的总体性能， 尤其是在大规模并行环境中。
 模拟速率（模拟年每天）是一个被广泛采用的评估模式性能的指标， 我们这里采用不考虑模式初始化和I/O开销的 核心模拟速率。这是由于模式初始化只是在模式运行开始的时候执行一次，而模式的I/O开销是随着用户设置的频率的变化而改变的。 
@@ -588,7 +588,7 @@ P-CSI很好地解决了斜压模态计算量大与正压模态通信瓶颈之间
  
 \begin{table}
 \begin{center}
-\caption {在黄石超级计算机上，0.1度海洋模式POP的核心模拟速率\label{tab:improve_01}}
+\caption {在Yellowstone超级计算机上，0.1度海洋模式POP的核心模拟速率\label{tab:improve_01}}
 \begin{tabular}{|l||r|r|r|r|r|r|r|}
 \hline
 Solver & 470  & 1200   & 2700 & 4220 & 7500 & 10800 & 16875\\\hline
@@ -602,7 +602,7 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 \end{center}
 \end{table}
 
-表\ref{tab:improve_01}给出了在黄石超级计算机上，0.1度海洋模式POP的核心模拟速的具体值。
+表\ref{tab:improve_01}给出了在Yellowstone超级计算机上，0.1度海洋模式POP的核心模拟速的具体值。
 表中可以看到，EVP并行块预处理对于改进ChronGear和P-CSI求解器都有一定的效果。
 
 
@@ -611,12 +611,12 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 \begin{center}
 \includegraphics[height =7cm]{01deg_comp_all_gs}
 \end{center}
-\caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中全局归约的耗时。}
+\caption[] {Yellowstone超级计算机上，0.1度海洋模式POP的正压求解器中全局归约的耗时。}
 \label{fig:component_gs}
 \end {figure}
 
 为了找到性能提升的主要来源，我们首先比较一下ChronGear和P-CSI求解器在使用不同的预处理方法时，各部分的耗时。 
-图\ref{fig:component_gs}和图\ref{fig:runtime01_edison_rate}给出的在黄石超级计算机上，0.1度海洋模式POP的正压求解器中全局归约和边界通信的耗时。 
+图\ref{fig:component_gs}和图\ref{fig:runtime01_edison_rate}给出的在Yellowstone超级计算机上，0.1度海洋模式POP的正压求解器中全局归约和边界通信的耗时。 
 图\ref{fig:component_gs}和图\ref{fig:runtime01_edison_rate}中可以看出， P-CSI求解器比原始的ChronGear求解好的主要原因是因为全局归约操作的减少。 
 全局归约操作的减少同时也显著的减少了海洋模式POP对操作系统噪声的敏感程度\cite{ferreira}，因为更少的归约操作意味着相邻两次全局同步之间的时间变得更长了。 
 除此之外，EVP并行块预处子还可以进一步减少边界通信，因为它是的达到收敛所需要的迭代次数变少了。 
@@ -626,7 +626,7 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 \begin{center}
 \includegraphics[height =7cm]{01deg_comp_all_halo}
 \end{center}
-\caption[] {黄石超级计算机上，0.1度海洋模式POP的正压求解器中边界通信的耗时。}
+\caption[] {Yellowstone超级计算机上，0.1度海洋模式POP的正压求解器中边界通信的耗时。}
 \label{fig:component_halo}
 \end {figure}
 计算方面，P-CSI方法与ChronGear方法的时间开销比较接近。 
@@ -638,7 +638,7 @@ P-CSI+Evp     &0.7 &1.7&3.5  &5.0 &7.2 &8.6 &9.3\\
 \label{precond:exp:Edison}
 
  
-为了证明新的求解器不仅仅在黄石超级计算机上有性能提升，我们还在Edison超级计算机上测试0.1度海洋模式POP的模拟效果。Edison超级计算机是美国能源研究科学计算中心（NERSC）的最新的一台超级计算机，它是由 133,824 个2.4 GHz的英特尔的”Ivy Bridge“处理器核心组成，这些处理器核心是通过 8GBps 的Cray
+为了证明新的求解器不仅仅在Yellowstone超级计算机上有性能提升，我们还在Edison超级计算机上测试0.1度海洋模式POP的模拟效果。Edison超级计算机是美国能源研究科学计算中心（NERSC）的最新的一台超级计算机，它是由 133,824 个2.4 GHz的英特尔的”Ivy Bridge“处理器核心组成，这些处理器核心是通过 8GBps 的Cray
 Aries高速网络以蜻蜓拓扑的结构连接起来。  
 
 
@@ -651,11 +651,11 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 \begin {figure}[!h]
 \centering
 \includegraphics[height=7cm]{01deg_speedup_edison}
-\caption []{在美国黄石超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_edison_rate}}
+\caption []{在美国Yellowstone超级计算机上0.1度 POP核心部分的模拟速率。\label {fig:runtime01_edison_rate}}
 \end {figure}
 
-图\ref{fig:runtime01_edison_time}和图\ref{fig:runtime01_edison_rate}可以看出，四种配置的正压求解器在Edison超级计算机上的模拟性能与在黄石超级计算机上的模拟性能有相近的特点。 
-我们注意到在Edison超级计算机上模拟时，全局通信的时间开销要比在黄石超级计算机上的开销更不稳定一些，主要可能是因为网络资源的竞争造成的\cite{wang2014}。 
+图\ref{fig:runtime01_edison_time}和图\ref{fig:runtime01_edison_rate}可以看出，四种配置的正压求解器在Edison超级计算机上的模拟性能与在Yellowstone超级计算机上的模拟性能有相近的特点。 
+我们注意到在Edison超级计算机上模拟时，全局通信的时间开销要比在Yellowstone超级计算机上的开销更不稳定一些，主要可能是因为网络资源的竞争造成的\cite{wang2014}。 
 这最终导致了ChronGear求解器（不管采用什么预处理子）的运行时间在多次模拟中相差很大，因此我们将这些实验中最好的三个结果取平均值作为它的运行时间。 
 由于P-CSI几乎没有全局归约操作（只发生在检查收敛性的时候），这种多次运行中的差别很小。 
 
