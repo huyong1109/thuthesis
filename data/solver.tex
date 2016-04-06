@@ -283,7 +283,7 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
  
 %----------------------------------------------------------------------------
 
-\subsection{算法复杂度及评估}
+\subsection{共轭梯度法复杂度及评估}
 \label{solver:pcgComplex}
 假使使用$p=m^2$个进程来计算正压模态，也就是每个进程正好计算一个子块。 
 正压模态的运行时间与共轭梯度法梯度法在每个进程上的执行时间。 
@@ -410,7 +410,7 @@ CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征
 如算法\ref{alg:csi}所示，CSI方法和共轭梯度法有相似的迭代过程，迭代过程中有相似的计算和边界通信过程。
 但是CSI方法将共轭梯度法中的两次向量內积操作及其相应的向量向量乘积的计算替换成了系数矩阵$A$的最大最小特征值的一个函数迭代。 我们接下来先分析以下CSI算法的复杂度，然后给出特征值估计的方法。
 
-\subsection{算法复杂度及评估} \label{solver:Algorithm:complex}
+\subsection{CSI算法复杂度及评估} \label{solver:Algorithm:complex}
 
 跟第\ref{solver:pcgComplex}节中共轭梯度方法复杂度的分析一样，我们也可以给出CSI求解器的计算和通信时间开销。
 CSI求解器的计算时间可表示为
@@ -450,7 +450,7 @@ CSI的收敛速度比共轭梯度法稍慢，它在小规模并行是的执行�
 在当进程数超过某一个值时，整个共轭梯度法的求解过程 要比CSI所消耗的时间长。 
 
 
-\subsection{收敛速度} \label{solver:CSI:convergence_rate}
+\subsection{CSI方法收敛速度} \label{solver:CSI:convergence_rate}
 
  
 与共轭梯度法一样，CSI方法的收敛速度也依赖于系数矩阵$A$的条件数。  
@@ -661,7 +661,7 @@ Paige\cite{Paige1980235} 给出了以下结论
 相对应的，CSI算法一直到10,000核以上都能保持比较好的可扩展性。
 
 %----------------------------------------------------------------------------
-\subsection{CSI求解器误差分析} \label{solver:exp:diff}
+\subsection{误差分析} \label{solver:exp:diff}
 
 \begin{table}
 \centering
