@@ -410,7 +410,7 @@ CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征
 如算法\ref{alg:csi}所示，CSI方法和共轭梯度法有相似的迭代过程，迭代过程中有相似的计算和边界通信过程。
 但是CSI方法将共轭梯度法中的两次向量內积操作及其相应的向量向量乘积的计算替换成了系数矩阵$A$的最大最小特征值的一个函数迭代。 我们接下来先分析以下CSI算法的复杂度，然后给出特征值估计的方法。
 
-\subsection{CSI算法复杂度及评估} \label{solver:Algorithm:complex}
+\subsection{CSI方法复杂度及评估} \label{solver:Algorithm:complex}
 
 跟第\ref{solver:pcgComplex}节中共轭梯度方法复杂度的分析一样，我们也可以给出CSI求解器的计算和通信时间开销。
 CSI求解器的计算时间可表示为
