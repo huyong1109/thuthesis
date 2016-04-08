@@ -490,7 +490,7 @@ P_k(\lambda_1) & & &\\
 \begin {figure}
 \vspace{10pt}
 \centering
-\includegraphics[height=8cm]{Convergence_diag.eps}
+\includegraphics[height=7cm]{Convergence_diag}
 \caption[] {0.1度POP中采用不同求解器时，迭代残差与迭代步数之间的关系。\label{fig:convergence_diag}}
 \end{figure}
 式（\ref{pcg_convergence}）和（\ref{csi_convergence}）表明，共轭梯度法和CSI方法的收敛速度的理论上界取决于系数矩阵的条件数。 
@@ -617,7 +617,7 @@ Paige\cite{Paige1980235} 给出了以下结论
 \begin{figure} 
 \vspace{5pt}
 \centering
-\includegraphics[height=7cm]{iterationGridSize}
+\includegraphics[height=7cm]{iterationGridSize1}
 \caption[] {网格点数目和求解器的迭代步数之间的关系。\label{fig:iterationGridSize}}
 \end{figure}
 
@@ -636,7 +636,7 @@ Paige\cite{Paige1980235} 给出了以下结论
 
 \begin {figure}
 \centering
-\includegraphics[height=6.5cm]{scale_pcg_csi}
+\includegraphics[height=8cm]{scale_pcg_csi}
 \caption []{ 0.1度POP中CG和CSI求解器的可扩展性 \label {fig:scale}}
 \end {figure}
 我们分别测试了CG和CSI两个版本的求解器在不同的处理器核数(100到 15,000)和不同的收敛条件（$\epsilon = 10^{-8}$ 到 $\epsilon = 10^{-16}$）时的性能。
