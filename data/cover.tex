@@ -67,25 +67,26 @@
 
 % 定义中英文摘要和关键字
 \begin{cabstract}
-  高分辨率气候模拟的需求与日剧增，它所消耗的计算资源也越来越多。 
-  被广泛使用的公共地球系统模式（CESM）中， 并行海洋模式（POP）在高分辨网格的配置下的计算量极其巨大，在很多真实运行的例子中都是CESM中可扩展性最差的一个分量模式。 
-  POP的正压模态中求解椭圆方程所用到的预处理共轭梯度法（PCG），在大核数并行时可扩展很差，是高分辨率海洋模拟的一个主要瓶颈。 
-  此论文中，我们首先通过一个性能评估模型，分析了POP正压求解器PCG的可扩展性，并通过实验验证了正压求解器中的性能瓶颈是PCG方法每一步迭代中的残差计算所引入的全局通信。 
+  高分辨率气候模拟的需求与日俱增，所消耗的计算资源也越来越多。 
+  被广泛使用的公共地球系统模式（CESM）中， 并行海洋模式（POP）在高分辨网格的配置下的计算量极其巨大。
+  在很多真实运行的例子中，POP都是CESM中可扩展性最差的一个分量模式。 
+  POP的正压模态中求解椭圆方程所用到的共轭梯度法（CG），是高分辨率海洋模拟的一个主要瓶颈，在大核数并行时可扩展很差。
+  此论文中，我们首先通过一个性能评估模型，分析了POP正压求解器CG的可扩展性，并通过实验验证了正压求解器中的性能瓶颈是CG方法每一步迭代中的残差计算所引入的全局通信。 
   为了解决这一问题， 我们在POP中实现了一个基于预处理的Chebyshev迭代方法（P-CSI）的求解器。
-  P-CSI不需要利用每一步的残差来确定迭方向，而是利用系数矩阵的最大最小特征值，
+  P-CSI不需要利用每一步的残差来确定迭代方向，而是利用系数矩阵的最大最小特征值，
   从而去掉了时间开销很大的全局通信操作，极大的改善了正压模态的可扩展性。
 
   为了进一步提高POP中正压模态的性能，我们研发了一个高效的基于误差向量传播方法的并行块预处理子，以实现P-CSI更快地收敛。 
-  误差向量传播方法（EVP）是求解由椭圆偏微分方程十分高效的方法。我们利用海洋模式并行划分的特点，在每一个进程的数据块上使用EVP方法求解。这相当于使用原始方程的块对角矩阵的逆作为预处理子。
+  误差向量传播方法（EVP）是十分高效的求解由椭圆偏微分方程得到的线性方程组的方法。我们利用海洋模式并行划分的特点，在每一个进程的数据块上使用EVP方法求解。这相当于使用原始方程的块对角矩阵的逆作为预处理子。
   这种预处理方法使得正压求解器的迭代步数缩短到了原来的三分之一左右。 
-  通过采用新的P-CSI方法和误差向量传播并行块预处理子，正压求解器的可扩展性得到极大的改善。 在16,875核上，新的正压求解器在高分辨POP中取得了5.2倍的加速，并且使的整个POP的模拟速率提高了1.7倍。 
+  通过采用新的P-CSI方法和误差向量传播并行块预处理子，正压求解器的可扩展性得到极大的改善。 在16,875核上，新的正压求解器在高分辨POP中取得了5.2倍的加速，并且使得整个POP的模拟速率提高了1.7倍。 
   
 
   最后，我们通过一个基于集合模拟的统计学方法证明了我们的新的求解器不会造成模拟结果与原始结果不相容。 
   由于模式本身的不确定性，在模式中加入很小的改动都无法保证模式结果与原来的结果是二进制一致的。
   这也就使得验证模式中的改动是否会对模拟结果造成气候意义上显著的改变十分困难。
   我们提出了使用集合模拟的数据集合来对新的结果进行评估，解决了这一难题。 数据集合能够很好地反应出模式结果的不确定性分布，我们最终得到的一致性检验工具能够很好评估新的模拟结果是否与给定的集合模拟的结果相容。  
-  这也使得我们的新的求解器最终倍公共地球系统模式采纳为默认的海洋模式正压求解器。
+  这也使得我们的新的求解器最终被公共地球系统模式采纳为默认的海洋模式正压求解器。
 
 \end{cabstract}
 
@@ -115,7 +116,7 @@
   Further, we ensure that the new solver produces an ocean climate consistent with the original one via an ensemble-based statistical method. 
   Due to the chaotic nature of the ocean dynamics, even a round-off difference from the barotropic solver may potentially result in distinct model solutions. Therefore, it is hard to verify whether a given result is consistent with the original one. 
   To verify the results of our new solver, we quantify the variability of the ocean model by the statistical distribution of an ensemble and verify the new result based on these distributions. 
-  The resulting verification tool represents good performance in dectcting inconsisitency, and verifies the implementing our new solver into CESM. 
+  The resulting verification tool represents good performance in dectcting inconsisitency, and verifies the implementation of our new solver into CESM. 
 
 
 
