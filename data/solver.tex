@@ -171,7 +171,7 @@ $A$的元素总个数为202,500，但是只有3870个非零元素。非零元在
 \subsection{特征值谱和条件数}
 \label{solver:Algorithm:condition}
 
-POP正压模态中线性方程组的系数矩阵 $A$ 是正定对称的\cite{smith2010parallel}，因此它的特征值都是正实数\cite{stewart1976positive}。
+POP正压模态中线性方程组的系数矩阵 $A$ 是对称正定的\cite{smith2010parallel}，因此它的特征值都是正实数\cite{stewart1976positive}。
 假设系数矩阵的特征值谱\cite{golub2012matrix} 是 $\mathcal{S} = \{\lambda_1, \lambda_2, \cdots, \lambda_\aleph\}$，这里 $\lambda_{min} = \lambda_1 \le \lambda_k \le \lambda_\aleph = \lambda_{max}$( $1<k <\aleph $，$\aleph=N\times N$ 为 $A$的大小，即网格点的总数目 )表示$A$的所有特征值。
 
 利用 Gershgorin圆盘定理\cite{bell1965gershgorin}可知，对于任意的 $\lambda \in \mathcal{S}$，都存在一个数对 $(i,j)$ 满足
@@ -496,14 +496,12 @@ P_k(\lambda_1) & & &\\
 式（\ref{pcg_convergence}）和（\ref{csi_convergence}）表明，共轭梯度法和CSI方法的收敛速度的理论上界取决于系数矩阵的条件数。 
 这两个方法求解良态方程（系数矩阵的条件数很小）的收敛速度比求解病态方程（系数矩阵的条件数很大）的快很多。
 这里，我们通过海洋模式POP中的实际测试来验证一下这个理论结果。 
-在0.1度的海洋模式POP中，我们测试了三个不同的正压求解器在做了简单的对角化预处理之后的收敛情况。
-这三个求解器分别为CG求解器，ChronGear求解器（CG求解器的优化版本，将在第\ref{cha:precond}章进行详细介绍)，和CSI求解器。
+在0.1度的海洋模式POP中，我们测试了CG和CSI两个正压求解器在做了简单的对角化预处理之后的收敛情况。
 图\ref{fig:convergence_diag}给出了不同的正压求解器0.1度海洋模式中的真实的收敛速度。
 图中横轴表示迭代的步数，垂直轴表示求解器在对应迭代步时的残差。 
-如图中所示，三个求解器的相对残差随着迭代步数的增加而变小。
+如图所示，两个求解器的相对残差随着迭代步数的增加而变小。
 总共需要一百多迭代步才能够得到一个相对残差为$10^{-13}$的解。
-其中，CSI求解器的残差下降的速度要比共轭梯度法及其变形ChronGear求解器稍慢。
-尽管ChronGear方法改变了CG方法的计算顺序，CG方法和ChronGear在每一步的迭代速度几乎一致。
+其中，CSI求解器的残差下降的速度要比CG求解器稍慢。
 CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的迭代步骤中收敛速度变快。
 这主要与系数矩阵的特征值的分布有关系。 
 
