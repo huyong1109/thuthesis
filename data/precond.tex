@@ -1,4 +1,4 @@
-\chapter{海洋模式正压预处理技术}
+\chapter{基于误差向量传播方法的并行块预处理技术}
 \label{cha:precond}
 
 \section{本章概述}
@@ -666,11 +666,36 @@ Aries高速网络以蜻蜓拓扑的结构连接起来。
 \label{precond:exp:error}
 
 
-\begin{figure}%[!htbp]
+\begin{figure}[!ht]
 \centering
-\includegraphics[ height=10cm]{EvpBug_fix_gmd_new}
-\caption[] {0.1度海洋模式POP的海表盐度。 \label{fig:sst}}
-\end{figure}
+\begin{subfigure}[t]{1\textwidth}
+\centering
+\vspace{-20pt}
+\includegraphics[height =7cm]{sst1}
+\vspace{-20pt}
+\label {fig:sst1}
+\caption{使用原始正压求解器（ChronGear）模拟一天得到的海表位温。}
+\end{subfigure}
+\begin{subfigure}[t]{1\textwidth}
+\centering
+\vspace{-5pt}
+\includegraphics[height =7cm]{sst2}
+\vspace{-20pt}
+\label {fig:sst2}
+\caption{使用改进后的正压求解器（P-CSI+EVP）模拟一天得到的海表位温。}
+\end{subfigure}
+\begin{subfigure}[t]{1\textwidth}
+\centering
+\vspace{-5pt}
+\includegraphics[height =7cm]{sst_diff}
+\vspace{-20pt}
+\label {fig:sst3}
+\caption{使用改进前后两个不同的正压求解器，模拟一天得到的海表位温的差别。}
+\vspace{5pt}
+\end{subfigure}
+\caption{0.1度POP中，使用不用正压求解器模拟一天之后得到的海表位温的比较。}
+\label {fig:sst}
+\end {figure}
 
 上一章中，我们比较了1度模拟中，不同求解器得到的结果之间的差别。 
 这里，我们给出高分辨，即0.1度POP模拟中使用不同求解器所得到的结果之间的差别。

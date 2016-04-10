@@ -1,4 +1,4 @@
-\chapter{海洋模式正确性验证}
+\chapter{基于集合模拟的海洋模式一致性检测}
 \label{cha:verify}
 
 \section{本章概述}
@@ -259,17 +259,29 @@ X_F(t)-X(t) = \frac{F}{\alpha}
 
 \begin {figure} 
 \centering
-\includegraphics[height =8cm]{pert-force}
-\caption{ 图的上面部分给出的是方程(\ref{e:2}) 在给定的初值场扰动(P)和给定的强迫场扰动(F)下对应的解析解。
-注意到所有的四个扰动在原始的（也就是没有加入任何扰动）结果上取得的效果是相似的。 图的下面部分给出的是加入这四种扰动之后得到的结果与原始结果的差。这个实验中，由于强迫场上的扰动(F)所导致的误差是固定的，并且比初值场上的扰动(P)带来的误差小很多一个量级。}
-\label {fig:1Danalytical}
+\begin{subfigure}[t]{1\textwidth}
+\centering
+\includegraphics[height =5cm]{pert-force1}
+\caption{加入初值场扰动(P)或强迫场扰动(F)后得到的解析解。\label{fig:1Danalytical1}}
+\vspace{10pt}
+\end{subfigure}
+\begin{subfigure}[b]{1\textwidth}
+\centering
+\includegraphics[height =5cm]{pert-force2}
+\caption{加入初值场扰动(P)或强迫场扰动(F)后得到的解与原始解的差。\label{fig:1Danalytical2}}
+\vspace{10pt}
+\end{subfigure}
+\caption{方程(\ref{e:2}) 在给定的初值场扰动(P)和给定的强迫场扰动(F)下对应的解析解，以及这个结果与原始解之间的差别。}
+\label{fig:1Danalytical}
 \end {figure}
 
 式 (\ref{e:Ferr}) 表明强迫场中加入固定的干扰项后对结果产生的影响也是固定的。
 因此，我们可以用方程(\ref{e:Perr})的初始场中引入扰动所带来的误差的量级来衡量在方程(\ref{e:Ferr})的强迫场中引入扰动所带来的误差。 
 举个例子，在图\ref{fig:1Danalytical}中给出一个初始扰动和强迫扰动对方程(\ref{e:2})的最终结果的影响。
 在这个例子中，强迫项的扰动所引起的误差比初始条件扰动所引起的误差还小。
-这张图的上面显示的是方程(\ref{e:Pan}) 和 (\ref{e:Fan})所给出的解析解，下面显示的方程 (\ref{e:Perr}) 和 (\ref{e:Ferr}) 所给出的是不同的$P$和$F$的值得到的结果的误差。
+图\ref{fig:1Danalytical1}显示的是方程(\ref{e:Pan}) 和 (\ref{e:Fan})所给出的解析解，图\ref{fig:1Danalytical2}显示的方程 (\ref{e:Perr}) 和 (\ref{e:Ferr}) 所给出的是不同的$P$和$F$的值得到的结果的误差。
+这个实验中，所有的四个扰动在原始的（也就是没有加入任何扰动）结果上取得的效果是相似的。 
+由强迫场上的扰动(F)所导致的误差是固定的，并且比初值场上的扰动(P)带来的误差小一个量级。
 我们可以看出，当初始值扰动的组合足够多时，它们所带来的误差的集合，可以在任何时间覆盖强迫场所带来的误差。 
 因此，我们选择使用基于由扰动海洋模式初始的温度场而得到的集合模拟结果来评估求解器或者其它模拟过程中所引入的不确定性是合理的。
 
