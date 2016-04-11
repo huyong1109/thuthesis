@@ -15,10 +15,10 @@ POP将这个椭圆方程空间离散化之后得到一个线性系统$Ax=b$，�
 
 本章的主要内容是通过分析正压模态的通信瓶颈，设计一个适合并行海洋模式正压模态的高可扩展的求解器。 
 本章首先从海洋模式的原始方程导出正压模态的理论模型，进而分析离散化之后得到的线性方程组的基本性质，同时给出方程组系数矩阵的条件数与网格横纵比例、时间步长以及网格点数目等之间的关系。 
-其次，我们建立了一个量化海洋模式正压模态中求解线性方程组的共轭梯度法的可扩展性瓶颈的模型。
-基于这个模型，我们确定了共轭梯度法在分布式并行系统上的可扩展性不好的原因是每一步迭代过程中都需要时间开销很大的全局归约操作。 这个模型还表明，以前被视为效率不如共预处理轭梯度法的传统的Stiefel迭代方法（CSI）在某些大规模并行环境中反而更有优势。
-最后，我们在海洋模式POP中实现了基于CSI方法的正压求解器。 相比于共轭梯度法，CSI算法的迭代过程中的迭代参数不是由前一步迭代后的残差的內积计算得到的，而是由系数矩阵$A$的特征值谱决定。 
-我们采用Lanczos方法解决了估计大规模矩阵$A$的特征值这一难题。 
+其次，本章建立了一个量化海洋模式正压模态中求解线性方程组的共轭梯度法的可扩展性瓶颈的模型。
+这个模型确定了共轭梯度法在分布式并行系统上的可扩展性不好的原因，即每一步迭代过程中都需要时间开销很大的全局归约操作。 这个模型还表明，以前被视为效率不如共预处理轭梯度法的传统的Stiefel迭代方法（CSI）在某些大规模并行环境中反而更有优势。
+最后，本章在海洋模式POP中提出并实现了一个基于CSI方法的正压求解器。 相比于共轭梯度法，CSI算法迭代过程中的迭代参数不是由前一步迭代后的残差的內积计算得到的，而是由系数矩阵$A$的特征值谱决定。 
+本章提出了一个基于Lanczos方法的特征值估计方法，解决了估计大规模矩阵$A$的特征值这一难题。 
 通过Lanczos方法可以构造出一个规模很小的三对角矩阵，它的特征值逐渐的逼近系数矩阵的$A$的部分特征值。 
 使用CSI方法替换原来的共轭梯度法，可以完全消除海洋模式正压模态中的归约操作以及其所导致的较差的可扩展性。 
 实验表明，新的CSI方法比原来的共轭梯度法有更好可扩展性。在15,000核上，CSI方法使得正压模态的求解速度提高了4.7倍。
@@ -30,8 +30,9 @@ POP将这个椭圆方程空间离散化之后得到一个线性系统$Ax=b$，�
 \section{海洋模式正压模态}
 \label{solver:baro}
 
-海洋模式是由描述海洋运动基本定律的微分方程组所构成的系统。由于这个系统是高度非线性的，很难得到有实用价值的解析解。我们需要采用数值方法求解，即将地球划分成一个三维网格，然后在这个三维网格上进行各种物理量的迭代演算。演算过程中加入所需要的边界和强迫场，这样就能够近似的模拟海洋的运动和变化过程。
-为了完整的推导我们的新的正压求解器，这里我们简要的描述一下海洋模式POP中的控制方程。
+海洋模式是由描述海洋运动基本定律的微分方程组所构成的系统。由于这个系统是高度非线性的，很难得到有实用价值的解析解。
+气候系统需要采用数值方法求解，即将地球划分成一个三维网格，然后在这个三维网格上进行各种物理量的迭代演算。演算过程中加入所需要的边界和强迫场，这样就能够近似的模拟海洋的运动和变化过程。
+为了完整的推导新的正压求解器，这里简要的描述一下海洋模式POP中的控制方程。
 海洋模式中的原始动量和连续性方程可以表达如下：
 \begin{align}
 &\frac{\partial }{\partial t} \textbf{u} +\mathcal{L}(\textbf{u}) + f\times \textbf{u} = - \frac{1}{\rho_0}\nabla p +F_H(\textbf{u}) +F_V(\textbf{u}) \label{eq:momen}\\
@@ -83,7 +84,7 @@ w = \left\{ \begin{array}{ll}
            = -\nabla\cdot H[\frac{\textbf{U}^{n-1}}{g \tau} + \frac{F}{g}] + \frac{\eta^n}{g\tau^2} +\frac{q_w}{g\tau}
 \end{equation}
  
-为了简单，我们将椭圆方程（\ref{eq:sshdiscret}）重新标记为
+为了简单，将椭圆方程（\ref{eq:sshdiscret}）重新标记为
 \begin{equation}
 \label{eq:ssh}
 [-\nabla \cdot H\nabla +\frac{1}{g  \tau^2}]\eta^{n+1} = \psi(\eta^n,\eta^{n-1},\tau)
@@ -114,7 +115,7 @@ w = \left\{ \begin{array}{ll}
  
 
 为了避免极点问题，POP采用偏移的或者三极点的广义正交网格。这使得方程的系数非常的繁杂。
-为了能够简单而不失偏颇，我们这里给出系数矩阵在均匀的网格和给定的不变的海底深度$H$的情况下的显式表达式。
+为了能够简单而不失偏颇，这里给出系数矩阵在均匀的网格和给定的不变的海底深度$H$的情况下的显式表达式。
 表达式（\ref{eq:nabla2}）此时可以表示为
 \begin{align}
  [\nabla\cdot H \nabla \eta]_{i,j}&= -\frac{H}{S_{i,j}}(A_{i,j}^O\eta_{i,j}+A_{i,j}^{NW}\eta_{i-1,j+1}+A_{i,j}^N\eta_{i,j+1} \nonumber\\
@@ -146,7 +147,7 @@ w = \left\{ \begin{array}{ll}
 %&A_{i,j}^{S} = -2\alpha_2  + 2 \beta_2  \\
 %&A_{i,j}^{O} = -2\alpha_3  -4 \beta_3  \\
 %Then，the coefficients between the given point $(i,j)$和its other neighbors can be computed from $A^n$，$A^e$和$A^{ne}$ on its neighbors。
-我们假设全球区域上的网格大小为$N\times N$，则$1\le i\le N$，$1\le i\le N$。  
+假设全球区域上的网格大小为$N\times N$，则$1\le i\le N$，$1\le i\le N$。  
 方程\ref{eq:ssh}在给定点$(i,j)$上的离散格式可以表示为  
 \begin{align}
 \label{eq:sten}
@@ -160,7 +161,7 @@ w = \left\{ \begin{array}{ll}
 \includegraphics[height=7cm]{SparsePatternSample}
 \caption[] {大小为$30\times 15$的网格上椭圆微分方程采用九点差分格式所得到的线性方程组的系数矩阵的稀疏模式。 \label{fig:spy}}
 \end{figure}
-因此椭圆方程(\ref{eq:sshdiscret})就变成了一个关于$\eta$的线性方程组。我们记这个方程组为 $Ax= b$，其中$A$表示由系数 $A_{i,j}^{\chi } ( \chi \in \mathcal{Q}, i,j \in {1,\cdots, N)}$ 构成的块对角矩阵。
+因此椭圆方程(\ref{eq:sshdiscret})就变成了一个关于$\eta$的线性方程组。记这个方程组为 $Ax= b$，其中$A$表示由系数 $A_{i,j}^{\chi } ( \chi \in \mathcal{Q}, i,j \in {1,\cdots, N)}$ 构成的块对角矩阵。
 方程组的规模随着网格分辨率的提高而变大。对于一度的海洋模式，得到方程组包含有$\aleph = 138,240$个未知量，而0.1度分辨率的POP中，方程组中未知量的个数$\aleph$ 为$8,640,000$。这意味着如果用单精度浮点数将0.1度POP正压模态线性方程组的系数矩阵显式的存储起来需要大概300TB的空间。
 值得庆幸的是，海洋模式POP正压模态中得到的线性方程组是稀疏的。
 方程(\ref{eq:sten})还表明 $A$ 每一行只有九个非零元素，也就是说$A$是一个稀疏矩阵。 图\ref{fig:spy}展示了大小为$30\times 15$的网格点上得到的系数矩阵$A$的稀疏模式，可以看出来$A$具有带状的对角形式，它只有在对角及其附近的条带内有少量的非零元，而其他点的值都是零。
@@ -178,7 +179,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是对称正定的\cite{smi
 \begin{align}
 &|\lambda -  (A_{i,j}^O + \phi ) | \le \sum_{\chi \in \mathcal{Q} = \{NW,NE,SW,SE,W,E,N,S\}}|A_{i,j}^\chi|
 \end{align}
-由方程（\ref{defineA}）给出的系数的定义，我们可以得到如下结论 
+由方程（\ref{defineA}）给出的系数的定义，可以得到如下结论 
 \begin{align} \label{eigsGersh}
 &\lambda_{max} \le  \max (  5\alpha - \frac{1}{\alpha}, \frac{5}{\alpha}- \alpha) +\phi   \\
 &\lambda_{min} \ge 2\min (  \alpha - \frac{1}{\alpha},\frac{1} {\alpha} -  \alpha) + \phi
@@ -186,7 +187,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是对称正定的\cite{smi
 
 以上结论说明，当网格横纵比例（$\alpha  = \frac{ \Delta y}{ \Delta x }$）越接近于1时，最大特征值的上界会随之减少，而最小特征值的下界会随之变大。
 也就是说，系数矩阵特征值谱的半径($[\lambda_{min}, \lambda_{max}]$)随着网格横纵比向着1的接近而变小。 
-当水平网格的横纵比等于1时，即$ \alpha = \frac{ \Delta y}{ \Delta x} = 1$，我们可以得到$\lambda_{max} \le  4 +\phi$，$\lambda_{min} \ge   \phi$。
+当水平网格的横纵比等于1时，即$ \alpha = \frac{ \Delta y}{ \Delta x} = 1$，可以推出$\lambda_{max} \le  4 +\phi$，$\lambda_{min} \ge   \phi$。
 这时，系数矩阵的条件数(即 $\kappa=  \lambda_{max}/\lambda_{min}$)，由于是由特征值谱的半径所决定的，也会随着网格横纵比向1的靠近而变小。 
 
 \begin{figure}[ht]
@@ -194,7 +195,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是对称正定的\cite{smi
 \includegraphics[height=7cm]{conditionNumberAspectRatio}
 \caption[] {固定网格点数$\aleph = 20\times 20$和$\phi = 0$时，正压线性方程组的系数矩阵的条件数与网格横纵比例的关系。 \label{fig:conditionNumberRatio}}
 \end{figure}
-图\ref{fig:conditionNumberRatio}所给出的结果验证了我们的这个结论。图\ref{fig:conditionNumberRatio}的横坐标表示网格的横纵比例，纵坐标表示当使用固定的网格点数$\aleph = 20\times 20$和固定的$\phi = 0$时，对应的系数矩阵的条件数。 
+图\ref{fig:conditionNumberRatio}所给出的结果验证了以上结论。图\ref{fig:conditionNumberRatio}的横坐标表示网格的横纵比例，纵坐标表示当使用固定的网格点数$\aleph = 20\times 20$和固定的$\phi = 0$时，对应的系数矩阵的条件数。 
 可以看出，在区间$(1, +\infty)$上，系数矩阵的条件数随着网格横纵比例的增加而增加，而在区间$(0,1)$上，系数矩阵的条件数随着网格横纵比例的增大而变小。
 系数矩阵的条件数在网格横纵比例等于1时取到最小值。
  
@@ -231,7 +232,7 @@ POP正压模态中线性方程组的系数矩阵 $A$ 是对称正定的\cite{smi
 
 POP将全球区域划分为若干个小块，并将这些块分发给每一个进程。
 每个进程只负责计算它所分得的块内网格点上的迭代过程，并且维护一个与周围进程进行数据交换的边界区域。 
-为了简洁，在本文中，我们假设整个区域的网格大小为$N\times N$，它被划分为$m\times m$个大小为$n\times n$ ($n=N/m$)的小块。 
+为了简洁，本文假设整个区域的网格大小为$N\times N$，它被划分为$m\times m$个大小为$n\times n$ ($n=N/m$)的小块。 
 假使块$B(k,l)$上对应的系数矩阵和解分别为$\textbf{B}$和$\tilde{\textbf{x}}$，那么$\textbf{B}$就是系数矩阵$A$的一个大小为$n^2\times n^2$的对角子矩阵，并且每一行最多只有九个非零元\cite{hu2013scalable}。 
 于是，矩阵向量乘操作 $\textbf{B}\tilde{\textbf{x}}$只包含有$9n^2$次浮点数乘法操作，而不是$n^2\times n^2$次操作。 
  
@@ -241,7 +242,7 @@ POP将全球区域划分为若干个小块，并将这些块分发给每一个�
  
 海洋模式POP的正压模态中使用传统的共轭梯度法结合一个对角预处理子$M = \Lambda(A)$ 作为它的默认求解器。 
 对角预处理是最简单的一种预处理方式，作用是去掉椭圆方程中各项奇异性给系数矩阵带来的影响。
-下一章中，我们在讨论更为复杂的预处理时再考虑通用预处理的情况。
+下一章将讨论更为复杂的预处理时再考虑通用预处理的情况。
 这个默认求解器在小规模并行时效率很高。 
 对角预处理的共轭梯度法的过程如下： 
 
@@ -320,17 +321,17 @@ $\mathcal{T}_c=  (4 n^2 +2n^2+ 9n^2)\theta = 15n^2\theta  = 15\frac{N^2}{p}\thet
 t_{CG} = \mathcal{K}_{CG}\cdot \mathcal{T}_{CG}
 \end{equation}
 这里$\mathcal{K}_{CG}$表示共轭梯度法达到收敛所需要的迭代步数，它不会随着进程数的增加而改变。
-我们将在第\ref{solver:CG:convergence_rate}节中详细分析共轭梯度法的收敛速度。
+第\ref{solver:CG:convergence_rate}节将会详细分析共轭梯度法的收敛速度。
 由方程（\ref{t_pcg}）可知，计算和边界更新所需要的时间会随着进程数的增大而减少，但是全局归约操作的时间却会随着进程数的增加而增大。
 因此，整个共轭梯度法的运行时间在当进程数大于某个数值时，会随之增大而增大。
 
 
  
-我们在清华大学的探索100集群上，使用１度的海洋模式POP (360$\times$240 个网格点)做了一系列的实验。 
+为了得到共轭梯度法的真实模拟时间，我们在清华大学的探索100集群上，使用１度的海洋模式POP (360$\times$240 个网格点)做了一系列的实验。 
 探索100包含有740个计算节点，每个计算节点都有两个2.93 GHz 英特尔Xeon X5670 6核处理器以及24/48 GB的内存。 
-我们采用了一个并行程序的性能评测和追踪的工具--TAU\cite{shende2006tau}，来分析CG求解器的时间开销。 
+实验采用了一个并行程序的性能评测和追踪的工具--TAU\cite{shende2006tau}，来分析CG求解器的时间开销。 
 然后利用实验中每个正压步中不同分量的平均耗时和评测模型中的时间进行对比。 
-在评测模型中，我们将$\mathcal{G}(\cdot)$设为一个线性函数，$\varpi$设为 $2\times 10^{-7}$，$\theta$ 设为$2.5\times 10^{-9}$ ， $\vartheta$  设为$2.0\times 10^{-10}$。 
+评测模型将$\mathcal{G}(\cdot)$设为一个线性函数，$\varpi$设为 $2\times 10^{-7}$，$\theta$ 设为$2.5\times 10^{-9}$ ， $\vartheta$ 设为$2.0\times 10^{-10}$。 
 
 
 \begin{figure}[ht]
@@ -342,7 +343,7 @@ t_{CG} = \mathcal{K}_{CG}\cdot \mathcal{T}_{CG}
 实验中正压模态的计算时间确实是和进程数成反比的。 
 实验中的边界更新时间在进程数超过100时基本上保持不变，这是因为当进程数比较大的时候，边界通信的消息大小变得非常小，以至于数据传输的时间相比于网络延迟可以忽略掉。 
 全局归约操作的时间随着进程数的增加而成比例的变大，并且当使用的进程数大于100时，全局归约操作成为了正压模态中最为耗时的部分。 
-这个结果和我们方程(\ref{t_pcg})给出的理论分析的结果是一致的，即全局归约操作是共轭梯度法可扩展性差的根本原因。 
+这个结果和方程(\ref{t_pcg})给出的理论分析的结果是一致的，即全局归约操作是共轭梯度法可扩展性差的根本原因。 
 
 \subsection{共轭梯度法收敛速度} \label{solver:CG:convergence_rate}
 
@@ -369,14 +370,14 @@ t_{CG} = \mathcal{K}_{CG}\cdot \mathcal{T}_{CG}
 \label{solver:csi}
 
 为了解决共轭梯度法的可扩展性瓶颈，新的求解器需要的全局归约操作越少越好。 
-我们在海洋模式中重新考虑一些原本被认为是不如共轭梯度法的方法，比如Chebyshev迭代方法。
+本文在海洋模式中重新考虑一些原本被认为是不如共轭梯度法的方法，比如Chebyshev迭代方法。
 早在1985年，Saad等人\cite{saad1985solving}将传统的CSI的方法应用于向量机上，并且指出当方程中矩阵的特征值已知的条件下，这种方法比共轭梯度法更适用于某些并行情况。  
 Gutknecht \cite{gutknecht2002chebyshev} 在2002年有一篇文章专门的重新研究了一下Chebyshev迭代在通信开销较大的大规模并行环境中性能。 
 传统的Stiefel迭代（CSI）就是Chebyshev迭代方法中的一种。 
 
 
-我们使用CSI方法在海洋模式POP中实现了一个并行正压求解器，称之为CSI求解器。
-我们在算法\ref{alg:csi}中给出了CSI的迭代过程。
+本文提出使用CSI方法在海洋模式POP中实现了一个并行正压求解器，称之为CSI求解器。
+算法\ref{alg:csi}给出了CSI的迭代过程。
 与共轭梯度法不同的是，CSI方法 在每一步迭代过程中不需要做內积操作，因此它在大核数上也能够保持较好的可扩展性。
 CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征值$\nu$进行估计。 
 众所周知，计算稀疏矩阵的特征值要比求解线性方程组本身还要难。 
@@ -398,20 +399,20 @@ CSI需要对预处理后的系数矩阵$A$的最大特征值$\mu$和最小特征
 \STATE $\textbf{r}_{k} =\textbf{b}- \textbf{B}\textbf{x}_{k}$;\label{AlgCsiVec3}
 \STATE $update\_halo(\textbf{r}_k)$; \COMMENT{边界通信}\label{AlgCsiBound}
 \IF{ $k \% K_{c} == 0$}
-\STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $K_c$ 检查一次是否收敛}
+\STATE \textbf{if} $||\textbf{r}_{k+1}|| \le \epsilon$  \textbf{return} ;\COMMENT{每 $K_c$ 步检查一次收敛}
 \ENDIF\ENDWHILE
 \end{algorithmic}
 \end{algorithm}
 
-如算法\ref{alg:csi}所示，CSI方法和共轭梯度法有相似的迭代过程，迭代过程中有相似的计算和边界通信过程。
-但是CSI方法将共轭梯度法中的两次向量內积操作及其相应的向量向量乘积的计算替换成了系数矩阵$A$的最大最小特征值的一个函数迭代。 我们接下来先分析CSI算法的复杂度，然后给出特征值估计的方法。
+如算法\ref{alg:csi}所示，CSI方法和共轭梯度法有相似的迭代过程，迭代过程中都有相应的计算和边界通信过程。
+但是CSI方法将共轭梯度法中的两次向量內积操作及其相应的向量向量乘积的计算，替换成了系数矩阵$A$的最大最小特征值的一个函数迭代。 接下来的章节先分析CSI算法的复杂度，然后给出特征值估计的方法。
 
 \subsection{CSI方法复杂度及评估} \label{solver:Algorithm:complex}
 
-跟第\ref{solver:pcgComplex}节中共轭梯度方法复杂度的分析一样，我们也可以给出CSI求解器的计算和通信时间开销。
+跟第\ref{solver:pcgComplex}节中共轭梯度方法复杂度的分析一样，这里给出CSI求解器的计算和通信时间开销。
 CSI求解器的计算时间可表示为
 $\mathcal{T}_c =  (2 n^2 + 9n^2)\theta = 11n^2\theta =\frac{11N^2}{p}\theta$。 
-由于CSI方法和共轭梯度法求解器所使用的边界区域是一样的，因此边界更新的操作的开销也是 $\mathcal{T}_b =4\varpi + \frac{8N}{\sqrt{P}}\vartheta$。 CSI方法除了收敛性判断之外本身并不包含全局归约操作。 
+由于CSI方法和共轭梯度法求解器所使用的边界区域是一样的，因此边界更新的操作的开销也是 $\mathcal{T}_b =4\varpi + \frac{8N}{\sqrt{p}}\vartheta$。 CSI方法除了收敛性判断之外并不包含全局归约操作。 
 因此，每一步CSI迭代的时间开销可表示为： 　
 \begin{equation}
 \label{t_csi}
@@ -423,18 +424,18 @@ $\mathcal{T}_c =  (2 n^2 + 9n^2)\theta = 11n^2\theta =\frac{11N^2}{p}\theta$。
 \label{t_csi_all}
 t_{CSI} = \mathcal{K}_{CSI}\cdot \mathcal{T}_{CSI}
 \end{equation}
-这里$K_{CSI}$表示CSI求解器达到收敛所需要的迭代步数。
-在章\ref{solver:CSI:convergence_rate}节中，我们将会证明在相同的收敛条件下，$\mathcal{K}_{CSI}$通常比$\mathcal{K}_{CG}$稍微大一些。
+这里$\mathcal{K}_{CSI}$表示CSI求解器达到收敛所需要的迭代步数。
+正如第\ref{solver:CSI:convergence_rate}节将会证明的那样，在相同的收敛条件下，$\mathcal{K}_{CSI}$通常比$\mathcal{K}_{CG}$稍微大一些。
 
 
 
-\begin {figure}%[htbp]
+\begin {figure}[ht]
 \centering
 \includegraphics[height=7cm]{evaluate_CSI}
 \caption[] { 1度POP中CSI求解器的每一步迭代中各部分耗时分析}
 \label{fig:cst_ratio}
 \end{figure}
-同样，我们利用TAU测试了１度的海洋模式POP在清华大学的探索100集群上时间开销，并且与理论模型进行比较。
+与CG求解器的评测一样，这里利用TAU测试了１度的海洋模式POP在清华大学的探索100集群上时间开销，并且与理论模型进行比较。
 如图\ref{fig:cst_ratio}所示，理论模型预测的CSI的可扩展性的表现与真实试验中的结果基本一致。
 可以看出，CSI的迭代步中计算和通信的时间开销与CG求解器基本相同，CSI一个迭代步中的计算时间略小于共轭梯度法。
 这一点符合两个求解器的理论模型的分析结果（参见式（\ref{t_pcg}）和（\ref{t_csi}） ）。
@@ -457,7 +458,7 @@ P-CSI方法的收敛速度可以用残差的形式表示为
 \end{equation}
 这里
 $P_k(\zeta) = \frac{\tau_k(\beta-\alpha \zeta)}{\tau_k(\beta)}$($ \zeta \in [\nu, \mu]$)~\cite{stiefel1958kernel}。
-$\tau_k(\xi)$ 是Chebyshev多项式，它的表达式为  
+$\tau_k(\xi)$ 表示Chebyshev多项式，它的具体表达式为  
 \begin{equation*}
 \tau_k(\xi) =   \frac{1}{2}[(\xi+\sqrt{\xi^2-1})^k+(\xi+\sqrt{\xi^2-1})^{-k}]
 \end{equation*}
@@ -468,7 +469,7 @@ P_k = \min_{p\in \mathcal{P}_k, p(0) = 1 }\max_{\zeta \in [\nu,\mu]} |p(\zeta)|
 \end{equation}
 
 
-假设$A= Q^T\Lambda Q$，这里 $\Lambda$ 表示以$A$的特征值为对角元素的对角矩阵，而 $Q$ 表示以  $A$的特征向量为列的实正交矩阵。于是，我们可以得到
+假设$\Lambda$ 表示以$A$的特征值为对角元素的对角矩阵，而 $Q$ 表示以  $A$的特征向量为列的实正交矩阵，并且满足$A= Q^T\Lambda Q$， 则可以得到
 \begin{equation}
 P_k(A) = Q^T P_k(\Lambda)Q = Q^T \left [\begin{array}{cccc}
 P_k(\lambda_1) & & &\\
@@ -478,16 +479,16 @@ P_k(\lambda_1) & & &\\
 \end{array} \right ] Q \label{eq:PjMA}
 \end{equation}
  
-假设所估计的系数矩阵的最大最小特征值$\nu$和$\mu$满足$0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$。
+假设所估计的系数矩阵的最大最小特征值$\mu$和$\nu$满足$0 < \nu \le \lambda_i \le \mu$ ($i = 1, 2, \cdots, \aleph$)，这时有$|\beta - \alpha \lambda_i| \le 1$, $|P_k(\lambda_i)| \le \tau^{-1}_k (\beta)$。
 方程 \ref{eq:rPjr0} 和 \ref{eq:PjMA} 可以推出
 \begin{equation}
 \label{csi_convergence}
 \frac{||\textbf{r}_k||_2}{||\textbf{r}_0||_2}  \le  \tau_k^{-1}(\beta) = \frac{2(\beta+\sqrt{\beta^2-1})^k}{1+(\beta+\sqrt{\beta^2-1})^{2k}} \le 2(\frac{\sqrt{\kappa'}-1}{\sqrt{\kappa'}+1})^k
 \end{equation}
 这里$\kappa' = \frac{\mu}{\nu}$。
-这个等式表明，当系数矩阵特征值的估计比较合理的时候（也就是$\kappa' =\kappa$)，CSI的收敛速度和CG有相同的理论上界。
+这个等式表明，当系数矩阵特征值的估计合理时（也就是$\kappa' =\kappa$)，CSI的收敛速度和CG有相同的理论上界。
 
-\begin {figure}
+\begin {figure}[!ht]
 \vspace{10pt}
 \centering
 \includegraphics[height=7cm]{Convergence_diag}
@@ -495,8 +496,8 @@ P_k(\lambda_1) & & &\\
 \end{figure}
 式（\ref{pcg_convergence}）和（\ref{csi_convergence}）表明，共轭梯度法和CSI方法的收敛速度的理论上界取决于系数矩阵的条件数。 
 这两个方法求解良态方程（系数矩阵的条件数很小）的收敛速度比求解病态方程（系数矩阵的条件数很大）的快很多。
-这里，我们通过海洋模式POP中的实际测试来验证一下这个理论结果。 
-在0.1度的海洋模式POP中，我们测试了CG和CSI两个正压求解器在做了简单的对角化预处理之后的收敛情况。
+这个理论结果可以通过以下的海洋模式POP中的实际测试进行验证。 
+在0.1度的海洋模式POP中，实验测试了CG和CSI两个正压求解器在做了简单的对角化预处理之后的收敛情况。
 图\ref{fig:convergence_diag}给出了不同的正压求解器0.1度海洋模式中的真实的收敛速度。
 图中横轴表示迭代的步数，垂直轴表示求解器在对应迭代步时的残差。 
 如图所示，两个求解器的相对残差随着迭代步数的增加而变小。
@@ -508,11 +509,11 @@ CSI方法在开始和最后的迭代中收敛速度比较慢，而在中间的�
 
 \subsection{特征值估计}
 \label{solver:eigs}
-我们在海洋模式POP中设计了基于Lanczos方法的特征值估计方法，它可以给出CSI求解器所需要的最大最小特征值的一个较好估计。
+在海洋模式POP中，本文设计了基于Lanczos方法的特征值估计方法，它可以给出CSI求解器所需要的最大最小特征值的一个较好估计。
 由第\ref{solver:CSI:convergence_rate}节的分析可知，当特征值的估计是准确的时，即$\nu = \lambda_{min}$，$\mu =\lambda_{max}$，CSI方法的收敛速度达到理论上的最优值。 
 但是得到最大最小特征值$\lambda_{min}$ 和 $\lambda_{max}$ 的精确值是很困难的。
 另外，由于系数矩阵$A$ 是分布在各个进程上的，因此不建议对它做任何形式的变形。  
-为了能够利用POP的并行特性，我们使用Lanczos方法来构造出一系列三对角矩阵$T_k(k=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$A$的最大最小特征值逼近。
+为了能够利用POP的并行特性，新的特征值估计方法使用Lanczos方法来构造出一系列三对角矩阵$T_k(k=1,2,...)$，这些矩阵的最大最小特征值逐渐的向$A$的最大最小特征值逼近。
 基于Lanczos方法的特征值估计的步骤如算法\ref{alg:lanczos}所示。 
 \begin{algorithm}
 \caption{ 基于Lanczos方法的特征值估计}
@@ -563,19 +564,20 @@ Paige\cite{Paige1980235} 给出了以下结论
 \end{equation}
 在算法\ref{alg:lanczos} 的第\ref{lanczos_tridiag}中，采用了高效的QR算法\cite{ortega1963llt}来估计最小特征值$\nu$，它的复杂度为$\mathcal{O}(k)$。
  
-\begin {figure}%[htbp]
+\begin {figure}[ht]
 \centering
 \includegraphics[height=7cm]{eigen_lanczos}
 \caption[] {Lanczos迭代步数和估计得到的特征值之间的关系\label{fig:lanczos_eigs}}
 \end{figure}
-实验中，我们发现当Lanczos迭代的步数选择合适时，我们能够得到最大最小特征值的一个比较好的估计，这个估计值能够使得CSI方法与共轭梯度法有相近的收敛速度。  
-我们在1度POP中，使用Lanczos方法求解CSI方法所需要的最大最小特征值。 
+  
+为了验证新的特征值估计方法的效果，本节在1度POP中，使用Lanczos方法求解CSI方法所需要的最大最小特征值。 
 图\ref{fig:lanczos_eigs}中可以看出，随着Lanczos迭代步数的增加，所估计得到的最大特征值逐渐增大，但是在十几步迭代之后便很快收敛到某个上界。
 而所估计的最小特征值随着Lanczos迭代步数的增加而不断变小，并且慢慢收敛到某一下界。 
 式（\ref{lanczos_minmax})的结论指出，Lanczos估计得到的最大最小特征值收敛于系数矩阵的最大最小特征值。
 因此，总体上只需要几十步Lanczos方法便可以得到系数矩阵的最大最小特征值的较好估计。
 
-\begin {figure}%[htbp]
+
+\begin {figure}[htbp]
 \centering
 \includegraphics[height=7cm]{scan_lanczos}
 \caption[] {Lanczos迭代步数和求解器达到给定收敛条件所需要的迭代步数之间关系\label{fig:lanczos_iter}}
@@ -590,29 +592,28 @@ Paige\cite{Paige1980235} 给出了以下结论
 \section{结果与分析} 
 \label{solver:exp}
 
-本章第\ref{solver:Algorithm:condition}节，给出了正压模态线性方程组系数矩阵的条件数与网格点总数目、网格横纵比例以及时间步长之间等正压模态的配置的关系。
+本章第\ref{solver:Algorithm:condition}节，给出了正压模态线性方程组系数矩阵的条件数与网格点的数目、网格横纵比例以及时间步长之间等正压模态的配置的关系。
 第\ref{solver:CG:convergence_rate}节和第\ref{solver:CG:convergence_rate}节的理论结论表明，共轭梯度法和CSI方法的收敛速度的理论上界都是由系数矩阵的条件数决定。
-因此，网格点总数目等因素决定了正压模态求解器的收敛速度。
-第\ref{solver:exp:ideal}节实验中，我们首先通过一组理想实验来说明正压求解器收敛速度与正压模态配置的参数之间的关系。 
+因此，网格点的数目等因素决定了正压模态求解器的收敛速度。
+第\ref{solver:exp:ideal}节首先通过一组理想实验来解释正压求解器收敛速度与正压模态配置的参数之间的关系。 
 
 本章针对海洋模式正压模态中原有的CG求解器在大规模并行时可扩展性差的问题，提出了新的求解方案--CSI求解器。
-第\ref{solver:exp:csi}节实验中，我们在大规模并行平台上测试了新的CSI求解器相比于原始CG求解器的性能。
-为了验证CSI方法的正确性，我们第\ref{solver:exp:diff}节实验中给出CSI求解过程在海洋模式POP中的误差。
-我们将在第\ref{cha:verify}章中，给出更加严格的正确性验证。 
+第\ref{solver:exp:csi}节测试了新的CSI求解器在大规模并行平台上相比于原始CG求解器的性能。
+为了验证CSI方法的正确性，第\ref{solver:exp:diff}节实验中给出CSI求解过程在海洋模式POP中的误差。
+更加严格的正确性验证将在第\ref{cha:verify}章中给出。 
 
 
 
 \subsection{求解器的收敛速度}\label{solver:exp:ideal}
 
-为了验证第\ref{solver:CG:convergence_rate}节和第\ref{solver:CSI:convergence_rate}节中所给出的收敛的理论结果，我们利用理想的试验设置构造了一系列条件数不同的矩阵。
-这里，我们不再采用全局固定的网格大小，而是采用均匀的经纬网格。
+为了验证第\ref{solver:CG:convergence_rate}节和第\ref{solver:CSI:convergence_rate}节中所给出的收敛的理论结果，本节利用理想的试验设置构造了一系列条件数不同的矩阵。
+这里的理想实验不再采用全局固定的网格大小，而是采用均匀的经纬网格。
 随着纬度$\theta$的变化，经度方向上的网格大小为 $\Delta x_j  = \pi R \cos (\theta_j)$。
 时间步长设置为$\tau = 10\frac{\Delta y}{c}$，这里$c = 200m/s$ 表示重力快波的速度\cite{smith2010parallel}。 
-我们用CG和CSI方法来求解得到的这些方程。
-实验中，收敛条件设为$tol = 10^{-6}$。 
+实验采用CG和CSI方法来分别求解这些理想问题，并且使用收敛条件$tol = 10^{-6}$。 
   
 
-\begin{figure} 
+\begin{figure}[!ht]
 \vspace{5pt}
 \centering
 \includegraphics[height=7cm]{iterationGridSize1}
@@ -628,28 +629,28 @@ Paige\cite{Paige1980235} 给出了以下结论
  
 \subsection{求解器的可扩展性} \label{solver:exp:csi}
 
-为了测试算法的可扩展性，我们在中国的国家超算中心的神威蓝光超级计算机上测试了0.1度的海洋模式POP（3600 $\times$ 2400个网格点）。
+为了测试算法的可扩展性，本节在中国的国家超算中心的神威蓝光超级计算机上测试了0.1度的海洋模式POP（3600 $\times$ 2400个网格点）。
 神威蓝光是由8,704个SW1600处理器由40Gb 无限带宽网络连接组成。
 每一个处理器包含16个1.1GHz的处理器核心以及16GB的内存。 
 
-\begin {figure}
+\begin {figure}[ht]
 \centering
 \includegraphics[height=8cm]{scale_pcg_csi}
 \caption []{ 0.1度POP中CG和CSI求解器的可扩展性 \label {fig:scale}}
 \end {figure}
-我们分别测试了CG和CSI两个版本的求解器在不同的处理器核数(100到 15,000)和不同的收敛条件（$\epsilon = 10^{-8}$ 到 $\epsilon = 10^{-16}$）时的性能。
+实验分别测试了CG和CSI两个版本的求解器在不同的处理器核数(100到 15,000)和不同的收敛条件（$\epsilon = 10^{-8}$ 到 $\epsilon = 10^{-16}$）时的性能。
 海洋模式POP中的收敛准则是 $||r||_2<\epsilon \bar{a}$，这里 $\bar{a}$ 表示总面积的均方根。 
 在单独版本的POP中，默认设置为 $\epsilon = 10^{-12}$。 
-如图\ref{fig:scale}所示，PCG 和 CSI 在小于  1,000核时可扩展性都很好。但是当使用超过1,000 核时，CSI相对于PCG的优势就很明显了。 
+如图\ref{fig:scale}所示，PCG 和 CSI 在小于  1,000核时可扩展性都很好。但是当使用超过1,000 核时，CSI相对于PCG的优势就逐渐明显。 
 当收敛条件为 $10^{-12}$时，在100核上CSI的执行时间只有PCG的87\%，这个比例在15,000核上下降到了 21\% 。
 但是PCG方法对于收敛条件没有CSI方法敏感。 
 当时收敛条件从$10^{-8}$变化到$10^{-16}$ 时，PCG方法的迭代步数从原来的20步增长到281步，但是CSI方法的迭代步数从33步增长到了1,434步。 
 但是，PCG方法在收敛速度上的优势并没有使得PCG方法完全的比CSI方法快。 
 只有当收敛条件是最为严格的$\epsilon = 10^{-16}$并且当使用的核心数少于1000核时，PCG的执行时间才会比CSI的短。
 其他情况下，PCG方法中的全局归约操作的开销并不能被迭代步数的减少给抵消掉。
-在1,500核上，当收敛条件$10^{-8}$ 和 $10^{-12}$时，PCG的执行时间是CSI的4.7倍，而当收敛条件为$10^{-16}$时，这个倍数仍然高达3.3。
+在1,500核上，当收敛条件为$10^{-8}$ 和 $10^{-12}$时，PCG的执行时间是CSI的4.7倍，而当收敛条件为$10^{-16}$时，这个倍数仍然高达3.3。
 由于全局归约操作的瓶颈，当使用的核心数大于1,000时，PCG求解器的执行时间随着所使用的核数的增加而增加。 
-相对应的，CSI算法一直到10,000核以上都能保持比较好的可扩展性。
+与之相对应的，CSI算法一直到10,000核以上都能保持比较好的可扩展性。
 
 %----------------------------------------------------------------------------
 \subsection{误差分析} \label{solver:exp:diff}
@@ -669,10 +670,10 @@ Paige\cite{Paige1980235} 给出了以下结论
 \bottomrule
 \end{tabular}
 \end{table}
-为了证明CSI方法并没有在海洋模式POP中引入误差，我们在清华大学的探索100集群（具体描述请参见第\ref{solver:pcgComplex}节）上对1度POP做了一组实验，分别使用PCG和CSI方法作为正压模态的求解器运行一段时间。 
+为了证明CSI方法并没有在海洋模式POP中引入误差，本节在清华大学的探索100集群（具体描述请参见第\ref{solver:pcgComplex}节）上对1度POP做了一组实验，分别使用PCG和CSI方法作为正压模态的求解器运行一段时间。 
 表格\ref{tab:err}给出的是这两个版本得到的结果的海表高度的差别。
 采用CSI和PCG的两个版本之间的平均误差相对于海表高度的绝对值非常的小。
-有意思的是，我们注意到，两者之间最大的误差主要出现在海岸线上。 这些地方比较尖锐的边界很容易造成差分格式的不稳定性。
+有意思的是，可以注意到，两者之间最大的误差主要出现在海岸线上。 这些地方比较尖锐的边界很容易造成差分格式的不稳定性。
 随着实验时间的延长，两个版本之间的误差也随着增大。 这并不是说求解器之间的误差在变大，而是由于海洋模式中湍流的累积效应将最初的小误差逐渐积累放大。 
 
 
@@ -684,17 +685,17 @@ Paige\cite{Paige1980235} 给出了以下结论
 但是他们的大部分都没有从根本上解决POP正压模态中的可扩展性瓶颈。 
 本章首先从海洋模式的原始方程组出发，建立了正压模态中海表高度的椭圆偏微分方程，
 然后经过离散化之后得到了对应的离散后的线性方程组。
-通过理论分析和实验验证，我们得到了影响这个线性方程组性质的关键因素是网格横纵比例，时间步长以及分辨率等。
+通过理论分析和实验验证，本章得到了影响这个线性方程组性质的关键因素是网格横纵比例，时间步长以及分辨率等。
 
-共轭梯度法是求解海洋模式正压模态的常见方法，本章针对POP中的共轭梯度法的通信瓶颈，提出了一个评估海洋模式POP正压模态的模型，通过这个模型，我们对共轭梯度法的可扩展性进行量化，并且发现，正压模态中全局通信是其可扩展性的瓶颈。
+共轭梯度法是求解海洋模式正压模态的常见方法，本章针对POP中的共轭梯度法的通信瓶颈，提出了一个评估海洋模式POP正压模态的模型。这个模型对共轭梯度法的可扩展性进行量化，其量化结果表明正压模态中全局通信是其可扩展性的瓶颈。
 这个模型从理论上证明了CSI方法在并行环境中的优越性。 
 
 CSI方法没有耗时的全局通信操作，但是需要预估系数矩阵的最大最小特征值。
-我们利用Lanczos方法，可以高效地对系数矩阵两个极端的特征值进行估计。
-通过对收敛速度的证明，我们发现新的CSI方法和原始的共轭梯度法有相同量级的收敛速度。
-进一步分析两个算法的复杂度，我们预测，CSI求解器由于没有可扩展性差的全局通信操作，在大规模并行是应该会比CG求解器的速度快。
+使用Lanczos方法可以高效地对系数矩阵两个极端的特征值进行估计。
+收敛速度的理论分析表明，新的CSI方法和原始的共轭梯度法有相同量级的收敛速度。
+对两个算法复杂度的进一步分析表明，CSI求解器由于没有可扩展性差的全局通信操作，在大规模并行是应该会比CG求解器的速度快。
 
-最后，我们将CSI方法实现在海洋模式POP中并进行测试。实验结果表明，CSI方法比原始的共轭梯度法有更好的可扩展性。
-同时，我们通过比较新的求解器与原始求解器所得到的结果，证明了新的求解器不会在海洋模式中引入显著的误差。
-总之，这篇文章提出了一个比传统的共轭梯度法更有前景的求解椭圆方程的方法。 
+最后，本文将CSI方法实现在海洋模式POP中并进行测试。实验结果表明，CSI方法比原始的共轭梯度法有更好的可扩展性。
+同时，通过比较新的求解器与原始求解器所得到的结果，证明了新的求解器不会在海洋模式中引入显著的误差。
+总之，本文提出了一个比传统的共轭梯度法更有前景的求解椭圆方程的方法。 
 
