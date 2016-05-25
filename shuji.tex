@@ -1,26 +1,28 @@
+% !Mode:: "TeX:UTF-8"
+%!TEX program = xelatex
 \documentclass[type=master]{thuthesis}
 
 \ifxetex
-  \setCJKfamilyfont{zhfs}[RawFeature={vertical:}]{STFangsong}
+  \setCJKfamilyfont{zhfs}[RawFeature={vertical:}]{Fangsong}
 \else % for latex/pdflatex
-  \usepackage{CJKvert}
+ \usepackage{CJKvert}
 \fi
 
 \begin{document}
 \thusetup{
-  cauthor={薛瑞尼},
-  ctitle={没有英文的中文标题}
+  cauthor={胡勇},
+  ctitle={高分辨率海洋模式中高效可扩展的正压模态求解方法研究}
 }
 
-\shuji % 使用默认标题和默认作者
+%\shuji % 使用默认标题和默认作者
 
-\shuji[使用默认作者的标题]
+%\shuji[高分辨率海洋模式中高效可扩展的正压模态求解方法研究]
 
-\shuji[同时修改标题和作者的标题][尼瑞薛]
+\shuji[高分辨率海洋模式中高效可扩展的正压模态求解方法研究][胡勇]
 
-\ifxetex
-  \shuji[清华大学学位 \raisebox{-5pt}{\LaTeX} 论文模板 \raisebox{-5pt}{v\version} 样例]
-\else
+ \ifxetex
+  \shuji[清华大学学位 \raisebox{-5pt}{\LaTeX} 论文模板 \raisebox{-5pt}{v\version} 样例] 
+  \else 
   \shuji[清华大学学位 \raisebox{8pt}{\LaTeX} 论文模板 \raisebox{8pt}{v\version} 样例]
-\fi
+ \fi
 \end{document}
